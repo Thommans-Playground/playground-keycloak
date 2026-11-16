@@ -4,7 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project state
 
-This repository is currently empty aside from this file and the README — there is no application code, build tooling, or test suite yet. There are no build/lint/test commands to document until code is added; update this file as soon as a stack is chosen.
+Phase 1 is built: a working Keycloak auth module, from the source specs ([docs/specs/keycloak-auth-module.md](docs/specs/keycloak-auth-module.md)).
+
+- `keycloak-config/`: Docker compose and the `playground` realm import (the part that becomes the `keycloak-config` repo in phase 2).
+- `apps/api/`: FastAPI, Python 3.12+, managed with `uv`. `app/domain` is pure rules, `app/ports.py` the ports, `app/adapters` Keycloak admin and SQLAlchemy.
+- `apps/web/`: Next.js 16 (App Router, `proxy.ts` not `middleware.ts`), TypeScript, shadcn (Base UI, so `render` not `asChild`), `openid-client`. Read `node_modules/next/dist/docs/` before changing Next code.
+
+Commands: `docker compose up -d --build` at the root runs everything (Keycloak, API, web; the guide is docs/GETTING-STARTED.md); or `docker compose up -d` in `keycloak-config/` for Keycloak alone; `uv run uvicorn app.main:create_app --factory` and `uv run pytest` in `apps/api/`; `npm run dev`, `npm run build`, `npm test`, `npm run lint` in `apps/web/`. Full steps in README.md.
+
+Rules that matter: the token says who, our database says what they may do (roles and status are read on every request); the browser never sees a token; account changes need a reason and are audited. `docs/specs/source/` is a read-only copy of the source specs.
 
 ## Project intent
 
