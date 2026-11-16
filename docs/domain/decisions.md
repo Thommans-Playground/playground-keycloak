@@ -102,3 +102,31 @@ request queue.
 - FR-5 still says account roles are member, administrator or auditor.
 - UC-A4 (time-limited access) is still undecided.
 - OBJ-A2, OBJ-A3, SET-7, RULE-A4 and RULE-A5 are linked from the Access pages but have no files here.
+
+## 26. AWS is the target, and the code follows DDD, TDD and hexagonal (17 Nov 2026)
+
+**Decided.** Two standing constraints, by the owner.
+- **The final application always runs on AWS.** The organisation is AWS native. The playground may use open source
+  engines locally, but each has an AWS equivalent, and the move is configuration, not a rewrite: PostgreSQL becomes
+  Amazon RDS (or Aurora) for PostgreSQL, for Playground's own database and for Keycloak's. **Keycloak stays the identity
+  provider and runs on ECS Fargate with RDS**, as in the prototype, so decision 23 is unchanged. Other pieces map as
+  follows: the web session store (in memory today) to ElastiCache, secrets to Secrets Manager, project files to S3 and
+  logs to CloudWatch.
+- **The application, frontend and backend, follows domain driven design, test driven development and hexagonal
+  architecture (ports and adapters).** The domain is pure rules. Everything outside it (database, Keycloak, session
+  store, AWS services) sits behind a port with an adapter. A rule or a use case gets its failing test first.
+
+**Why.** A prototype that uses an engine the target does not have hides problems until the move. SQLite hides
+differences in types, locking and migrations, so the API's database is now PostgreSQL, the engine behind RDS. Ports
+and adapters are what make the swap cheap: an adapter changes and the domain does not.
+
+**Changes.** The API's database is PostgreSQL (`api-db` in Docker Compose). The API tests run on SQLite for speed, and on
+PostgreSQL when `TEST_DATABASE_URL` is set. `CLAUDE.md` records both constraints.
+
+**Still open.**
+- Schema changes: the API creates its tables at start-up. On AWS they need migrations (for example Alembic), run as a
+  deploy step.
+- Whether Playground's database is RDS PostgreSQL or Aurora PostgreSQL.
+- How the web side applies hexagonal: its session store is behind a few functions today, and the other adapters
+  (the API client, the OpenID Connect calls) are not yet ports.
+- Keycloak on ECS needs a production setup (not `start-dev`), its own sizing, and a decision on high availability.

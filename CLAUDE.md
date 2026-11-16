@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Phase 1 is built: a working Keycloak auth module, from the source specs ([docs/specs/keycloak-auth-module.md](docs/specs/keycloak-auth-module.md)).
 
 - `keycloak-config/`: Docker compose and the `playground` realm import (the part that becomes the `keycloak-config` repo in phase 2).
-- `apps/api/`: FastAPI, Python 3.12+, managed with `uv`. `app/domain` is pure rules, `app/ports.py` the ports, `app/adapters` Keycloak admin and SQLAlchemy.
+- `apps/api/`: FastAPI, Python 3.12+, managed with `uv`. `app/domain` is pure rules, `app/ports.py` the ports, `app/adapters` Keycloak admin and SQLAlchemy over PostgreSQL (`api-db`, the engine of Amazon RDS).
 - `apps/web/`: Next.js 16 (App Router, `proxy.ts` not `middleware.ts`), TypeScript, shadcn (Base UI, so `render` not `asChild`), `openid-client`. Read `node_modules/next/dist/docs/` before changing Next code.
 
 Commands: `docker compose up -d --build` at the root runs everything (Keycloak, API, web; the guide is docs/GETTING-STARTED.md); or `docker compose up -d` in `keycloak-config/` for Keycloak alone; `uv run uvicorn app.main:create_app --factory` and `uv run pytest` in `apps/api/`; `npm run dev`, `npm run build`, `npm test`, `npm run lint` in `apps/web/`. Full steps in README.md.
@@ -22,3 +22,9 @@ This is a playground for learning Keycloak (per README.md), with two intended ph
 2. **Multi-repo distribution** — packaging the resulting realm config/theme/SPI artifacts into a dedicated `keycloak-config` repo, distributed to other company project repos via Google's `repo` multi-repository tool (a manifest repo referencing `keycloak-config` alongside each product repo, with per-project revision pinning).
 
 When adding code, prefer structuring it around these two phases rather than a generic app layout.
+
+## Target and way of working
+
+The playground is a prototype for an application of an organisation that is **AWS native**. The final application always runs on AWS, so each piece here has an AWS equivalent: PostgreSQL becomes Amazon RDS (or Aurora) for PostgreSQL, Keycloak runs on ECS Fargate with RDS, the web session store (in memory today) becomes ElastiCache, secrets go to Secrets Manager, project files to S3, logs to CloudWatch. Keep to the prototype's engines so the move is configuration, not a rewrite (decision 26 in `docs/domain/decisions.md`).
+
+The application, frontend and backend, follows **domain driven design**, **test driven development** and **hexagonal architecture (ports and adapters)**, for maintainability. In practice: the domain holds pure rules and imports nothing outside itself; everything that touches the outside (database, Keycloak, session store, AWS services) is a port with an adapter; a rule or use case gets its failing test first. Run the API tests on SQLite for speed, and on PostgreSQL (`TEST_DATABASE_URL`) before you finish.
