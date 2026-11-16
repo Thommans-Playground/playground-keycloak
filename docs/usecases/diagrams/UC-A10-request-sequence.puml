@@ -1,0 +1,30 @@
+@startuml UC-A10-request-sequence
+!include ../../domain/diagrams/_style.puml
+skinparam participantPadding 6
+skinparam boxPadding 4
+skinparam maxMessageSize 90
+skinparam sequenceMessageAlign center
+skinparam ParticipantFontSize 11
+skinparam NoteFontSize 11
+hide footbox
+title UC-A10 Every later request: the token check (built)
+' Step 9 of UC-A10. Every protected route does this, so it is drawn once here.
+' Not drawn: reading the account and its status (UC-A13, UC-A12).
+
+actor "Person" as P
+participant "Web server" as W #E6F0FB
+participant "Session store" as S #EEE7F7
+participant "API\nTokenVerifier" as A #E7F4EA
+
+P -> W : 9 any request (session cookie)
+W -> S : 9 find session
+W -> A : 9 request + access token
+A -> A : 9 check signature, expiry,\nissuer, audience
+alt no token or not valid
+  A --> W : 401
+  W --> P : sign in again
+else
+  A --> W : answer
+  W --> P : answer
+end
+@enduml

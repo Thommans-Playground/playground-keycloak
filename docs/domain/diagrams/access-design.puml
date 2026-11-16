@@ -1,0 +1,68 @@
+@startuml access-design
+!include _style.puml
+!include _legend.puml
+title Access design: ports and adapters (built)
+
+' Shows the Access hexagon as built in apps/api: the Account, the use case service, the ports and the adapters.
+' It is the design shared by UC-A2 and UC-A10 to UC-A15.
+' MK3 drew one class diagram for each use case. One serves them all here, because Keycloak removed the token,
+' whitelist, credential and session classes.
+' Not drawn: the web server (Next.js) and its session store, which hold the tokens and are not part of the API.
+' Role (user, administrator) and status (pending, active, deactivated) are value objects, shown as fields.
+
+top to bottom direction
+skinparam ranksep 30
+
+class Account <<root entity>> {
+  identity
+  name, email
+  role
+  status
+}
+
+class AccessService <<supporting>> {
+  account_for()
+  change()
+}
+class TokenVerifier <<supporting>> {
+  verify(token)
+}
+
+interface AccountRepository
+interface AuditLog
+interface IdentityProvider
+
+class SqlAdapters
+class KeycloakAdmin
+
+class Keycloak <<external>>
+class "API database" as DB <<generic>>
+
+AccessService ..> Account : applies rules
+AccessService --> AccountRepository
+AccessService --> AuditLog
+AccessService --> IdentityProvider
+SqlAdapters ..|> AccountRepository
+SqlAdapters ..|> AuditLog
+KeycloakAdmin ..|> IdentityProvider
+SqlAdapters --> DB
+KeycloakAdmin ..> Keycloak : ACL
+TokenVerifier ..> Keycloak : signing keys
+
+Account -[hidden]down-> AccessService
+AccessService -[hidden]down-> AccountRepository
+AccountRepository -[hidden]down-> SqlAdapters
+AccountRepository -[hidden]right-> AuditLog
+AuditLog -[hidden]down-> IdentityProvider
+IdentityProvider -[hidden]down-> KeycloakAdmin
+SqlAdapters -[hidden]down-> DB
+KeycloakAdmin -[hidden]down-> Keycloak
+TokenVerifier -[hidden]down-> Keycloak
+
+note left of Account
+  The token says who.
+  The Account says
+  what they may do.
+  Read on every request.
+end note
+@enduml

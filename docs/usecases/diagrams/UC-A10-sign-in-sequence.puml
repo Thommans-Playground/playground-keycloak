@@ -1,0 +1,40 @@
+@startuml UC-A10-sign-in-sequence
+!include ../../domain/diagrams/_style.puml
+skinparam participantPadding 6
+skinparam boxPadding 4
+skinparam maxMessageSize 90
+skinparam sequenceMessageAlign center
+skinparam ParticipantFontSize 11
+skinparam NoteFontSize 11
+hide footbox
+title UC-A10 Sign in (detailed sequence, built)
+' Step ids are the main flow numbers of UC-A10. Step 9 is in UC-A10-request-sequence.puml. Not drawn: the Keycloak login page itself.
+' Evolved from MK3 UC-A1: no password check, no token minting, no Redis whitelist on our side.
+
+actor "Person" as P
+participant "Web routes\n/auth/login\n/auth/callback" as W #E6F0FB
+participant "Session store\n(server memory)" as S #EEE7F7
+participant "Keycloak" as K #ECECEC
+
+P -> W : 1 ask to sign in
+W -> W : 2 make state, nonce,\nPKCE verifier
+W -> S : 2 keep the login attempt
+W --> P : 2 redirect to Keycloak
+P -> K : 3 email and password
+K --> P : 4 redirect back with code
+P -> W : 5 callback (code, state)
+W -> S : 5 take the attempt (once)
+alt attempt missing, used or expired
+  W --> P : /?error=login_expired
+else
+  W -> K : 6 exchange code + PKCE verifier
+  alt exchange, state or nonce check fails
+    W --> P : /?error=login_failed
+  else
+    K --> W : 6 access, refresh, ID tokens
+    W -> S : 7 store tokens under\na new session id
+    W --> P : 7 session cookie (httpOnly)
+    W --> P : 8 redirect to returnTo
+  end
+end
+@enduml

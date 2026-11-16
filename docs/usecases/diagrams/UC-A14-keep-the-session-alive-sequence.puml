@@ -1,0 +1,43 @@
+@startuml UC-A14-keep-the-session-alive-sequence
+!include ../../domain/diagrams/_style.puml
+skinparam participantPadding 6
+skinparam boxPadding 4
+skinparam maxMessageSize 90
+skinparam sequenceMessageAlign center
+skinparam ParticipantFontSize 11
+skinparam NoteFontSize 11
+hide footbox
+title UC-A14 Keep the session alive (detailed sequence, built)
+' Step ids are the main flow numbers of UC-A14.
+' Evolved from MK3 UC-A3: no refresh endpoint or whitelist. One refresh at a time for each session.
+
+actor "Person" as P
+participant "Web server\naccessToken()" as W #E6F0FB
+participant "Session store\n+ refresh lock" as S #EEE7F7
+participant "Keycloak" as K #ECECEC
+participant "API" as A #E6F0FB
+
+P -> W : 1 request
+W -> S : 1 find session
+W -> W : 2 access token ends in < 30 s?
+alt still good
+  W -> A : request + access token
+else about to expire
+  W -> S : 3 refresh already running?
+  alt yes
+    S --> W : wait for that refresh
+  else no
+    W -> K : 4 refresh token grant
+    alt Keycloak refuses (ended, disabled, token reused)
+      K --> W : error
+      W -> S : drop session
+      W --> P : sign in again
+    else
+      K --> W : 5 new access token (+ new refresh token)
+      W -> S : 6 store in the session
+    end
+  end
+  W -> A : 6 request + new access token
+end
+A --> W : answer
+@enduml

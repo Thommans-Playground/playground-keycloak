@@ -1,0 +1,57 @@
+@startuml usecases-access
+' page: landscape
+!include _usecase-style.puml
+title Access use cases (draft)
+
+' Shows who starts which Access use case, and where Keycloak takes part.
+' Not drawn: the rules each use case applies, and the other contexts (Projects, Evaluations).
+' Evolved from MK3 UC-A1 to UC-A7. MK3 UC-A7 is UC-A2 here (see the source specs).
+' Green = built. Grey = not built (UC-A15 is Release 2).
+
+
+actor "Person\n(not signed in)" as Visitor #1565C0
+actor "Signed-in\nperson" as Member #1565C0
+actor "Administrator" as Admin #E65100
+actor "Keycloak" as KC #6B7280
+
+rectangle "Access (BC-ACCESS)" #F2F6FC {
+  usecase "UC-A10\nSign in" as UCA10 COLOR_BUILT
+  usecase "UC-A12\nRegister and wait\nfor approval" as UCA12 COLOR_BUILT
+  usecase "UC-A15\nSign in through\ncompany SSO" as UCA15 COLOR_TODO
+  usecase "UC-A11\nSign out" as UCA11 COLOR_BUILT
+  usecase "UC-A13\nView my name\nand role" as UCA13 COLOR_BUILT
+  usecase "UC-A14\nKeep the session\nalive" as UCA14 COLOR_BUILT
+  usecase "UC-A2\nApprove, deactivate\nand reinstate an account" as UCA2 COLOR_BUILT
+}
+
+UCA10 -[hidden]right-> UCA12
+UCA12 -[hidden]right-> UCA15
+UCA11 -[hidden]right-> UCA13
+UCA13 -[hidden]right-> UCA14
+UCA10 -[hidden]down-> UCA11
+UCA14 -[hidden]right-> UCA2
+Visitor --> UCA10
+Visitor --> UCA12
+Visitor --> UCA15
+Member --> UCA11
+Member --> UCA13
+Admin --> UCA2
+
+' UC-A14 is started by the web server on the person's behalf, so it is drawn as included.
+UCA13 .> UCA14 : <<include>>
+UCA2 .> UCA14 : <<include>>
+
+' Keycloak takes part in these (it holds the login, the session and the enabled flag).
+UCA10 -- KC
+UCA12 -- KC
+UCA15 -- KC
+UCA11 -- KC
+UCA14 -- KC
+UCA2 -- KC
+
+legend bottom right
+  Green: built. Grey: not built.
+  Keycloak is a secondary actor: it proves who the person is.
+  Playground's account decides what the person may do.
+endlegend
+@enduml

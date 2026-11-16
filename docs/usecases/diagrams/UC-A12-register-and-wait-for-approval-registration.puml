@@ -1,0 +1,23 @@
+@startuml UC-A12-register-and-wait-for-approval-registration
+!include ../../domain/diagrams/_style.puml
+skinparam participantPadding 6
+skinparam boxPadding 4
+skinparam maxMessageSize 90
+skinparam sequenceMessageAlign center
+skinparam ParticipantFontSize 11
+skinparam NoteFontSize 11
+hide footbox
+title UC-A12 Register at Keycloak (steps 1 to 3, built)
+' Registration is Keycloak's. Playground sees nothing until the first request (see the sequence file).
+
+actor "Person" as P
+participant "Web routes" as W #E6F0FB
+participant "Keycloak" as K #ECECEC
+
+P -> W : 1 create an account
+W --> P : 1 redirect, prompt=create
+P -> K : 2 name, email, password
+K -> K : 2 create the user
+K --> P : 2 signed in, back with code
+P -> W : 3 callback, session made (UC-A10)
+@enduml
