@@ -2,6 +2,8 @@
 
 A guide for understanding this playground before you change it. Read it once top to bottom, run the stack, then follow the code tour.
 
+Want to understand *how sign-in actually works* (codes, tokens, cookies, PKCE, Keycloak's side), with experiments you can run? Read the [auth study guide](AUTH-STUDY-GUIDE.md).
+
 ## 1. What this is
 
 A small app where people sign in with **Keycloak**, and an **API** decides what they may do.
