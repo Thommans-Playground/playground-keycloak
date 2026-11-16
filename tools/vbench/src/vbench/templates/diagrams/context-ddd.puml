@@ -1,0 +1,41 @@
+@startuml {{ID}}_DDD
+!include _style.puml
+hide circle
+hide empty members
+
+' Stereotype colours (see _legend.puml). Only the tactical building blocks are tinted;
+' facades, repositories, ports and adapters stay white.
+skinparam class {
+  BackgroundColor<<root entity>>  #FFE6CC
+  BackgroundColor<<entity>>       #FFF2CC
+  BackgroundColor<<value object>> #D5E8D4
+  BackgroundColor<<domain event>> #F8CECC
+}
+
+title {{NAME}} «service» - Domain Model
+
+' AS-BUILT (replace as the code lands; code is the source of truth). Say here:
+'   - which aggregate(s) this context owns, and their invariants
+'   - which value objects make an invalid state unrepresentable
+'   - what is NOT drawn (application services are orchestration, not domain)
+'   - what is PLANNED but not built
+' Method parameters are omitted on purpose: the model shows parts, boundaries and language.
+
+!startsub {{ID}}
+package "«service»\n{{NAME}}" as {{ID}} {
+
+  package "«aggregate»\n(Aggregate)" as AGG {
+
+    class "(Aggregate root)" as ROOT <<root entity>> {
+      +  id
+      --
+      +  {static} create()
+    }
+
+    class "(Value object)" as VAL <<value object>>
+
+    ROOT *-- "1" VAL
+  }
+}
+!endsub {{ID}}
+@enduml

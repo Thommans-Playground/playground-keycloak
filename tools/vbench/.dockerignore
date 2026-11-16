@@ -1,0 +1,12 @@
+.git
+.venv
+build
+dist
+**/__pycache__
+**/*.egg-info
+**/node_modules
+src/vbench/ui/dist
+src/vbench/ui/*.tsbuildinfo
+examples/*/.vbench/ui
+tests
+docs

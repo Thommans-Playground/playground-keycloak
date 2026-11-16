@@ -1,0 +1,22 @@
+@startuml UCN1_Sequence
+!include ../_style.puml
+title UC-N-001 - Create note (Sequence)
+
+actor "Author" as U
+participant "«service»\nCreateNote" as SVC #E7F4EA
+participant "«aggregate»\nNote" as N #FFE6CC
+participant "«port»\nNoteRepository" as REPO #EEE7F7
+
+== Phase 1 - Validate and build ==
+U   -> SVC : STP-N-001 create_note(title, body)
+SVC -> N   : STP-N-002 Note.create(title, body)
+alt body empty or over 100 KB
+  N   --> SVC : raise InvalidNote
+  SVC --> U   : STP-N-003 refused, reason names the body
+else valid
+  N   --> SVC : Note {id, created_at, updated_at}
+  == Phase 2 - Persist ==
+  SVC -> REPO : STP-N-004 add(note)
+  SVC --> U   : STP-N-005 the stored note
+end
+@enduml

@@ -1,0 +1,31 @@
+' =====================================================================
+'  _style.puml - shared styling for every PlantUML diagram in this project
+'  Included by each diagram (`!include ../_style.puml` from usecase-diagrams/) so the set stays consistent.
+'  This file has NO @startuml / @enduml: it is meant to be !included.
+' =====================================================================
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+skinparam packageStyle rectangle
+skinparam classAttributeIconSize 0
+skinparam wrapWidth 220
+skinparam ArrowColor #555555
+
+skinparam class {
+  BorderColor #555555
+  FontColor #1A1A1A
+  BackgroundColor #FFFFFF
+}
+skinparam package {
+  BorderColor #888888
+  FontColor #1A1A1A
+}
+skinparam note {
+  BackgroundColor #FFFDF5
+  BorderColor #C9C28F
+}
+skinparam state {
+  BorderColor #555555
+  BackgroundColor #FFFFFF
+  StartColor #333333
+  EndColor #333333
+}

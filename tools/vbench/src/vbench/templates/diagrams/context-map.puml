@@ -1,0 +1,16 @@
+@startuml ContextMap
+!include _style.puml
+title Context Map (strategic)
+
+' Subdomain kind by colour:  Core #FFD966 · Supporting #F0F0F0 · Shared kernel #E6E6E6 · External #E8E8E8
+' Classify each context below as «Core» or «Supporting» (change the colour to match).
+
+{{PACKAGES}}
+
+' Relationships, with the DDD integration pattern as the label:
+'   «C/S» customer/supplier · «OHS» open host service · «ACL» anti-corruption layer
+'   «shared kernel» · «conformist» · «assists»
+' Add one line per edge that crosses a context boundary, e.g.:
+'   A --> B : «C/S» what A needs from B
+' A new cross-context edge is a full-tier change: record the decision as an ADR.
+@enduml

@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vbench"
+version = "0.1.0"
+description = "A harness that keeps AI-assisted teams on the V-cycle: use-case specs, traced code and tests, checked in CI."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []  # stdlib only, on purpose: runs anywhere CI does
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.9"]
+agent = ["anthropic>=1.0"]  # optional: lets the dashboard ask Claude whether a new entry already exists
+openai = ["openai>=1.0"]  # optional: the same, and the dashboard chat, answered by OpenAI
+
+[project.scripts]
+vbench = "vbench.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+namespaces = false  # only directories with an __init__.py are packages, so stray .py files in ui/node_modules are never swept in
+
+[tool.setuptools.package-data]
+# Only the templates travel in the package. The optional dashboard (src/vbench/ui) is built by the Dockerfile and run by
+# docker-compose.yml; it is not part of the CLI install.
+vbench = ["templates/**/*", "templates/**/.*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+# Ruff lints and formats this repo; there is no separate formatter. 120 columns matches the existing style.
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+extend-exclude = ["src/vbench/templates", "src/vbench/ui"]  # templates hold {{placeholders}}, so they are not valid Python
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
+ignore = ["RUF001", "RUF002", "RUF003"]  # the prose uses real punctuation: · and the unicode in user-facing text

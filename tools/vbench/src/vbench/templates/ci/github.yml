@@ -1,0 +1,34 @@
+name: vbench
+on: [push, pull_request]
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # `vbench check commits` compares against the target branch
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v5
+      # Pinned to the version in .vbench/config.toml (vbench_version). Bump both together.
+      - run: uv tool install "{{VBENCH_SOURCE}}"
+      - name: Reference integrity (docs links resolve)
+        run: vbench check refs
+      - name: Use-case dependencies (no dangling ids or cycles)
+        run: vbench check links
+      - name: Generated docs (blocks match the specs)
+        run: vbench check docs
+      - name: Diagrams (named, linked, present for the rigor tier)
+        run: vbench check diagrams
+      - name: Verified use cases (every UC with code has a verifying test)
+        run: vbench check rungs
+      - name: Acceptance coverage (every AC has a marked test)
+        run: vbench check acs
+      - name: Trace matrix (informational)
+        if: always()
+        run: vbench check --matrix >> "$GITHUB_STEP_SUMMARY"
+      - name: Commit and branch convention (pull requests)
+        if: github.event_name == 'pull_request'
+        run: vbench check commits --base "origin/${{ github.base_ref }}" --branch "${{ github.head_ref }}"

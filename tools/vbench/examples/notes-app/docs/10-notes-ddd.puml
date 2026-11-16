@@ -1,0 +1,44 @@
+@startuml Notes_DDD
+!include _style.puml
+hide circle
+hide empty members
+
+' Stereotype colours (see _legend.puml). Only the tactical building blocks are tinted;
+' facades, repositories, ports and adapters stay white.
+skinparam class {
+  BackgroundColor<<root entity>>  #FFE6CC
+  BackgroundColor<<entity>>       #FFF2CC
+  BackgroundColor<<value object>> #D5E8D4
+  BackgroundColor<<domain event>> #F8CECC
+}
+
+title Notes «service» - Domain Model
+
+' AS-BUILT (replace as the code lands; code is the source of truth). Say here:
+'   - which aggregate(s) this context owns, and their invariants
+'   - which value objects make an invalid state unrepresentable
+'   - what is NOT drawn (application services are orchestration, not domain)
+'   - what is PLANNED but not built
+' Method parameters are omitted on purpose: the model shows parts, boundaries and language.
+
+!startsub Notes
+package "«service»\nNotes" as Notes {
+
+  package "«aggregate»\nNote" as AGG {
+
+    class "Note" as ROOT <<root entity>> {
+      +  id
+      +  title
+      +  created_at
+      +  updated_at
+      --
+      +  {static} create()
+    }
+
+    class "Body" as VAL <<value object>>
+
+    ROOT *-- "1" VAL
+  }
+}
+!endsub Notes
+@enduml

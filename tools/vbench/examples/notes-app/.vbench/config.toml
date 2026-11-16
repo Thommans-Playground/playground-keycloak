@@ -1,0 +1,41 @@
+# vbench configuration. Everything the checks need to know about this repo lives here.
+# Commit this file; pin the vbench version you rely on in CI.
+
+[vbench]
+vbench_version = "0.1.0"   # the release this project is validated against; `vbench` warns on mismatch
+docs = "docs"                          # documentation root (cross-references are checked here)
+specs = "docs/usecase-diagrams"        # one UC-<area>-<nnn>-<slug>.md per use case
+requirements = "docs/00-requirements-engineering.md"   # problem, STK-REQ/REQ-FR/REQ-NFR, vocabulary, priorities
+backlog = "docs/01-backlog-epics-stories.md"           # epics, use cases, dependencies, build order
+discovery = "docs/discovery"           # one analysis brief per idea, before any requirement
+prod = ["src"]                         # production code: tagged `Realises UC-…`
+tests = ["tests"]                      # tests: tagged `Verifies UC-… · <rung> rung.` and AC markers
+prod_ext = [".py"]
+test_ext = [".py"]
+
+# Id shapes: three parts, <KIND>-<AREA>-<NNN>. Use case UC-A-001, criterion AC-A-001, task TSK-A-001.
+# Requirements are STK-REQ-001, REQ-FR-001, REQ-NFR-001 (see docs/00-naming-conventions.md).
+uc_pattern = '''UC-[A-Z]-\d{3}'''
+ac_pattern = '''AC-[A-Z]-\d{3}'''
+task_pattern = '''TSK-[A-Z]-\d{3}'''
+step_pattern = '''STP-[A-Z]-\d{3}'''   # a step of a sequence diagram: STP-A-001
+# How a test marks the acceptance criteria it validates, e.g. @pytest.mark.ac("AC-A-001")
+ac_marker = "pytest.mark.ac"
+
+# Default rigor for new use cases: light | standard | full. See docs/00-engineering-methodology.md §6.
+rigor_default = "light"
+
+# Git conventions, checked by `vbench check commits` (see CONTRIBUTING.md).
+# Commit subject (Conventional Commits): <type>(<UC-id>[/<TSK-id>])[!]: <description>. Only chore may omit the use case.
+base_branch = "main"
+commit_types = ["feat", "fix", "docs", "refactor", "perf", "test", "build", "ci", "chore"]
+# commit_pattern = ""   # override the derived regex; named groups: type, uc, task, desc
+# branch_pattern = ""   # default: <type>/<slug>, e.g. feat/uc-a-001-login
+branch_max_days = 5     # `vbench doctor` notes a branch older than this: trunk-based branches are short-lived
+
+# Commands the /vbench:* skills run for each gate. Edit to match your stack.
+[commands]
+test = "pytest"
+lint = "ruff check ."
+types = "mypy ."
+boundaries = ""        # e.g. "lint-imports" if you enforce context boundaries

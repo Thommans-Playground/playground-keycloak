@@ -1,0 +1,25 @@
+# Add to your pipeline with:
+#   include:
+#     - local: .gitlab-ci.vbench.yml
+vbench:
+  stage: test
+  variables:
+    GIT_DEPTH: "0"   # `vbench check commits` compares against the target branch
+  image: ghcr.io/astral-sh/uv:python3.12-bookworm
+  before_script:
+    # Pinned to the version in .vbench/config.toml (vbench_version). Bump both together.
+    - uv tool install "{{VBENCH_SOURCE}}"
+    - export PATH="$(uv tool dir --bin):$PATH"
+  script:
+    - vbench check refs
+    - vbench check links
+    - vbench check docs
+    - vbench check diagrams
+    - vbench check rungs
+    - vbench check acs
+    - vbench check --matrix
+    - |
+      if [ -n "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" ]; then
+        git fetch origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
+        vbench check commits --base "origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" --branch "$CI_COMMIT_REF_NAME"
+      fi

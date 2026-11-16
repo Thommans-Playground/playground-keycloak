@@ -1,0 +1,13 @@
+{
+  "name": "vbench",
+  "owner": { "name": "VBenchAI" },
+  "metadata": { "description": "The V-cycle harness for AI-assisted teams." },
+  "plugins": [
+    {
+      "name": "vbench",
+      "source": "./plugin",
+      "description": "Skills and subagents that walk a use case down and up the V, backed by the `vbench` CLI gates.",
+      "version": "0.1.0"
+    }
+  ]
+}

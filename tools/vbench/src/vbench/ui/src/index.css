@@ -1,0 +1,187 @@
+@import "tailwindcss";
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Design tokens: the AGIL Secure Shield palette, laid out by Apple's Human Interface Guidelines (see ../DESIGN.md).
+   One colour has one job. Light by default; dark is a choice in Settings.
+   ───────────────────────────────────────────────────────────────────────────── */
+:root {
+  /* the Secure Shield palette */
+  --brand: #e1251b;            /* accent bar and active marker only, never a fill */
+  --link: #c8102e;  --link-hover: #8e0b20;
+  --ink: #1f2328;   --ink-2: #3a404c;
+  --muted: #5a6170; --subtle: #8a90a0;      /* subtle is for non-essential hints only */
+  --charcoal: #23272f;
+  --page: #f5f6f7;  --surface: #ffffff;  --surface-2: #fafafb;
+  --hover: #f1f2f4;
+  --border: #e3e5e8; --border-input: #d4d7dc; --divider: #eef0f2;
+  --risk: #b4400c;  --risk-bg: #fdece2;  --risk-text: #8a2f07;
+  --warn-text: #78350f; --warn-bg: #fef3c7;
+  --warn: #b45309;  /* the warning shade for strokes and accents; the same amber family as its text and background */
+  --ok: #15803d;    --ok-text: #14532d;  --ok-bg: #e7f6ec;
+  --ai: #5b21b6;    --ai-bg: #f3eeff;    --ai-spark: #8b6fe0;
+  --note: #fff7d1;  --note-border: #ebd68a; --note-text: #3d3415;
+
+  /* shadcn variables, mapped onto the palette */
+  --background: var(--page);
+  --foreground: var(--ink);
+  --card: var(--surface);          --card-foreground: var(--ink);
+  --popover: var(--surface);       --popover-foreground: var(--ink);
+  --primary: var(--charcoal);      --primary-foreground: #ffffff;
+  --secondary: var(--surface);     --secondary-foreground: var(--ink);
+  --muted-bg: var(--hover);
+  --accent: var(--hover);          --accent-foreground: var(--ink);
+  --destructive: var(--risk);      --destructive-foreground: #ffffff;
+  --input: var(--border-input);
+  --ring: var(--ink);
+
+  /* elevation: cool blue-grey, never plain black; a stronger shadow means higher and more temporary */
+  --e1: 0 0 0 .5px rgb(16 24 40 / .05), 0 1px 2px rgb(16 24 40 / .06), 0 2px 8px rgb(16 24 40 / .04);
+  --e2: 0 2px 6px rgb(16 24 40 / .05), 0 8px 24px rgb(16 24 40 / .08);
+  --e3: 0 4px 12px rgb(16 24 40 / .06), 0 16px 40px rgb(16 24 40 / .14);
+  --e4: 0 8px 24px rgb(16 24 40 / .10), 0 32px 80px rgb(16 24 40 / .22);
+}
+
+/* Light is the default. Dark is chosen in Settings (the profile menu) and is applied as data-theme="dark" on the html
+   element, by index.html before the first paint and by lib/theme.ts after. "System" resolves to one of the two.
+   Same roles, re-lit: surfaces step up in lightness as they rise; colour keeps its job. */
+:root { color-scheme: light; }
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --link: #ff7b7b;  --link-hover: #ffb0b0;
+  --ink: #f3f4f6;   --ink-2: #d2d5dc;
+  --muted: #a0a6b3; --subtle: #7f8696;
+  --charcoal: #3b3f49;
+  --page: #0f1013;  --surface: #1a1b1f;  --surface-2: #212227;
+  --hover: #272930;
+  --border: #2d2f36; --border-input: #3f424b; --divider: #24262c;
+  --risk: #f0905f;  --risk-bg: #3b1f12;  --risk-text: #ffb99a;
+  --warn-text: #fbd9a0; --warn-bg: #3a2b0c;
+  --warn: #f0b13b;
+  --ok: #4cc27a;    --ok-text: #a3e6bb;  --ok-bg: #123121;
+  --ai: #b79cf0;    --ai-bg: #26193f;
+  --note: #3a3313;  --note-border: #6b5d22; --note-text: #f1e6b0;
+  --ring: #f3f4f6;
+  --e1: 0 0 0 .5px rgb(255 255 255 / .06), 0 1px 2px rgb(0 0 0 / .4);
+  --e2: 0 2px 6px rgb(0 0 0 / .35), 0 8px 24px rgb(0 0 0 / .4);
+  --e3: 0 4px 12px rgb(0 0 0 / .4), 0 16px 40px rgb(0 0 0 / .5);
+  --e4: 0 8px 24px rgb(0 0 0 / .5), 0 32px 80px rgb(0 0 0 / .6);
+}
+
+@theme inline {
+  /* the platform's own face: San Francisco on Apple devices, the system font elsewhere */
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted-bg);
+  --color-muted-foreground: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-brand: var(--brand);
+  --color-link: var(--link);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-subtle: var(--subtle);
+  --color-charcoal: var(--charcoal);
+  --color-page: var(--page);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-hover: var(--hover);
+  --color-divider: var(--divider);
+  --color-risk: var(--risk);
+  --color-risk-bg: var(--risk-bg);
+  --color-risk-text: var(--risk-text);
+  --color-warn: var(--warn);
+  --color-warn-bg: var(--warn-bg);
+  --color-warn-text: var(--warn-text);
+  --color-ok: var(--ok);
+  --color-ok-bg: var(--ok-bg);
+  --color-ok-text: var(--ok-text);
+  --color-note: var(--note);
+  --color-note-border: var(--note-border);
+  --color-note-text: var(--note-text);
+
+  /* shape: concentric corners, inner radius = outer radius minus padding */
+  --radius-card: 12px;      /* cards, panels, popovers, menus, drawers, dialogs */
+  --radius-control: 8px;    /* buttons, inputs, nav items, icon tiles */
+  --radius-note: 6px;       /* small inner tags, table bits */
+
+  --shadow-e1: var(--e1);
+  --shadow-e2: var(--e2);
+  --shadow-e3: var(--e3);
+  --shadow-e4: var(--e4);
+}
+
+@layer base {
+  html { -webkit-font-smoothing: antialiased; }
+  body {
+    margin: 0;
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.5;
+    border-top: 4px solid var(--brand);   /* the accent bar on every console page */
+  }
+  h1, h2, h3, h4 { letter-spacing: -0.01em; }
+  a { color: var(--link); }
+  a:hover { color: var(--link-hover); }
+  :focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; border-radius: 4px; }
+  ::selection { background: var(--hover); }
+}
+
+/* Text styles, after Apple's Dynamic Type: a few named steps, so hierarchy comes from size and weight, not colour. */
+@layer components {
+  .t-large-title { font-size: 34px; line-height: 1.18; font-weight: 700; letter-spacing: -0.022em; }
+  .t-title { font-size: 22px; line-height: 1.27; font-weight: 600; letter-spacing: -0.015em; }
+  .t-headline { font-size: 17px; line-height: 1.35; font-weight: 600; letter-spacing: -0.01em; }
+  .t-body { font-size: 15px; line-height: 1.5; }
+  .t-subhead { font-size: 14px; line-height: 1.43; }
+  .t-footnote { font-size: 13px; line-height: 1.4; }
+  .t-caption { font-size: 12px; line-height: 1.33; }
+  .t-overline { font-size: 12px; line-height: 1.33; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; transform: none !important; }
+}
+
+/* Rendered markdown (spec and doc pages) */
+.prose-doc { color: var(--ink-2); max-width: 78ch; }
+.prose-doc h1 { font-size: 28px; font-weight: 600; letter-spacing: -0.3px; color: var(--ink); margin: 0 0 16px; }
+.prose-doc h2 { font-size: 19px; font-weight: 600; color: var(--ink); margin: 28px 0 10px; }
+.prose-doc h3 { font-size: 15px; font-weight: 600; color: var(--ink); margin: 20px 0 8px; }
+.prose-doc p, .prose-doc li { font-size: 14px; line-height: 1.6; }
+.prose-doc p { margin: 8px 0; }
+.prose-doc ul, .prose-doc ol { padding-left: 22px; margin: 8px 0; }
+.prose-doc blockquote { margin: 12px 0; padding: 8px 14px; border-left: 3px solid var(--border-input); background: var(--surface-2); color: var(--muted); border-radius: 0 var(--radius-note) var(--radius-note) 0; }
+.prose-doc code { font-family: var(--font-mono); font-size: 12.5px; background: var(--hover); padding: 1px 5px; border-radius: 4px; }
+.prose-doc pre { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-control); padding: 12px 14px; overflow-x: auto; }
+.prose-doc pre code { background: none; padding: 0; }
+.prose-doc table { border-collapse: collapse; width: 100%; font-size: 13px; margin: 12px 0; display: block; overflow-x: auto; }
+.prose-doc th { text-align: left; background: var(--surface-2); color: var(--muted); font-size: 12px; font-weight: 600; white-space: nowrap; }
+.prose-doc th, .prose-doc td { border: 1px solid var(--border); padding: 7px 10px; vertical-align: top; }
+.prose-doc td:first-child { font-family: var(--font-mono); font-size: 12.5px; }
+
+/* An answer in the assistant's panel: the document styles, at the size of a chat bubble. */
+.prose-chat { max-width: none; }
+.prose-chat > :first-child { margin-top: 0; }
+.prose-chat > :last-child { margin-bottom: 0; }
+.prose-chat h1, .prose-chat h2, .prose-chat h3 { font-size: 15px; letter-spacing: 0; margin: 14px 0 6px; }
+.prose-chat p, .prose-chat li { font-size: 14px; line-height: 1.55; }
+.prose-chat pre { max-width: 100%; overflow-x: auto; }

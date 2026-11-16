@@ -1,0 +1,9 @@
+@startuml UCN1_State
+!include ../_style.puml
+title UC-N-001 - Note lifecycle (State)
+
+[*] --> Draft : create
+Draft --> Saved : save [body present, at most 100 KB]
+Draft --> Draft : save [body invalid] / refused
+Saved --> Saved : edit [body present, at most 100 KB]
+@enduml

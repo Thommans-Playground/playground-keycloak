@@ -1,0 +1,726 @@
+{
+  "@context": {
+    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "owl": "http://www.w3.org/2002/07/owl#",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "vb": "urn:vbench:method:",
+    "p": "urn:vbench:project:"
+  },
+  "@graph": [
+    {
+      "@id": "urn:vbench:project:ontology",
+      "@type": "owl:Ontology",
+      "rdfs:label": "vbench project ontology"
+    },
+    {
+      "@id": "vb:Problem",
+      "@type": "owl:Class",
+      "rdfs:label": "Problem",
+      "rdfs:comment": "Something a stakeholder suffers from."
+    },
+    {
+      "@id": "vb:Request",
+      "@type": "owl:Class",
+      "rdfs:label": "Request",
+      "rdfs:comment": "A stakeholder's raw ask, in their words."
+    },
+    {
+      "@id": "vb:Requirement",
+      "@type": "owl:Class",
+      "rdfs:label": "Requirement",
+      "rdfs:comment": "A functional or quality requirement a request leads to."
+    },
+    {
+      "@id": "vb:UseCase",
+      "@type": "owl:Class",
+      "rdfs:label": "UseCase",
+      "rdfs:comment": "What an actor achieves; the unit of delivery."
+    },
+    {
+      "@id": "vb:Criterion",
+      "@type": "owl:Class",
+      "rdfs:label": "Criterion",
+      "rdfs:comment": "A testable acceptance criterion of a use case."
+    },
+    {
+      "@id": "vb:Task",
+      "@type": "owl:Class",
+      "rdfs:label": "Task",
+      "rdfs:comment": "A commit-sized piece of a use case that ends with a passing test."
+    },
+    {
+      "@id": "vb:Step",
+      "@type": "owl:Class",
+      "rdfs:label": "Step",
+      "rdfs:comment": "One numbered message of a use case's sequence diagram."
+    },
+    {
+      "@id": "vb:Test",
+      "@type": "owl:Class",
+      "rdfs:label": "Test",
+      "rdfs:comment": "A test that proves criteria."
+    },
+    {
+      "@id": "vb:CodeFile",
+      "@type": "owl:Class",
+      "rdfs:label": "CodeFile",
+      "rdfs:comment": "A production file that realises a use case or a step."
+    },
+    {
+      "@id": "vb:TestFile",
+      "@type": "owl:Class",
+      "rdfs:label": "TestFile",
+      "rdfs:comment": "A test file that verifies a use case or a step."
+    },
+    {
+      "@id": "vb:BoundedContext",
+      "@type": "owl:Class",
+      "rdfs:label": "BoundedContext",
+      "rdfs:comment": "A part of the system with its own model and vocabulary."
+    },
+    {
+      "@id": "vb:Term",
+      "@type": "owl:Class",
+      "rdfs:label": "Term",
+      "rdfs:comment": "A word of the project's ubiquitous language."
+    },
+    {
+      "@id": "vb:concernsProblem",
+      "@type": "owl:ObjectProperty",
+      "rdfs:domain": {
+        "@id": "vb:Request"
+      },
+      "rdfs:range": {
+        "@id": "vb:Problem"
+      },
+      "rdfs:comment": "The problem a request is about."
+    },
+    {
+      "@id": "vb:satisfiesRequest",
+      "@type": "owl:ObjectProperty",
+      "rdfs:domain": {
+        "@id": "vb:Requirement"
+      },
+      "rdfs:range": {
+        "@id": "vb:Request"
+      },
+      "rdfs:comment": "The request a requirement answers."
+    },
+    {
+      "@id": "vb:realisesRequirement",
+      "@type": "owl:ObjectProperty",
+      "rdfs:domain": {
+        "@id": "vb:UseCase"
+      },
+      "rdfs:range": {
+        "@id": "vb:Requirement"
+      },
+      "rdfs:comment": "A requirement a use case realises."
+    },
+    {
+      "@id": "vb:dependsOn",
+      "@type": "owl:ObjectProperty",
+      "rdfs:domain": {
+        "@id": "vb:UseCase"
+      },
+      "rdfs:range": {
+        "@id": "vb:UseCase"
+      },
+      "rdfs:comment": "A use case that must be built first."
+    },
+    {
+      "@id": "vb:criterionOf",
+      "@type": "owl:ObjectProperty",
+      "rdfs:domain": {
+        "@id": "vb:Criterion"
+      },
+      "rdfs:range": {
+        "@id": "vb:UseCase"
+      },
+      "rdfs:comment": "The use case a criterion belongs to."
+    },
+    {
+      "@id": "vb:satisfiesRequirement",
+      "@type": "owl:ObjectProperty",
+      "rdfs:domain": {
+        "@id": "vb:Criterion"
+      },
+      "rdfs:range": {
+        "@id": "vb:Requirement"
+      },
+      "rdfs:comment": "A requirement a criterion makes testable."
+    },
+    {
+      "@id": "vb:verifiesCriterion",
+      "@type": "owl:ObjectProperty",
+      "rdfs:domain": {
+        "@id": "vb:Test"
+      },
+      "rdfs:range": {
+        "@id": "vb:Criterion"
+      },
+      "rdfs:comment": "A criterion a test proves."
+    },
+    {
+      "@id": "vb:taskOf",
+      "@type": "owl:ObjectProperty",
+      "rdfs:domain": {
+        "@id": "vb:Task"
+      },
+      "rdfs:range": {
+        "@id": "vb:UseCase"
+      },
+      "rdfs:comment": "The use case a task belongs to."
+    },
+    {
+      "@id": "vb:closesCriterion",
+      "@type": "owl:ObjectProperty",
+      "rdfs:domain": {
+        "@id": "vb:Task"
+      },
+      "rdfs:range": {
+        "@id": "vb:Criterion"
+      },
+      "rdfs:comment": "A criterion a task closes."
+    },
+    {
+      "@id": "vb:buildsStep",
+      "@type": "owl:ObjectProperty",
+      "rdfs:domain": {
+        "@id": "vb:Task"
+      },
+      "rdfs:range": {
+        "@id": "vb:Step"
+      },
+      "rdfs:comment": "A sequence step a task builds."
+    },
+    {
+      "@id": "vb:stepOf",
+      "@type": "owl:ObjectProperty",
+      "rdfs:domain": {
+        "@id": "vb:Step"
+      },
+      "rdfs:range": {
+        "@id": "vb:UseCase"
+      },
+      "rdfs:comment": "The use case whose sequence diagram holds a step."
+    },
+    {
+      "@id": "vb:stepRealisedIn",
+      "@type": "owl:ObjectProperty",
+      "rdfs:domain": {
+        "@id": "vb:Step"
+      },
+      "rdfs:range": {
+        "@id": "vb:CodeFile"
+      },
+      "rdfs:comment": "Code that carries `Realises UC-… · STP-…` for the step."
+    },
+    {
+      "@id": "vb:stepDrivenBy",
+      "@type": "owl:ObjectProperty",
+      "rdfs:domain": {
+        "@id": "vb:Step"
+      },
+      "rdfs:range": {
+        "@id": "vb:TestFile"
+      },
+      "rdfs:comment": "A test file with a real test that says it drives the step."
+    },
+    {
+      "@id": "vb:realisedIn",
+      "@type": "owl:ObjectProperty",
+      "rdfs:domain": {
+        "@id": "vb:UseCase"
+      },
+      "rdfs:range": {
+        "@id": "vb:CodeFile"
+      },
+      "rdfs:comment": "Code tagged `Realises` for the use case."
+    },
+    {
+      "@id": "vb:verifiedBy",
+      "@type": "owl:ObjectProperty",
+      "rdfs:domain": {
+        "@id": "vb:UseCase"
+      },
+      "rdfs:range": {
+        "@id": "vb:TestFile"
+      },
+      "rdfs:comment": "A test file tagged `Verifies` for the use case."
+    },
+    {
+      "@id": "vb:inContext",
+      "@type": "owl:ObjectProperty",
+      "rdfs:domain": {
+        "@id": "vb:UseCase"
+      },
+      "rdfs:range": {
+        "@id": "vb:BoundedContext"
+      },
+      "rdfs:comment": "The bounded context a use case lives in."
+    },
+    {
+      "@id": "vb:termInContext",
+      "@type": "owl:ObjectProperty",
+      "rdfs:domain": {
+        "@id": "vb:Term"
+      },
+      "rdfs:range": {
+        "@id": "vb:BoundedContext"
+      },
+      "rdfs:comment": "The bounded context a term belongs to."
+    },
+    {
+      "@id": "vb:notToBeConfusedWith",
+      "@type": [
+        "owl:ObjectProperty",
+        "owl:SymmetricProperty"
+      ],
+      "rdfs:domain": {
+        "@id": "vb:Term"
+      },
+      "rdfs:range": {
+        "@id": "vb:Term"
+      },
+      "rdfs:comment": "A defined term this one is not."
+    },
+    {
+      "@id": "vb:planned",
+      "@type": "owl:DatatypeProperty",
+      "rdfs:range": {
+        "@id": "xsd:boolean"
+      },
+      "rdfs:comment": "True when the step is marked (planned) in the diagram: not built yet."
+    },
+    {
+      "@id": "vb:confusedWith",
+      "@type": "owl:DatatypeProperty",
+      "rdfs:range": {
+        "@id": "xsd:string"
+      },
+      "rdfs:comment": "A word the vocabulary says this term is not (it is not itself a defined term)."
+    },
+    {
+      "@id": "p:ctx-notes",
+      "@type": "vb:BoundedContext",
+      "rdfs:label": "Notes"
+    },
+    {
+      "@id": "p:file-src-notes-create-py",
+      "@type": "vb:CodeFile",
+      "rdfs:label": "src/notes/create.py"
+    },
+    {
+      "@id": "p:file-src-notes-note-py",
+      "@type": "vb:CodeFile",
+      "rdfs:label": "src/notes/note.py"
+    },
+    {
+      "@id": "p:AC-N-001",
+      "@type": "vb:Criterion",
+      "rdfs:label": "Given a title and a body, when the author saves, then the note is stored with an id and both timestamps.",
+      "vb:criterionOf": {
+        "@id": "p:UC-N-001"
+      },
+      "vb:satisfiesRequirement": {
+        "@id": "p:REQ-FR-001"
+      }
+    },
+    {
+      "@id": "p:AC-N-002",
+      "@type": "vb:Criterion",
+      "rdfs:label": "Given an empty or blank body, when the author saves, then nothing is stored and the reason names the body.",
+      "vb:criterionOf": {
+        "@id": "p:UC-N-001"
+      },
+      "vb:satisfiesRequirement": {
+        "@id": "p:REQ-FR-001"
+      }
+    },
+    {
+      "@id": "p:AC-N-003",
+      "@type": "vb:Criterion",
+      "rdfs:label": "Given a body over 100 KB, when the author saves, then nothing is stored and the reason gives the limit.",
+      "vb:criterionOf": {
+        "@id": "p:UC-N-001"
+      },
+      "vb:satisfiesRequirement": {
+        "@id": "p:REQ-NFR-002"
+      }
+    },
+    {
+      "@id": "p:AC-N-004",
+      "@type": "vb:Criterion",
+      "rdfs:label": "Given a saved note, when the author asks for it by id, then the title, body and timestamps are returned unchanged.",
+      "vb:criterionOf": {
+        "@id": "p:UC-N-002"
+      },
+      "vb:satisfiesRequirement": {
+        "@id": "p:REQ-FR-002"
+      }
+    },
+    {
+      "@id": "p:AC-N-005",
+      "@type": "vb:Criterion",
+      "rdfs:label": "Given an id that was never issued, when the author asks for it, then the system reports that no such note exists.",
+      "vb:criterionOf": {
+        "@id": "p:UC-N-002"
+      },
+      "vb:satisfiesRequirement": {
+        "@id": "p:REQ-FR-002"
+      }
+    },
+    {
+      "@id": "p:AC-N-006",
+      "@type": "vb:Criterion",
+      "rdfs:label": "TBD: Given (state), when (action), then (observable outcome).",
+      "vb:criterionOf": {
+        "@id": "p:UC-N-003"
+      },
+      "vb:satisfiesRequirement": {
+        "@id": "p:REQ-FR-003"
+      }
+    },
+    {
+      "@id": "p:STK-PRB-001",
+      "@type": "vb:Problem",
+      "rdfs:label": "Small pieces of text (shopping lists, meeting points, half ideas) end up scattered across files and chats."
+    },
+    {
+      "@id": "p:STK-PRB-002",
+      "@type": "vb:Problem",
+      "rdfs:label": "Once there are many notes, finding one means opening them all."
+    },
+    {
+      "@id": "p:STK-PRB-003",
+      "@type": "vb:Problem",
+      "rdfs:label": "A note saved over by mistake loses what it said before."
+    },
+    {
+      "@id": "p:STK-REQ-001",
+      "@type": "vb:Request",
+      "rdfs:label": "I want to keep notes: write one, read it later, and fix it when I got something wrong.",
+      "vb:concernsProblem": {
+        "@id": "p:STK-PRB-001"
+      }
+    },
+    {
+      "@id": "p:STK-REQ-002",
+      "@type": "vb:Request",
+      "rdfs:label": "When I have a lot of notes I want to find the one I mean without opening them all.",
+      "vb:concernsProblem": {
+        "@id": "p:STK-PRB-002"
+      }
+    },
+    {
+      "@id": "p:REQ-FR-001",
+      "@type": "vb:Requirement",
+      "rdfs:label": "The system shall let the author create a note from a body and an optional title.",
+      "vb:satisfiesRequest": {
+        "@id": "p:STK-REQ-001"
+      }
+    },
+    {
+      "@id": "p:REQ-FR-002",
+      "@type": "vb:Requirement",
+      "rdfs:label": "The system shall let the author read a saved note by its id.",
+      "vb:satisfiesRequest": {
+        "@id": "p:STK-REQ-001"
+      }
+    },
+    {
+      "@id": "p:REQ-FR-003",
+      "@type": "vb:Requirement",
+      "rdfs:label": "The system shall let the author edit the title or body of a saved note.",
+      "vb:satisfiesRequest": {
+        "@id": "p:STK-REQ-001"
+      }
+    },
+    {
+      "@id": "p:REQ-NFR-001",
+      "@type": "vb:Requirement",
+      "rdfs:label": "Durability: A saved note is still there after the application restarts.",
+      "vb:satisfiesRequest": {
+        "@id": "p:STK-REQ-001"
+      }
+    },
+    {
+      "@id": "p:REQ-NFR-002",
+      "@type": "vb:Requirement",
+      "rdfs:label": "Input limits: A note body is at most 100 KB, so one note cannot exhaust memory.",
+      "vb:satisfiesRequest": {
+        "@id": "p:STK-REQ-001"
+      }
+    },
+    {
+      "@id": "p:STP-N-001",
+      "@type": "vb:Step",
+      "rdfs:label": "create_note(title, body)",
+      "vb:stepDrivenBy": {
+        "@id": "p:file-tests-test-create-note-py"
+      },
+      "vb:stepOf": {
+        "@id": "p:UC-N-001"
+      },
+      "vb:stepRealisedIn": {
+        "@id": "p:file-src-notes-create-py"
+      },
+      "vb:planned": false
+    },
+    {
+      "@id": "p:STP-N-002",
+      "@type": "vb:Step",
+      "rdfs:label": "Note.create(title, body)",
+      "vb:stepDrivenBy": {
+        "@id": "p:file-tests-test-create-note-py"
+      },
+      "vb:stepOf": {
+        "@id": "p:UC-N-001"
+      },
+      "vb:stepRealisedIn": {
+        "@id": "p:file-src-notes-create-py"
+      },
+      "vb:planned": false
+    },
+    {
+      "@id": "p:STP-N-003",
+      "@type": "vb:Step",
+      "rdfs:label": "refused, reason names the body",
+      "vb:stepDrivenBy": {
+        "@id": "p:file-tests-test-create-note-py"
+      },
+      "vb:stepOf": {
+        "@id": "p:UC-N-001"
+      },
+      "vb:stepRealisedIn": {
+        "@id": "p:file-src-notes-note-py"
+      },
+      "vb:planned": false
+    },
+    {
+      "@id": "p:STP-N-004",
+      "@type": "vb:Step",
+      "rdfs:label": "add(note)",
+      "vb:stepDrivenBy": {
+        "@id": "p:file-tests-test-create-note-py"
+      },
+      "vb:stepOf": {
+        "@id": "p:UC-N-001"
+      },
+      "vb:stepRealisedIn": {
+        "@id": "p:file-src-notes-create-py"
+      },
+      "vb:planned": false
+    },
+    {
+      "@id": "p:STP-N-005",
+      "@type": "vb:Step",
+      "rdfs:label": "the stored note",
+      "vb:stepDrivenBy": {
+        "@id": "p:file-tests-test-create-note-py"
+      },
+      "vb:stepOf": {
+        "@id": "p:UC-N-001"
+      },
+      "vb:stepRealisedIn": {
+        "@id": "p:file-src-notes-create-py"
+      },
+      "vb:planned": false
+    },
+    {
+      "@id": "p:TSK-N-001",
+      "@type": "vb:Task",
+      "rdfs:label": "TSK-N-001",
+      "vb:buildsStep": {
+        "@id": "p:STP-N-003"
+      },
+      "vb:closesCriterion": [
+        {
+          "@id": "p:AC-N-002"
+        },
+        {
+          "@id": "p:AC-N-003"
+        }
+      ],
+      "vb:taskOf": {
+        "@id": "p:UC-N-001"
+      }
+    },
+    {
+      "@id": "p:TSK-N-002",
+      "@type": "vb:Task",
+      "rdfs:label": "TSK-N-002",
+      "vb:buildsStep": [
+        {
+          "@id": "p:STP-N-001"
+        },
+        {
+          "@id": "p:STP-N-002"
+        },
+        {
+          "@id": "p:STP-N-004"
+        },
+        {
+          "@id": "p:STP-N-005"
+        }
+      ],
+      "vb:closesCriterion": {
+        "@id": "p:AC-N-001"
+      },
+      "vb:taskOf": {
+        "@id": "p:UC-N-001"
+      }
+    },
+    {
+      "@id": "p:TSK-N-003",
+      "@type": "vb:Task",
+      "rdfs:label": "TSK-N-003",
+      "vb:closesCriterion": [
+        {
+          "@id": "p:AC-N-004"
+        },
+        {
+          "@id": "p:AC-N-005"
+        }
+      ],
+      "vb:taskOf": {
+        "@id": "p:UC-N-002"
+      }
+    },
+    {
+      "@id": "p:TSK-N-004",
+      "@type": "vb:Task",
+      "rdfs:label": "TSK-N-004",
+      "vb:taskOf": {
+        "@id": "p:UC-N-003"
+      }
+    },
+    {
+      "@id": "p:term-author",
+      "@type": "vb:Term",
+      "rdfs:label": "Author",
+      "rdfs:comment": "The one person who writes and reads their notes.",
+      "vb:termInContext": {
+        "@id": "p:ctx-notes"
+      },
+      "vb:confusedWith": "User"
+    },
+    {
+      "@id": "p:term-body",
+      "@type": "vb:Term",
+      "rdfs:label": "Body",
+      "rdfs:comment": "The text of a note. It is required and at most 100 KB.",
+      "vb:termInContext": {
+        "@id": "p:ctx-notes"
+      },
+      "vb:confusedWith": [
+        "Content",
+        "text"
+      ]
+    },
+    {
+      "@id": "p:term-note",
+      "@type": "vb:Term",
+      "rdfs:label": "Note",
+      "rdfs:comment": "A piece of text the author keeps, with an optional title and a body.",
+      "vb:termInContext": {
+        "@id": "p:ctx-notes"
+      },
+      "vb:confusedWith": [
+        "Document",
+        "memo"
+      ]
+    },
+    {
+      "@id": "p:tests%2Ftest_create_note.py%3A%3Atest_a_body_one_byte_over_the_limit_is_refused_and_the_limit_is_accepted",
+      "@type": "vb:Test",
+      "rdfs:label": "A body one byte over the limit is refused and the limit is accepted",
+      "vb:verifiesCriterion": {
+        "@id": "p:AC-N-003"
+      }
+    },
+    {
+      "@id": "p:tests%2Ftest_create_note.py%3A%3Atest_a_saved_note_has_an_id_and_both_timestamps",
+      "@type": "vb:Test",
+      "rdfs:label": "A saved note has an id and both timestamps",
+      "vb:verifiesCriterion": {
+        "@id": "p:AC-N-001"
+      }
+    },
+    {
+      "@id": "p:tests%2Ftest_create_note.py%3A%3Atest_an_empty_or_blank_body_is_refused_and_nothing_is_stored",
+      "@type": "vb:Test",
+      "rdfs:label": "An empty or blank body is refused and nothing is stored",
+      "vb:verifiesCriterion": {
+        "@id": "p:AC-N-002"
+      }
+    },
+    {
+      "@id": "p:file-tests-test-create-note-py",
+      "@type": "vb:TestFile",
+      "rdfs:label": "tests/test_create_note.py"
+    },
+    {
+      "@id": "p:UC-N-001",
+      "@type": "vb:UseCase",
+      "rdfs:label": "Create note",
+      "vb:inContext": {
+        "@id": "p:ctx-notes"
+      },
+      "vb:realisedIn": [
+        {
+          "@id": "p:file-src-notes-create-py"
+        },
+        {
+          "@id": "p:file-src-notes-note-py"
+        }
+      ],
+      "vb:realisesRequirement": [
+        {
+          "@id": "p:REQ-FR-001"
+        },
+        {
+          "@id": "p:REQ-NFR-002"
+        }
+      ],
+      "vb:verifiedBy": {
+        "@id": "p:file-tests-test-create-note-py"
+      }
+    },
+    {
+      "@id": "p:UC-N-002",
+      "@type": "vb:UseCase",
+      "rdfs:label": "Read note",
+      "vb:dependsOn": {
+        "@id": "p:UC-N-001"
+      },
+      "vb:inContext": {
+        "@id": "p:ctx-notes"
+      },
+      "vb:realisesRequirement": {
+        "@id": "p:REQ-FR-002"
+      }
+    },
+    {
+      "@id": "p:UC-N-003",
+      "@type": "vb:UseCase",
+      "rdfs:label": "Edit note",
+      "vb:dependsOn": [
+        {
+          "@id": "p:UC-N-001"
+        },
+        {
+          "@id": "p:UC-N-002"
+        }
+      ],
+      "vb:inContext": {
+        "@id": "p:ctx-notes"
+      },
+      "vb:realisesRequirement": {
+        "@id": "p:REQ-FR-003"
+      }
+    }
+  ]
+}

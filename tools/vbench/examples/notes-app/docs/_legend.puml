@@ -1,0 +1,14 @@
+' =====================================================================
+'  _legend.puml - colour key for the building blocks used in class and sequence diagrams
+'  Include it in a diagram that needs the key. No @startuml / @enduml.
+' =====================================================================
+legend top right
+|= Stereotype |= Meaning |
+|<#E6F0FB> «boundary»     | Driving adapter: UI, HTTP route, CLI, consumer |
+|<#E7F4EA> «service»      | Application service / use-case orchestration |
+|<#FFE6CC> «aggregate»    | Aggregate root |
+|<#FFF2CC> «entity»       | Entity inside an aggregate |
+|<#FBF2D9> «value object» | Immutable value defined by its attributes |
+|<#EEE7F7> «port»         | Interface the core owns; its adapter implements it |
+|<#ECECEC> «infra»        | Database, queue, third-party system |
+endlegend

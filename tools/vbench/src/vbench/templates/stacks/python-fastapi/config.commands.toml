@@ -1,0 +1,7 @@
+# Commands the /vbench:* skills and `run_gates.py` run for each gate (uv, Ruff, mypy, import-linter, pytest).
+[commands]
+test = "uv run pytest"
+lint = "uv run ruff check ."
+format = "uv run ruff format --check ."
+types = "uv run mypy ."
+boundaries = "uv run lint-imports"

@@ -1,0 +1,41 @@
+{
+  "name": "vbench-ui",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Read-only dashboard for a vbench project. Reads the JSON that `vbench serve` exposes.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "typecheck": "tsc -b",
+    "preview": "vite preview",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@base-ui/react": "^1.9.0",
+    "@radix-ui/react-slot": "^1.5.0",
+    "@tanstack/react-table": "^8.21.3",
+    "@xyflow/react": "^12.12.1",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.69.0",
+    "mermaid": "^12.3.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-markdown": "^10.1.0",
+    "react-router-dom": "^7.18.5",
+    "remark-gfm": "^4.0.1",
+    "tailwind-merge": "^3.7.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.4",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.2.1",
+    "tailwindcss": "^4.3.4",
+    "typescript": "~5.9.3",
+    "vite": "^8.3.6",
+    "vitest": "^3.2.7"
+  }
+}

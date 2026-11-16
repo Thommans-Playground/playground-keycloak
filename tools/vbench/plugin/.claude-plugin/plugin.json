@@ -1,0 +1,7 @@
+{
+  "name": "vbench",
+  "version": "0.1.0",
+  "description": "A harness that keeps AI-assisted work on the V-cycle: requirement, design, test-first code, verification, ship. State lives in the repo's use-case specs; `vbench check` is the gate.",
+  "author": { "name": "VBenchAI" },
+  "keywords": ["v-model", "ddd", "tdd", "traceability", "requirements"]
+}
