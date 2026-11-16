@@ -5,7 +5,8 @@ name: Sign in through company single sign-on
 status: draft
 actor: person (not yet signed in)
 context: BC-ACCESS
-satisfies: [FR-24]
+satisfies:
+  - id: FR-24
 criteria: []
 parameters: []
 objects: [OBJ-A1]
@@ -18,12 +19,27 @@ evolved_from: [MK3 UC-A6]
 
 # Sign in through company single sign-on
 
-> Study copy. Rewritten from MK3's UC-A6 (SSO login) for Keycloak. It is a Release 2 item (FR-24).
-> **FR-24 has no acceptance criterion yet.** Hand this to vbench-req.
+<!-- vbench-uc:begin mirror (generated from the requirements files, do not edit here: change the row, then run sync) -->
 
 ## What this serves
 
 **FR-24**: The system shall let a person sign in through single sign-on.
+
+## Acceptance criteria it runs
+
+None listed yet. A requirement without criteria cannot be confirmed.
+
+## How it is verified
+
+Nothing verifies it yet: it lists no criteria.
+
+Each criterion is run by a test tagged `Verifies AC-<n>`.
+
+<!-- vbench-uc:end mirror -->
+
+> Study copy. Rewritten from MK3's UC-A6 (SSO login) for Keycloak. It is a Release 2 item (FR-24).
+> **FR-24 has no acceptance criterion yet.** Hand this to vbench-req.
+
 
 ## Description
 
@@ -80,5 +96,5 @@ sequenceDiagram
 
 ## Slices
 
-1. Configure the identity provider in the realm (no code).
-2. Check the account and linking rules on the first request.
+1. TSK-A15.1: Configure the identity provider in the realm (no code)
+2. TSK-A15.2: Check the account and linking rules on the first request

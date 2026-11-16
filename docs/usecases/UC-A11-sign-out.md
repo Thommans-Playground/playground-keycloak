@@ -5,8 +5,10 @@ name: Sign out
 status: draft
 actor: signed-in person
 context: BC-ACCESS
-satisfies: [FR-125]
-criteria: [AC-79]
+satisfies:
+  - id: FR-125
+criteria:
+  - id: AC-79
 parameters: []
 objects: []
 rules: []
@@ -19,7 +21,7 @@ evolved_from: [MK3 UC-A2]
 
 # Sign out
 
-> Study copy. Rewritten from MK3's UC-A2 (logout) for Keycloak.
+<!-- vbench-uc:begin mirror (generated from the requirements files, do not edit here: change the row, then run sync) -->
 
 ## What this serves
 
@@ -27,7 +29,22 @@ evolved_from: [MK3 UC-A2]
 
 ## Acceptance criteria it runs
 
-**AC-79** (proves FR-125): Given a signed-in person, when they sign out, then the product no longer accepts their session and asks them to sign in again.
+**AC-79** (acceptance, proves FR-125)
+
+- Given a signed-in person
+- When they sign out
+- Then the product no longer accepts their session and asks them to sign in again
+
+## How it is verified
+
+- acceptance: AC-79
+
+Each criterion is run by a test tagged `Verifies AC-<n>`.
+
+<!-- vbench-uc:end mirror -->
+
+> Study copy. Rewritten from MK3's UC-A2 (logout) for Keycloak.
+
 
 ## Description
 
@@ -87,5 +104,5 @@ sequenceDiagram
 
 ## Slices
 
-1. Drop the session and clear the cookie.
-2. End the Keycloak session too.
+1. TSK-A11.1: Drop the session and clear the cookie (AC-79)
+2. TSK-A11.2: End the Keycloak session too (AC-79)

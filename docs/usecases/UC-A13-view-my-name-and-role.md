@@ -5,18 +5,21 @@ name: View my name and role
 status: draft
 actor: signed-in person
 context: BC-ACCESS
-satisfies: [FR-126]
-criteria: [AC-80]
+satisfies:
+  - id: FR-126
+criteria:
+  - id: AC-80
 parameters: []
 objects: [OBJ-A1]
 rules: []
-effects: []
+effects:
+  - nothing is changed, except that the copied name and email are refreshed from the token
 evolved_from: [MK3 UC-A4]
 ```
 
 # View my name and role
 
-> Study copy. Rewritten from MK3's UC-A4 (view profile) for Keycloak.
+<!-- vbench-uc:begin mirror (generated from the requirements files, do not edit here: change the row, then run sync) -->
 
 ## What this serves
 
@@ -24,7 +27,22 @@ evolved_from: [MK3 UC-A4]
 
 ## Acceptance criteria it runs
 
-**AC-80** (proves FR-126): Given a signed-in person, when they open their profile, then it shows their name and account role.
+**AC-80** (acceptance, proves FR-126)
+
+- Given a signed-in person
+- When they open their profile
+- Then it shows their name and account role
+
+## How it is verified
+
+- acceptance: AC-80
+
+Each criterion is run by a test tagged `Verifies AC-<n>`.
+
+<!-- vbench-uc:end mirror -->
+
+> Study copy. Rewritten from MK3's UC-A4 (view profile) for Keycloak.
+
 
 ## Description
 
@@ -82,5 +100,5 @@ sequenceDiagram
 
 ## Slices
 
-1. Return the account for `/me` (steps 2 to 6).
-2. Show it on the page (step 7).
+1. TSK-A13.1: Return the account for /me (AC-80)
+2. TSK-A13.2: Show it on the page (AC-80)

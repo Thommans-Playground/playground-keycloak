@@ -5,13 +5,26 @@ name: Create a project
 status: draft
 actor: administrator or project manager
 context: BC-PROJECTS
-satisfies: []
-criteria: []
+satisfies:
+  - id: FR-129
+  - id: FR-130
+  - id: FR-131
+  - id: FR-132
+  - id: FR-143
+criteria:
+  - id: AC-87
+  - id: AC-88
+  - id: AC-89
+  - id: AC-90
+  - id: AC-91
+  - id: AC-92
+  - id: AC-93
+  - id: AC-109
 parameters:
   - name (of the project)
   - manager (only when an administrator creates it)
-objects: [Project, Membership]
-rules: []
+objects: [OBJ-P1, OBJ-P2]
+rules: [RULE-P1, RULE-P2]
 effects:
   - a project exists, empty of files, endpoints and evaluations
   - the project has one manager from the start
@@ -20,6 +33,78 @@ evolved_from: []
 ```
 
 # Create a project
+
+<!-- vbench-uc:begin mirror (generated from the requirements files, do not edit here: change the row, then run sync) -->
+
+## What this serves
+
+**FR-129**: The system shall let an administrator or a project manager create a project.
+
+**FR-130**: The system shall require an administrator who creates a project to name its manager, who must have an active account.
+
+**FR-131**: The system shall not make an administrator who creates a project a member of it.
+
+**FR-132**: The system shall make a project manager who creates a project its manager.
+
+**FR-143**: The system shall record an audit entry for every project creation and every change to a project's members.
+
+## Acceptance criteria it runs
+
+**AC-87** (acceptance, proves FR-129; FR-130)
+
+- Given an administrator and an account that is active
+- When they create a project with a name and name that account as manager
+- Then the project exists and that person is its manager
+
+**AC-88** (acceptance, proves FR-129; FR-132)
+
+- Given a person who manages one project
+- When they create a project
+- Then the new project exists and they are its manager
+
+**AC-89** (acceptance, proves FR-129)
+
+- Given an engineer who manages no project
+- When they try to create a project
+- Then it is refused and no project exists
+
+**AC-90** (acceptance, proves FR-129)
+
+- Given an administrator
+- When they create a project with an empty name
+- Then it is refused and no project exists
+
+**AC-91** (acceptance, proves FR-130)
+
+- Given an administrator
+- When they create a project and name no manager
+- Then it is refused and no project exists
+
+**AC-92** (acceptance, proves FR-130)
+
+- Given an administrator and an account that is pending or deactivated
+- When they name that account as the manager
+- Then it is refused and no project exists
+
+**AC-93** (acceptance, proves FR-131)
+
+- Given a project created by an administrator
+- When that administrator asks for its contents
+- Then it is refused, because they are not a member
+
+**AC-109** (acceptance, proves FR-143)
+
+- Given a project
+- When it is created and later a member is added
+- Then an audit entry exists for each, saying who did it and what it was
+
+## How it is verified
+
+- acceptance: AC-87, AC-88, AC-89, AC-90, AC-91, AC-92, AC-93, AC-109
+
+Each criterion is run by a test tagged `Verifies AC-<n>`.
+
+<!-- vbench-uc:end mirror -->
 
 > Draft for the first cut of projects. **No requirement row exists for this yet** (see "Proposed requirements").
 > Roles are names only for now: a project manager and an engineer do the same things, except that only a manager adds people.
@@ -84,5 +169,6 @@ sequenceDiagram
 
 ## Slices
 
-1. A project manager creates a project and becomes its manager.
-2. An administrator creates a project and names its manager.
+1. TSK-P1.1: A project manager creates a project and becomes its manager, rules RULE-P1 (AC-88, AC-89, AC-90)
+2. TSK-P1.2: An administrator creates a project and names its manager, rules RULE-P2 (AC-87, AC-91, AC-92, AC-93)
+3. TSK-P1.3: Creating a project is audited (AC-109)

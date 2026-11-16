@@ -5,8 +5,14 @@ name: Sign in
 status: draft
 actor: person (not yet signed in)
 context: BC-ACCESS
-satisfies: [FR-124, FR-127, NFR-1]
-criteria: [AC-78, AC-81, AC-9]
+satisfies:
+  - id: FR-124
+  - id: FR-127
+  - id: NFR-1
+criteria:
+  - id: AC-78
+  - id: AC-81
+  - id: AC-9
 parameters: []
 objects: [OBJ-A1]
 rules: []
@@ -18,8 +24,7 @@ evolved_from: [MK3 UC-A1]
 
 # Sign in
 
-> Study copy. Rewritten from MK3's UC-A1 (login) for Keycloak. The requirement and criterion rows are in
-> `docs/requirements/`. The front matter is not in the use case tool's format yet, so no review hashes are stamped.
+<!-- vbench-uc:begin mirror (generated from the requirements files, do not edit here: change the row, then run sync) -->
 
 ## What this serves
 
@@ -31,11 +36,36 @@ evolved_from: [MK3 UC-A1]
 
 ## Acceptance criteria it runs
 
-**AC-78** (proves FR-124): Given an approved person with an identity provider account, when they sign in through the identity provider, then they can use the product.
+**AC-78** (acceptance, proves FR-124)
 
-**AC-81** (proves FR-127): Given a request with no token, an expired token, or a token not issued by the identity provider, when it is made to any protected route, then it is refused.
+- Given an approved person with an identity provider account
+- When they sign in through the identity provider
+- Then they can use the product
 
-**AC-9** (proves NFR-1): Given a screen that hides a button the role may not use, when the request is sent directly to the server, then the server still refuses it.
+**AC-81** (acceptance, proves FR-127)
+
+- Given a request with no token, an expired token, or a token not issued by the identity provider
+- When it is made to any protected route
+- Then it is refused
+
+**AC-9** (integration, proves NFR-1)
+
+- Given a screen that hides a button the role may not use
+- When the request is sent directly to the server
+- Then the server still refuses it
+
+## How it is verified
+
+- acceptance: AC-78, AC-81
+- integration: AC-9
+
+Each criterion is run by a test tagged `Verifies AC-<n>`.
+
+<!-- vbench-uc:end mirror -->
+
+> Study copy. Rewritten from MK3's UC-A1 (login) for Keycloak. The requirement and criterion rows are in
+> `docs/requirements/`. The front matter is not in the use case tool's format yet, so no review hashes are stamped.
+
 
 ## Description
 
@@ -107,5 +137,5 @@ sequenceDiagram
 
 ## Slices
 
-1. Send the person to Keycloak and handle the callback (steps 1 to 8).
-2. The API checks the token on every protected route (step 9, AC-81).
+1. TSK-A10.1: Send the person to Keycloak and handle the callback (AC-78)
+2. TSK-A10.2: The API checks the token on every protected route (AC-81, AC-9)

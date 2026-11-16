@@ -29,6 +29,10 @@ criteria:
     reviewed: 1097530
   - id: AC-7
     reviewed: eb09f88
+  - id: AC-75
+  - id: AC-84
+  - id: AC-85
+  - id: AC-86
 parameters:
   - account
   - decision (approve, deactivate or reinstate)
@@ -45,13 +49,13 @@ flow_reviewed: 63dc9f3
 
 # Approve, deactivate and reinstate an account
 
-<!-- vbench-uc:begin mirror (generated from the CSV files, do not edit here: change the row, then run sync) -->
+<!-- vbench-uc:begin mirror (generated from the requirements files, do not edit here: change the row, then run sync) -->
 
 ## What this serves
 
 **FR-1**: The system shall let an administrator approve a pending account so that the person can sign in.
 
-**FR-2**: The system shall prevent a person with a pending account from signing in.
+**FR-2**: The system shall let a person with a pending account see only that their account is waiting for approval, and refuse everything else.
 
 **FR-3**: The system shall let an administrator deactivate an account, with a reason.
 
@@ -74,8 +78,8 @@ flow_reviewed: 63dc9f3
 **AC-3** (acceptance, proves FR-2)
 
 - Given a pending account
-- When its owner tries to sign in
-- Then sign-in is refused
+- When its owner makes any request other than asking for their own status
+- Then it is refused
 
 **AC-4** (acceptance, proves FR-3)
 
@@ -101,10 +105,35 @@ flow_reviewed: 63dc9f3
 - When an administrator reinstates it
 - Then the account is active and its owner can sign in again
 
+**AC-75** (acceptance, proves FR-2)
+
+- Given a pending account
+- When its owner asks for their own status
+- Then it says the account is waiting for approval
+
+**AC-84** (acceptance, proves FR-3)
+
+- Given an active account whose owner holds a valid token
+- When an administrator deactivates it
+- Then the owner's next request is refused
+
+**AC-85** (acceptance, proves FR-3)
+
+- Given a deactivated account
+- When its records are inspected
+- Then all of its data is still there
+
+**AC-86** (future, proves FR-3)
+
+- Given a deactivated person with an evaluation running
+- When time passes
+- Then the evaluation reaches its end
+
 ## How it is verified
 
-- acceptance: AC-1, AC-2, AC-3, AC-4, AC-5, AC-7
+- acceptance: AC-1, AC-2, AC-3, AC-4, AC-5, AC-7, AC-75, AC-84, AC-85
 - unit: AC-6
+- future: AC-86
 
 Each criterion is run by a test tagged `Verifies AC-<n>`.
 
@@ -133,12 +162,12 @@ An administrator decides who can sign in. A person who registers is pending unti
 ## Other flows
 
 - A person who is not an administrator tries to approve an account: it is refused and the account stays pending. (AC-2)
-- A pending person tries to sign in before they are approved: Keycloak refuses and no token is issued. (AC-3)
+- A pending person makes any request other than asking for their own status: it is refused. They can sign in at Keycloak and hold a token, and they can ask for their own status. (AC-3, AC-75)
 - An administrator deactivates an account without a reason: it is refused and the account stays active. (AC-5)
 - An administrator tries to deactivate their own account: it is refused. (AC-6)
-- Open: how a new person arrives as pending. Keycloak self-registration followed by a disable, or an administrator invites them (decision 23).
-- Open: MK3 refused a deactivated person on their very next request (its AC-A7-deactivate-takes-effect). With Keycloak a valid token can outlive the deactivation unless the system checks the account on every request and ends the person's Keycloak sessions. No criterion says so here yet.
-- Open: MK3 also kept all data of a deactivated account and let its running evaluations finish. No criterion says so here yet.
+- A deactivated person whose token has not yet expired makes a request: it is refused at once, because the account is read on every request, and Keycloak sessions are ended too. (AC-84)
+- All data of a deactivated account is kept. (AC-85)
+- An evaluation that a deactivated person had running reaches its end. (AC-86, future)
 
 ## Postconditions
 
