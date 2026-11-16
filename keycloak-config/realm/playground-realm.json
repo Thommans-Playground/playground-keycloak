@@ -1,0 +1,92 @@
+{
+  "realm": "playground",
+  "enabled": true,
+  "displayName": "Playground",
+  "sslRequired": "none",
+  "registrationAllowed": true,
+  "registrationEmailAsUsername": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "rememberMe": false,
+  "verifyEmail": false,
+  "bruteForceProtected": true,
+  "accessTokenLifespan": 300,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 28800,
+  "clients": [
+    {
+      "clientId": "playground-web",
+      "name": "Playground web (Next.js BFF)",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "playground-web-dev-secret",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "rootUrl": "http://localhost:3000",
+      "baseUrl": "/",
+      "redirectUris": ["http://localhost:3000/auth/callback"],
+      "webOrigins": [],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:3000/*"
+      },
+      "defaultClientScopes": ["web-origins", "acr", "profile", "roles", "basic", "email"],
+      "protocolMappers": [
+        {
+          "name": "playground-api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "playground-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "playground-backend",
+      "name": "Playground API (admin calls to Keycloak)",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "playground-backend-dev-secret",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true
+    }
+  ],
+  "users": [
+    {
+      "username": "service-account-playground-backend",
+      "enabled": true,
+      "serviceAccountClientId": "playground-backend",
+      "clientRoles": {
+        "realm-management": ["view-users", "query-users", "manage-users"]
+      }
+    },
+    {
+      "username": "admin@example.test",
+      "email": "admin@example.test",
+      "emailVerified": true,
+      "firstName": "Ada",
+      "lastName": "Lovelace",
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "Admin123!", "temporary": false }]
+    },
+    {
+      "username": "maya@example.test",
+      "email": "maya@example.test",
+      "emailVerified": true,
+      "firstName": "Maya",
+      "lastName": "Rao",
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "Maya123!", "temporary": false }]
+    }
+  ]
+}
