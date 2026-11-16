@@ -19,7 +19,7 @@ evolved_from: [MK3 UC-A1]
 # Sign in
 
 > Study copy. Rewritten from MK3's UC-A1 (login) for Keycloak. The requirement and criterion rows are in
-> `docs/specs/source/requirements/`. The use case tool is not set up in this repo, so no review hashes are stamped.
+> `docs/requirements/`. The front matter is not in the use case tool's format yet, so no review hashes are stamped.
 
 ## What this serves
 

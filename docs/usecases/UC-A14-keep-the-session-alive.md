@@ -18,7 +18,7 @@ evolved_from: [MK3 UC-A3]
 # Keep the session alive
 
 > Study copy. Rewritten from MK3's UC-A3 (refresh) for Keycloak.
-> **No requirement serves this yet.** The rows in `requirements-access.csv` have nothing for refreshing, because Keycloak does it. Hand this to vbench-req if a row is wanted, for example one that proves a person is not logged out when two requests arrive together.
+> **No requirement serves this yet.** The rows in `docs/requirements/requirements.md` have nothing for refreshing, because Keycloak does it. Hand this to vbench-req if a row is wanted, for example one that proves a person is not logged out when two requests arrive together.
 
 ## Description
 
