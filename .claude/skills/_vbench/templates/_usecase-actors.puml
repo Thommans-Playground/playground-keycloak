@@ -1,0 +1,18 @@
+' The actors of the use case diagrams. One block for each actor, so a diagram includes only the actors it
+' draws, and the overview includes each once (the guard stops a second declaration).
+' Add one block per actor in your vbench.json "actors". The block name is the actor's short name in upper case,
+' which is the "actor_style" value in vbench.json "diagram" (for example "User" gives the block USER).
+
+!startsub USER
+!ifndef ACTOR_USER
+!define ACTOR_USER
+actor "User" as User #1565C0
+!endif
+!endsub
+
+!startsub ADMIN
+!ifndef ACTOR_ADMIN
+!define ACTOR_ADMIN
+actor "Administrator" as Admin #E65100
+!endif
+!endsub

@@ -1,0 +1,17 @@
+' Style of the use case diagrams: coloured actors, one pastel box for each context, a green or grey fill for
+' the status of a use case, an ortho line style, and the notation on the lines (extend, uses, generalisation).
+' Copy the files in this folder next to your use case diagrams (usecases/diagrams/). Edit freely.
+' Light mode only: a white background, as for every diagram here.
+!include ../../domain/diagrams/_style.puml
+
+top to bottom direction
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+skinparam linetype ortho
+skinparam nodesep 8
+skinparam ranksep 14
+skinparam defaultFontSize 11
+
+' Status of a use case (the fill follows what is built, from the requirements: today = built or not built).
+!define COLOR_BUILT #A5D6A7
+!define COLOR_TODO #D9D9D9
