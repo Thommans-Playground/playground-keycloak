@@ -31,20 +31,50 @@ export default async function Dashboard() {
     );
   }
 
+  const admin = account.role === "administrator";
   return (
-    <Card className="max-w-xl">
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold">Hello, {account.name}</h1>
+        <p className="text-muted-foreground">You are signed in through Keycloak.</p>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Stat label="Role"><Badge variant="secondary">{account.role}</Badge></Stat>
+        <Stat label="Status"><Badge>{account.status}</Badge></Stat>
+        <Stat label="Member since">{new Date(account.created + "Z").toLocaleDateString()}</Stat>
+      </div>
+
+      <Card>
+        <CardHeader><CardTitle>Your account</CardTitle></CardHeader>
+        <CardContent className="space-y-3 text-sm">
+          <Row label="Name">{account.name}</Row>
+          <Row label="Email">{account.email}</Row>
+        </CardContent>
+      </Card>
+
+      {admin && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Administration</CardTitle>
+            <CardDescription>Approve new accounts, change roles and review the audit trail.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/admin/accounts" className={buttonVariants()}>Manage accounts</Link>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+function Stat({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <Card size="sm">
       <CardHeader>
-        <CardTitle>Hello, {account.name}</CardTitle>
-        <CardDescription>You are signed in through Keycloak.</CardDescription>
+        <CardDescription>{label}</CardDescription>
+        <CardTitle className="text-lg">{children}</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3 text-sm">
-        <Row label="Email">{account.email}</Row>
-        <Row label="Role"><Badge variant="secondary">{account.role}</Badge></Row>
-        <Row label="Status"><Badge>{account.status}</Badge></Row>
-        {account.role === "administrator" && (
-          <Link href="/admin/accounts" className={buttonVariants({ variant: "outline" })}>Manage accounts</Link>
-        )}
-      </CardContent>
     </Card>
   );
 }

@@ -1,22 +1,22 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import { SiteHeader } from "@/components/site-header";
+import { Inter, Roboto_Mono } from "next/font/google";
+import { Masthead } from "@/components/masthead";
 import "./globals.css";
 
-const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
-const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
+const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
+const robotoMono = Roboto_Mono({ variable: "--font-roboto-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Playground",
-  description: "Keycloak sign in playground: Next.js, shadcn, FastAPI",
+  description: "Keycloak sign in playground: Next.js, shadcn, FastAPI, styled with the Singapore Government Design System",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+    <html lang="en" className={`${inter.variable} ${robotoMono.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
-        <SiteHeader />
-        <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-10">{children}</main>
+        <Masthead />
+        {children}
       </body>
     </html>
   );

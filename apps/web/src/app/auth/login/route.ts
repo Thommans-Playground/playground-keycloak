@@ -16,6 +16,6 @@ export async function GET(request: NextRequest) {
     res.cookies.set(LOGIN_COOKIE, id, cookieOptions(LOGIN_ATTEMPT_TTL_MS / 1000));
     return res;
   } catch {
-    return NextResponse.redirect(new URL("/?error=identity_provider_unavailable", request.url));
+    return NextResponse.redirect(new URL("/login?error=identity_provider_unavailable", request.url));
   }
 }

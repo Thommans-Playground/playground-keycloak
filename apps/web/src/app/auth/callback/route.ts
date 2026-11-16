@@ -6,7 +6,7 @@ import { putSession, takeAttempt } from "@/lib/auth/store";
 
 export async function GET(request: NextRequest) {
   const fail = (code: string) => {
-    const res = NextResponse.redirect(new URL(`/?error=${code}`, env.appUrl));
+    const res = NextResponse.redirect(new URL(`/login?error=${code}`, env.appUrl));
     res.cookies.delete(LOGIN_COOKIE);
     return res;
   };
