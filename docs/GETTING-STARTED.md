@@ -10,7 +10,7 @@ A small app where people sign in with **Keycloak**, and an **API** decides what 
 |---|---|---|
 | Keycloak | Keycloak 26 + Postgres | Knows who you are. Holds passwords, the sign-in page, sessions |
 | `apps/web` | Next.js 16, shadcn, TypeScript | The website. Also the "BFF": the server part runs sign-in and holds your tokens |
-| `apps/api` | FastAPI, SQLite | Checks every request, keeps your **account** (role, status) and the audit trail |
+| `apps/api` | FastAPI, PostgreSQL | Checks every request, keeps your **account** (role, status) and the audit trail |
 
 The key idea, in one sentence: **Keycloak says who you are. Our API says what you may do.**
 
@@ -30,6 +30,8 @@ docker compose up -d --build     # first build takes a few minutes
 | http://localhost:8000/docs | the API (Swagger UI, needs a token to do much) |
 | http://localhost:8080 | Keycloak admin console. `admin` / `admin`, switch to realm **playground** |
 
+The API keeps its data in its own PostgreSQL (`api-db`), the engine Amazon RDS runs on AWS.
+
 Stop: `docker compose down`. Wipe all data and re-import the realm: `docker compose down -v`.
 Logs: `docker compose logs -f web api keycloak`.
 
@@ -38,7 +40,7 @@ Logs: `docker compose logs -f web api keycloak`.
 Run Keycloak in Docker and the app on your machine, so code changes reload:
 
 ```bash
-docker compose up -d keycloak keycloak-db
+docker compose up -d keycloak keycloak-db api-db
 cd apps/api && cp .env.example .env && uv sync && uv run uvicorn app.main:create_app --factory --reload --port 8000
 cd apps/web && npm install && npm run dev        # .env.example has the values
 ```
@@ -167,7 +169,7 @@ Paste an access token into https://jwt.io to read it. You can get one from the N
 | Make deactivated people see their own page | `dashboard/page.tsx` already handles `account_deactivated` |
 | Shorten the access token to 1 minute | `accessTokenLifespan` in the realm JSON, `docker compose down -v`, up again |
 | Add MFA for administrators | Keycloak: Authentication → flows (no code change) |
-| Swap SQLite for Postgres | `DATABASE_URL` and a driver in `pyproject.toml` |
+| Point the API at Amazon RDS | `DATABASE_URL` only: it is already PostgreSQL, so the adapter does not change |
 | Keep sessions across restarts | Implement `store.ts` against Redis |
 
 ## 8. When things go wrong

@@ -4,16 +4,34 @@ include:
   - keycloak-config/docker-compose.yml
 
 services:
+  # The API's own database. PostgreSQL, the same engine as Amazon RDS for PostgreSQL, which it becomes on AWS.
+  api-db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: playground
+      POSTGRES_USER: playground
+      POSTGRES_PASSWORD: playground
+    volumes:
+      - api-db:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"   # for running the API or its tests outside Docker. Keycloak's own database stays private.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U playground"]
+      interval: 5s
+      retries: 10
+
   api:
     build: ./apps/api
-    depends_on: [keycloak]
+    depends_on:
+      keycloak:
+        condition: service_started
+      api-db:
+        condition: service_healthy
     environment:
       KEYCLOAK_URL: http://localhost:8080            # the address in tokens (iss)
       KEYCLOAK_INTERNAL_URL: http://keycloak:8080    # where this container reaches Keycloak
-      DATABASE_URL: sqlite:////data/playground.db
+      DATABASE_URL: postgresql+psycopg://playground:playground@api-db:5432/playground
       BOOTSTRAP_ADMIN_EMAILS: admin@example.test
-    volumes:
-      - api-data:/data
     ports:
       - "8000:8000"
 
@@ -31,4 +49,4 @@ services:
       - "3000:3000"
 
 volumes:
-  api-data:
+  api-db:

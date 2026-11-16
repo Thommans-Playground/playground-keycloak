@@ -13,7 +13,8 @@ class Settings(BaseSettings):
     api_audience: str = "playground-api"
     keycloak_backend_client_id: str = "playground-backend"
     keycloak_backend_client_secret: str = "playground-backend-dev-secret"
-    database_url: str = "sqlite:///./playground.db"
+    # PostgreSQL, as on Amazon RDS. `docker compose up -d api-db` starts it on localhost:5433.
+    database_url: str = "postgresql+psycopg://playground:playground@localhost:5433/playground"
     # Comma separated. A person with one of these verified emails becomes the first administrator.
     bootstrap_admin_emails: str = "admin@example.test"
 

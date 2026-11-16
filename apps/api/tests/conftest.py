@@ -1,3 +1,4 @@
+import os
 import time
 
 import jwt
@@ -7,6 +8,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
 
+from app.adapters.sql import Base
 from app.auth import TokenVerifier
 from app.config import Settings
 from app.main import create_app
@@ -46,10 +48,21 @@ def idp():
     return FakeIdp()
 
 
+def make_engine():
+    """SQLite in memory by default, so a test run needs nothing and stays fast.
+    Set TEST_DATABASE_URL to run the same tests on PostgreSQL, the engine of Amazon RDS."""
+    url = os.environ.get("TEST_DATABASE_URL")
+    if url:
+        engine = create_engine(url)
+        Base.metadata.drop_all(engine)  # a clean slate for each test: create_app makes the tables
+        return engine
+    return create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+
+
 @pytest.fixture
 def client(idp):
     settings = Settings(keycloak_url="http://kc.test", bootstrap_admin_emails="ada@x.test")
-    engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    engine = make_engine()
     verifier = TokenVerifier(ISSUER, AUDIENCE, lambda _t: KEY.public_key())
     return TestClient(create_app(settings, verifier, idp, engine))
 
