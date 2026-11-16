@@ -10,7 +10,6 @@ skinparam packageStyle rectangle
 skinparam linetype ortho
 skinparam classAttributeIconSize 0
 skinparam wrapWidth 220
-skinparam maxMessageSize 80
 
 skinparam class {
   BorderColor #555555

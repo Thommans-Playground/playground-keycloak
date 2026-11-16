@@ -10,8 +10,8 @@ title Playground Access: ports and adapters (built)
 ' Role (user, administrator) and status (pending, active, deactivated) are value objects, shown as fields.
 
 skinparam classAttributeIconSize 0
-skinparam linetype polyline
-top to bottom direction
+skinparam linetype ortho
+left to right direction
 
 class "«root entity»\nAccount" as ACC #FFE6CC {
   identity
@@ -38,7 +38,7 @@ class "«adapter»\nKeycloakAdmin" as KCA #EEE7F7
 class "API database\n(PostgreSQL)" as DB #ECECEC
 class "Keycloak" as KC #ECECEC
 
-ACC <.. SVC : applies rules
+ACC <.... SVC : applies rules
 SVC --> PAR
 SVC --> PAL
 SVC --> PIDP
