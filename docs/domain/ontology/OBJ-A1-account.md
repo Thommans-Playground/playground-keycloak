@@ -27,7 +27,7 @@ properties:
   - name: status
     type: SET-6
     required: true
-    comment: Active, or deactivated.
+    comment: Pending, active or deactivated. A new account starts pending, except the first administrator.
   - name: created
     type: date
     required: true
@@ -36,6 +36,12 @@ properties:
     required: false
     comment: The administrator who created it. Empty for the first administrator, who comes from the Keycloak setup.
 links:
+  - domain: Membership
+    property: is of
+    range: Account
+    cardinality: one-to-many
+    kind: reference
+    defined_in: OBJ-P2
   - domain: Account request
     property: becomes
     range: Account
@@ -68,7 +74,7 @@ satisfies: []
 
 An account is **a person's place in Playground**. When a person signs in, Keycloak proves who they are. The
 account says what they may do once they are in: their role, user or administrator, and whether they are
-active or deactivated. It holds no password.
+pending, active or deactivated. It holds no password.
 
 ## Why it exists
 
@@ -103,13 +109,15 @@ given to and by.
 
 ```mermaid
 stateDiagram-v2
-    [*] --> active: an administrator creates it
+    [*] --> pending: first request from a person we do not know
+    pending --> active: an administrator approves
     active --> deactivated: deactivate, with a reason
     deactivated --> active: reinstate, with a reason
 ```
 
-An account is never deleted. There is no waiting state: until an administrator creates the account, the person
-only has a request ([OBJ-A2](OBJ-A2-account-request.md)).
+An account is never deleted. It is made the first time Playground sees a person who has signed in at Keycloak,
+and it waits as **pending** until an administrator approves it (decision 24). Registering is Keycloak's. The first
+administrator comes from the setup and starts active.
 
 ## Good to know
 
@@ -121,6 +129,8 @@ only has a request ([OBJ-A2](OBJ-A2-account-request.md)).
 - An **administrator is also a user**. They start evaluations like anyone, and they also keep the accounts.
   They read none of anyone else's work ([RULE-A4](RULE-A4-see-own-work-and-what-is-shared.md)).
 - The value sets are [SET-5](SET-5-account-roles.md) and [SET-6](SET-6-account-statuses.md).
+- Which projects a person is in, and as what, is not kept here. [Projects](../contexts/BC-PROJECTS.md) holds the
+  [membership](OBJ-P2-membership.md) and asks Access only whether the account is active.
 
 ## Not yet a file
 

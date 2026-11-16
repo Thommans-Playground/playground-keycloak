@@ -48,8 +48,8 @@ kept in Playground and not in Keycloak. The token carries who the person is, and
 This amends decision 23, which put roles in the token.
 
 The same holds for any way of signing in. Keycloak's own login now, or a company single sign-on later, only proves who
-the person is. It never decides a role, and no company group is mapped to one. The application decides who is added
-as a user, a project manager or an administrator.
+the person is. It never decides a role, and no company group is mapped to one. The application decides who is a user
+or an administrator. A project manager is a role inside one project, held by [Projects](BC-PROJECTS.md).
 
 ## Its boundary
 
@@ -58,6 +58,8 @@ and the [share](../ontology/OBJ-A3-share.md), with their value sets
 [roles](../ontology/SET-5-account-roles.md), [statuses](../ontology/SET-6-account-statuses.md) and
 [request statuses](../ontology/SET-7-request-statuses.md).
 
+Project membership is not kept here: it moved to [Projects](BC-PROJECTS.md) (decision 24).
+
 Other contexts refer to an account **by id** and ask it one question through the `Permissions` port: *may this person
 do this?* They never look at a role name. See [the context map](../context-map.md).
 
@@ -65,16 +67,15 @@ do this?* They never look at a role name. See [the context map](../context-map.m
 
 ```mermaid
 flowchart LR
-    A[A person asks on the public page] --> Q[Request waits in the queue]
-    Q -->|an administrator creates the account| C[Account is active]
-    Q -->|an administrator declines| X[Request declined]
-    C -->|first sign-in: the person sets their own password| U[Uses Playground]
-    U -->|an administrator deactivates, with a reason| D[Account is deactivated]
+    R[A person registers at Keycloak] --> F[First request: a pending account is made]
+    F -->|an administrator approves| C[Account is active]
+    C -->|an administrator deactivates, with a reason| D[Account is deactivated]
     D -->|an administrator reinstates, with a reason| C
 ```
 
-Administrators see a count of waiting requests on an icon. The first release sends no email: an administrator gives
-the person a temporary password directly, and an emailed link is a later option.
+Registering is Keycloak's. Playground makes the account on the person's first request and keeps it **pending** until an
+administrator approves (decision 24). The account request queue and shares in the earlier model
+([OBJ-A2](../ontology/OBJ-A2-account-request.md), [OBJ-A3](../ontology/OBJ-A3-share.md)) are not part of the first release.
 
 ## Who does what
 
@@ -153,10 +154,12 @@ cookies and an approval screen. Keycloak takes most of it. What MK3 had, and whe
 
 ## The use cases
 
-[UC-A2](../../usecases/UC-A2-approve-deactivate-and-reinstate-an-account.md),
-[UC-A3](../../usecases/UC-A3-manage-project-members.md) and
-[UC-A4](../../usecases/UC-A4-request-time-limited-access-to-a-project.md) were written for an earlier model, with
-pending accounts and membership kept in Access. They are to be reworked from this page.
+[UC-A2](../../usecases/UC-A2-approve-deactivate-and-reinstate-an-account.md) approves, deactivates and reinstates an account.
+Sign in, sign out, refreshing the session, viewing the profile, registering and company single sign-on are
+[UC-A10](../../usecases/UC-A10-sign-in.md) to [UC-A15](../../usecases/UC-A15-sign-in-through-company-single-sign-on.md),
+where Keycloak does most of the work. UC-A3 (membership) is retired and is
+[UC-P4](../../usecases/UC-P4-manage-project-members.md) in [Projects](BC-PROJECTS.md). UC-A4 (time-limited access) is
+undecided.
 
 ## Questions this context leaves open
 
@@ -170,7 +173,11 @@ pending accounts and membership kept in Access. They are to be reworked from thi
    the Keycloak id is stored? An account made by an administrator is created in Keycloak and in Playground together,
    so what happens if only one of the two succeeds?
 
-## Not yet built
+## Built, and not yet built
 
-All of it. The account object has no code, and the identity port is a stub first: a fixed set of people stands in for
-Keycloak.
+Built in Phase 1 (`apps/api`, `apps/web`, `keycloak-config`): the account with its role and status, the pending account made on
+first sight, approve, deactivate and reinstate with a reason, the audit entry, the token check, and the session kept on
+the web server. The `IdentityProvider` port has a Keycloak adapter.
+
+Not built: the account request queue and shares from the earlier model, an administrator promoting or demoting with a
+reason, time-limited access, and company single sign-on.

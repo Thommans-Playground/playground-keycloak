@@ -12,7 +12,7 @@ Phase 1 is built: a working Keycloak auth module, from the source specs ([docs/s
 
 Commands: `docker compose up -d --build` at the root runs everything (Keycloak, API, web; the guide is docs/GETTING-STARTED.md); or `docker compose up -d` in `keycloak-config/` for Keycloak alone; `uv run uvicorn app.main:create_app --factory` and `uv run pytest` in `apps/api/`; `npm run dev`, `npm run build`, `npm test`, `npm run lint` in `apps/web/`. Full steps in README.md.
 
-Rules that matter: the token says who, our database says what they may do (roles and status are read on every request); the browser never sees a token; account changes need a reason and are audited. `docs/specs/source/` is a read-only copy of the source specs.
+Rules that matter: the token says who, our database says what they may do (roles and status are read on every request); the browser never sees a token; account changes need a reason and are audited. The specs live under `docs/`: `requirements/` (markdown tables), `domain/` (`contexts/`, `ontology/`, `decisions.md`, `diagrams/`) and `usecases/`. `docs/specs/keycloak-auth-module.md` is the build spec distilled from them.
 
 ## Project intent
 

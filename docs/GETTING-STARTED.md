@@ -204,4 +204,4 @@ The browser reaches Keycloak at `localhost:8080`. Inside Docker, `localhost` is 
 
 ## 10. Where the rules come from
 
-`docs/specs/keycloak-auth-module.md` is the spec this was built from, with the places where the source documents disagreed and what was chosen. The original documents are in `docs/specs/source/`.
+`docs/specs/keycloak-auth-module.md` is the spec this was built from, with the places where the source documents disagreed and what was chosen. The documents it came from are under `docs/`: `requirements/`, `domain/` and `usecases/`.

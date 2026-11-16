@@ -1,6 +1,6 @@
 # Keycloak auth module: build spec
 
-Distilled from an earlier prototype for this playground. The originals are in [`source/`](source/) and are read-only references. This page is what the code in `apps/` and `keycloak-config/` is built from.
+Distilled from an earlier prototype for this playground. The originals now live under `docs/`: [requirements](../requirements/requirements.md), [use cases](../usecases/), and the [domain](../domain/) (contexts, ontology, decisions). This page is what the code in `apps/` and `keycloak-config/` is built from.
 
 ## What is built
 

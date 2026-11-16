@@ -2,7 +2,7 @@
 
 Playground for Keycloak: a working auth module (Keycloak + FastAPI + Next.js with shadcn), built from the source specs.
 
-Spec: [docs/specs/keycloak-auth-module.md](docs/specs/keycloak-auth-module.md). Originals from the earlier prototype are in [docs/specs/source/](docs/specs/source/).
+Spec: [docs/specs/keycloak-auth-module.md](docs/specs/keycloak-auth-module.md). The specs it came from now live under `docs/`: [requirements](docs/requirements/requirements.md), [use cases](docs/usecases/), and the [domain](docs/domain/) (contexts, ontology, decisions).
 
 **New here? Read [docs/GETTING-STARTED.md](docs/GETTING-STARTED.md) first.**
 

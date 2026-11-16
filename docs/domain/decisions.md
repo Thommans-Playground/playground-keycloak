@@ -68,3 +68,37 @@ reworded. FR-6, FR-7, FR-10, FR-11, FR-12 and FR-13 move to area P. The notes of
 - The id letters in the requirements `area` column still collide with the use case area letters (P covers files, X and H
   have no context).
 
+
+## 25. Projects and who may see inside them (16 Nov 2026)
+
+**Decided.** A first cut of projects, by the owner.
+- **A project holds files, endpoints and evaluations, and only its members see inside it.** Access follows
+  membership and nothing else. A person who is not a member cannot tell whether a project exists.
+- **Two project roles, names only for now:** project manager and engineer. They do the same things in a project,
+  except that only a manager adds, changes or removes its members. The roles can be pushed apart later.
+- **An administrator has high level access, not a god mode.** An administrator can create a project, by naming its
+  manager, and can see every project's name and members. They do not join a project they create, cannot add
+  themselves to one, and see no contents. Their one power over members is to add a project manager to a project
+  that has no active manager, so that a project is never stuck.
+- **A project manager can create a project and becomes its manager.** A person who manages at least one project
+  may create more. A project always has a manager, so the last one cannot be removed or demoted.
+- Only an **active** account can be added to a project. A member whose account is deactivated stays on the
+  project and is refused at the account check.
+
+**Why.** Membership is an invariant of the project, so Projects owns it (decision 24). Keeping administrators out
+of the contents keeps the governance boundary real: the person who keeps accounts cannot read the work. The one
+administrator power is the smallest that stops a project being locked.
+
+**Changes.** New context BC-PROJECTS, objects OBJ-P1 and OBJ-P2, value set SET-8, rules RULE-P1 to RULE-P4,
+requirements FR-129 to FR-143 and criteria AC-87 to AC-110, use cases UC-P1 and UC-P4. SET-6 and OBJ-A1 now
+include the pending status that decision 24 introduced. BC-ACCESS no longer describes membership or the account
+request queue.
+
+**Still open.**
+- Whether a project name must be unique, and within what.
+- Whether a manager can name a second manager at creation.
+- Whether removing a member needs a reason.
+- Files, endpoints and evaluations are not ontology objects here yet.
+- FR-5 still says account roles are member, administrator or auditor.
+- UC-A4 (time-limited access) is still undecided.
+- OBJ-A2, OBJ-A3, SET-7, RULE-A4 and RULE-A5 are linked from the Access pages but have no files here.
