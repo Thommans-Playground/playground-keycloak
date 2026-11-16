@@ -86,3 +86,21 @@
 **Notes**
 
 - **NFR-1:** The server checks the Keycloak token (signature, expiry, issuer) on every request, then checks project membership (decision 23).
+
+### Area No area
+
+| ID | Kind | Name | Statement | Quality attribute | Stimulus | Environment | Response | Measure | Verified by | Release | Built | Status | Sources |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| NFR-2 | constraint | Runs on AWS in its final form | The system shall run on AWS in its final form. |  |  |  |  |  | inspection |  | no | draft | decision 26 |
+| NFR-3 | constraint | Own data in PostgreSQL | The system shall keep its own data in a PostgreSQL database. |  |  |  |  |  | inspection |  | yes | draft | decision 26 |
+| NFR-4 | quality | Swap an outside system by changing its adapter | The system shall let a developer replace an outside system by changing its adapter only. | Maintainability | A developer replaces the database, the identity provider or the session store. | Development, with the existing tests. | Only the adapter and its configuration change, and the domain code and its tests are unchanged. | No file in the domain imports an adapter, a framework or an outside library, and the domain tests pass unchanged. | inspection |  | no | draft | decision 26 |
+| NFR-5 | process | Failing test first | The team shall write a failing test before the code that makes it pass. |  |  |  |  |  | inspection |  | no | draft | decision 26 |
+| NFR-6 | process | Domain as pure code in ontology words | The team shall write the domain as pure code, named in the words of the ontology. |  |  |  |  |  | inspection |  | no | draft | decision 26 |
+
+**Notes**
+
+- **NFR-2:** The organisation is AWS native. Each piece has an AWS equivalent: PostgreSQL to Amazon RDS or Aurora, Keycloak to ECS Fargate with RDS, the web session store to ElastiCache, secrets to Secrets Manager, project files to S3, logs to CloudWatch. Open: RDS or Aurora.
+- **NFR-3:** The same engine as Amazon RDS for PostgreSQL, so moving to AWS is configuration. The API has run on PostgreSQL (api-db) since decision 26. The API tests run on SQLite for speed and on PostgreSQL when TEST_DATABASE_URL is set.
+- **NFR-4:** Hexagonal architecture, ports and adapters (decision 26). The API side is close to this today. The web side is not: only its session store is behind functions.
+- **NFR-5:** Test driven development (decision 26). A test is tagged Verifies AC-n or Verifies UC-n, and the history shows the test before, or with, the code.
+- **NFR-6:** Domain driven design (decision 26). The domain imports nothing outside itself, and its names come from the ontology and the vocabulary.
