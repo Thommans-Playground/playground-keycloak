@@ -1,14 +1,15 @@
----
-title: "UC-A2 Sign out (plan)"
-tags: [use-case, nextjs, oidc, logout]
----
+# UC-A11 Sign out, test first (build lesson)
 
-# UC-A2 Sign out
+> **A lesson plan, not a description of the current code.** Adapted from an earlier note for the "aiaas" project. Playground already signs people out: [auth/logout/route.ts](../../apps/web/src/app/auth/logout/route.ts) does it in a few lines. This lesson shows the ports and adapters version, test first, to build **after** the [sign in lesson](UC-A10-sign-in-test-first.md) (it adds `take` and `endSessionUrl` to the ports that lesson creates).
 
-**Requirements:** FR-7. **Acceptance criteria:** AC-12, AC-13. **Prerequisite:** [[UC-A4-View-Profile]].
+**Requirement:** FR-125 (sign out). **Use case:** [UC-A11](../usecases/UC-A11-sign-out.md). **Prerequisite:** the [sign in lesson](UC-A10-sign-in-test-first.md), and [UC-A13](../usecases/UC-A13-view-my-name-and-role.md) for the profile.
 
-> [!info] Status: plan
-> The specification, diagrams, tests and steps are here. The step by step code is written when we build it, so it matches what really happens.
+| Lesson label | What it checks | In this repo |
+|---|---|---|
+| SO-1 | after sign out, the session is gone and the answer is Keycloak's end session address with the ID token as a hint | **AC-79** (FR-125) |
+| SO-2 | signing out twice with the same id is harmless, and the old id opens nothing | *proposed*: no criterion yet |
+
+> **Status: plan.** The specification, diagrams, tests and steps are here. The step by step code is written when it is built, so it matches what really happens.
 
 ## 1. Specification
 
@@ -18,7 +19,7 @@ tags: [use-case, nextjs, oidc, logout]
 | Trigger | chooses Sign out in the shell's header |
 | Main flow | the server forgets the session, clears the cookie, and sends the browser to Keycloak's end session address with the ID token as a hint. Keycloak ends its own session and sends the browser back to `/` |
 | Alternative | no session (already signed out): just go home |
-| Postcondition | the old session id opens nothing (AC-13). Keycloak asks for the password again on the next sign in |
+| Postcondition | the old session id opens nothing (SO-2). Keycloak asks for the password again on the next sign in |
 
 ```mermaid
 sequenceDiagram
@@ -36,7 +37,7 @@ sequenceDiagram
     SO->>IDP: endSessionUrl(id token)
     IDP-->>SO: Keycloak logout URL
     SO-->>R: where to go
-    R-->>U: clear aiaas_session, redirect to Keycloak
+    R-->>U: clear playground_session, redirect to Keycloak
     U->>KC: end session (id_token_hint, post_logout_redirect_uri)
     KC->>KC: end the SSO session, its refresh tokens die
     KC-->>U: redirect to http://localhost:3000/
@@ -70,9 +71,9 @@ classDiagram
 
 ## 4. Tests to write first
 
-`frontend/tests/unit/sign-out.test.ts`:
-- AC-12: after `signOut`, `currentUser(sessionId)` is null, and the answer is the Keycloak URL with the session's ID token.
-- AC-13: signing out twice with the same id is harmless and goes home.
+`apps/web/tests/unit/sign-out.test.ts`:
+- SO-1: after `signOut`, `currentUser(sessionId)` is null, and the answer is the Keycloak URL with the session's ID token.
+- SO-2: signing out twice with the same id is harmless and goes home.
 - a sign out with no cookie goes home and calls no identity provider.
 
 The fake identity provider gets `endSessionUrl` returning a fake URL that contains the hint, so the test can check it.
@@ -80,12 +81,10 @@ The fake identity provider gets `endSessionUrl` returning a fake URL that contai
 ## 5. Steps
 
 1. RED: the three tests. GREEN: `take` in `InMemorySessionStore`, `application/sign-out.ts`.
-2. `KeycloakIdentityProvider.endSessionUrl`: `oidc.buildEndSessionUrl(config, { id_token_hint, post_logout_redirect_uri })`. The post logout address must be on `aiaas-web`'s list (set in [[UC-A1-Sign-In]] section 3a).
+2. `KeycloakIdentityProvider.endSessionUrl`: `oidc.buildEndSessionUrl(config, { id_token_hint, post_logout_redirect_uri })`. The post logout address must be on `playground-web`'s list (already set in the realm file, see section 3 of the [sign in lesson](UC-A10-sign-in-test-first.md)).
 3. `app/auth/logout/route.ts` with a `POST` handler: clears the cookie, redirects with status 303 (so the browser follows with a GET).
 4. A Sign out form in the shell header, next to "Signed in as".
-5. Acceptance: sign out, press Back, reload `/dashboard`: sent to Keycloak, which asks for the password (AC-12). Copy the cookie before signing out, put it back in the developer tools, reload: still signed out (AC-13).
+5. Acceptance: sign out, press Back, reload `/dashboard`: sent to Keycloak, which asks for the password (SO-1). Copy the cookie before signing out, put it back in the developer tools, reload: still signed out (SO-2).
 
-> [!question] Think first
+> **Think first.**
 > After sign out, Maya's access token is still valid at Keycloak for up to five minutes. Does that matter here? Who holds it?
-
-Next: [[UC-A3-Refresh]].

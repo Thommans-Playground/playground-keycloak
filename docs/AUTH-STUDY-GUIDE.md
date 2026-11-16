@@ -52,6 +52,23 @@ The one rule that explains the design:
 - **The API** trusts Keycloak's signature, then looks you up in its own database to see your role and status.
 - **The browser never holds a token.** Next.js holds them and gives the browser one random cookie. This is called the BFF pattern (backend for frontend). Part 1.11 explains why.
 
+**Three conversations.** Think of Singpass: the government site, Singpass, and you.
+
+```mermaid
+flowchart LR
+    B["Browser<br/>Maya's laptop"]
+    N["Next.js server<br/>the BFF"]
+    K["Keycloak<br/>the identity provider"]
+    B <-->|"pages, one cookie"| N
+    B <-->|"the sign in page only"| K
+    N <-->|"server to server:<br/>code swapped for tokens"| K
+```
+
+How to read it: three conversations.
+- **Browser and Keycloak** meet only on the sign in page. Maya types her password there, never on a Playground page.
+- **Browser and Next.js server** exchange pages and one cookie. That is all.
+- **Next.js server and Keycloak** talk directly. The browser never sees this line, and the **tokens travel only on it**.
+
 Two records describe one person, linked by Keycloak's user id (`sub`), never by email:
 
 | Record | Lives in | Holds |
@@ -63,7 +80,7 @@ Two records describe one person, linked by Keycloak's user id (`sub`), never by 
 
 ## 1. The theory, in small pieces
 
-Eleven short ideas. Each says what the thing is, then why it exists.
+Thirteen short ideas, each with deeper, drawn-out versions where an idea is easy to get wrong. Each says what the thing is, then why it exists.
 
 ### 1.1 Authentication and authorization
 
@@ -113,6 +130,29 @@ flowchart LR
     front --> back
 ```
 
+#### Why a code and not the tokens: the details
+
+Because the redirect back to `/auth/callback` is a URL, and URLs leak. So Keycloak puts the least valuable thing possible in it: a **code** that is
+
+| Property | Why it matters |
+|---|---|
+| short lived (about 1 minute) | a code found in a log tomorrow is dead |
+| single use | a code that was already swapped is dead |
+| useless alone | swapping it needs the **client secret**, which only our server has (and the PKCE verifier, 1.7) |
+
+> **Confidential client.**
+> `playground-web` has **Client authentication on**: it has a secret, because it runs on a server that can keep one. A browser app cannot keep a secret (anyone can read its code), so it would be a **public** client. Being confidential is one more reason the BFF is safer.
+
+> **Your turn.**
+> Someone copies the callback URL, `/auth/callback?code=xyz`, out of Maya's browser history an hour later and opens it. What happens, and which property in the table stops them?
+
+<details>
+<summary>Answer</summary>
+
+Nothing useful. The code expired after about a minute, and it was already used once, by our server, when it swapped the code. Two properties stop it: **short lived** and **single use**. Even a fresh code would need the client secret, which never left the server.
+
+</details>
+
 ### 1.5 The authorization code flow
 
 Everything in this app hangs off this one flow. Here it is end to end. You will meet each step again in the code.
@@ -147,6 +187,30 @@ PKCE protects the code. Suppose someone steals the code from the address bar. Wi
 
 A thief with the code but without the verifier gets nothing. The realm enforces it with `pkce.code.challenge.method: S256`.
 
+#### PKCE: "is the one swapping the code the one who asked?", drawn
+
+```mermaid
+flowchart LR
+    V["verifier<br/>a long random secret<br/>STAYS on our server"] -->|"SHA-256, then base64url"| C["challenge<br/>its hash<br/>SENT to Keycloak at the start"]
+    C --> K["Keycloak remembers<br/>the challenge with the code"]
+    V2["at the swap, our server<br/>sends the verifier"] --> CHK{"Keycloak: does<br/>hash(verifier) equal<br/>the challenge?"}
+    K --> CHK
+    CHK -->|"yes"| OK["tokens"]
+    CHK -->|"no"| NO["invalid_grant"]
+```
+
+How to read it: a hash works one way. Anyone can see the challenge, but nobody can work back from it to the verifier. Only the party that made the verifier can finish the swap.
+
+> **Your turn.**
+> Our server also has a client secret. If the secret already stops strangers from swapping a code, why bother with PKCE as well?
+
+<details>
+<summary>Answer</summary>
+
+Defence in depth: two locks, so one mistake is not enough. A client secret is shared by every sign in and lives for months: if it ever leaks (a log, a config file in git), it protects nothing. A PKCE verifier is new for **each** sign in, lives about a minute, and never leaves the server. OAuth 2.1, the next version of the standard, makes PKCE required for every client for this reason.
+
+</details>
+
 ### 1.8 `state` and `nonce`
 
 Two more random values made at the start. They stop two different attacks.
@@ -155,6 +219,38 @@ Two more random values made at the start. They stop two different attacks.
 - **`nonce`** is placed inside the **ID token** by Keycloak. Next.js checks that the token carries the nonce it sent. This proves the token was issued for this very attempt and is not a replay of an older one.
 
 All three values (`state`, `nonce`, verifier) are stored together as a **login attempt**, under a random id kept in the `playground_login` cookie. The attempt is used once and expires in 10 minutes.
+
+#### `state`: "is this the sign in I started?", drawn
+
+Without `state`, an attacker could start a sign in with **their own** account, stop before the callback, and trick Maya into opening their callback link. Maya would then be signed in to Playground **as the attacker**, and anything she uploads goes into the attacker's account. This is called **login CSRF** (cross-site request forgery).
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant N as Next.js server
+    actor B as Browser
+    participant K as Keycloak
+    N->>N: make state = r4nd0m, remember it for this attempt
+    N-->>B: go to Keycloak with state=r4nd0m
+    B->>K: sign in
+    K-->>B: back to /auth/callback?code=...&state=r4nd0m
+    B->>N: callback with state=r4nd0m
+    N->>N: same state as the attempt I started? yes: go on. no: refuse
+```
+
+How to read it: Keycloak hands `state` back unchanged. An attacker's link carries a `state` our server never made for this browser, so it is refused.
+
+#### `state` and PKCE, side by side
+
+| | `state` | PKCE |
+|---|---|---|
+| Stops | being signed in to someone else's account (login CSRF) | a stolen code being swapped |
+| Where it travels | to Keycloak and back, in the URL | the challenge goes out, the verifier only in the back channel |
+| Who checks | our server | Keycloak |
+| In our code | `oidc.randomState()`, `expectedState` | `randomPKCECodeVerifier()`, `calculatePKCECodeChallenge()`, `pkceCodeVerifier` |
+
+Both live in the **login attempt**, which our server stores until the browser comes back, and uses **once**.
+
 
 ### 1.9 Tokens
 
@@ -220,6 +316,84 @@ Signing out has to end both (Flow D). Cookie flags you will see:
 | `SameSite=Lax` | not sent on cross-site POSTs, but sent when you follow a link or a redirect | blocks cross-site request forgery, yet survives the redirect back from Keycloak |
 | `Secure` | only sent over HTTPS | set automatically when `APP_URL` starts with `https://` |
 
+#### Cookies, from the ground up
+
+HTTP, the language browsers and servers speak, **forgets everything between requests**. Each request arrives as if from a stranger. A **cookie** fixes that: it's a small note the server asks the browser to keep and **show again on every later request** to that site.
+
+```mermaid
+sequenceDiagram
+    participant B as Browser
+    participant S as Server (localhost:3000)
+    B->>S: GET /auth/callback?code=...
+    S-->>B: response + Set-Cookie: playground_session=kq3Xv9, HttpOnly, SameSite=Lax
+    Note over B: the browser stores the note for localhost:3000
+    B->>S: GET /dashboard + Cookie: playground_session=kq3Xv9
+    B->>S: GET /dashboard/reports + Cookie: playground_session=kq3Xv9
+```
+
+How to read it: the server sets the cookie once, with `Set-Cookie`. From then on the **browser attaches it by itself** to every request to that site, with `Cookie:`. Nobody's code has to remember to send it.
+
+The settings on a cookie are rules **the browser** enforces:
+
+| Setting | The browser's rule |
+|---|---|
+| `HttpOnly` | page JavaScript can't read it, but the browser still sends it |
+| `Secure` | only sent over https |
+| `SameSite=Lax` | when another site sends someone here, only sent if they're navigating (following a link or redirect), not on that site's background requests |
+| `Max-Age` | delete it after this many seconds. Without it, it goes when the browser closes |
+
+#### Sessions: the cookie is a ticket, the server keeps the coat
+
+A cookie is small (about 4 KB at most) and lives on someone else's computer. So you don't put valuable things in it. You put a **random ticket number** in the cookie and keep the valuables on the server, in a table:
+
+```mermaid
+flowchart LR
+    C["cookie in the browser<br/>playground_session = kq3Xv9"] -->|"looked up in"| T["session store on the server<br/>kq3Xv9 -> Maya: her 3 tokens<br/>7Hd2pQ -> Ravi: his 3 tokens"]
+```
+
+That pair, a ticket in the browser and a row on the server, is a **session**. The **session id** is the ticket number. It's random, holds no information, and only means something to the server that made it.
+
+#### Two cookies, one after the other
+
+```mermaid
+stateDiagram-v2
+    [*] --> Guest
+    Guest --> Attempting: /auth/login sets playground_login (10 min)
+    Attempting --> SignedIn: /auth/callback sets playground_session, deletes playground_login
+    Attempting --> Guest: attempt expired, used, or failed
+    SignedIn --> Guest: sign out (UC-A11) or refresh refused (UC-A14)
+```
+
+How to read it: the browser carries at most one small cookie at each moment. `playground_login` holds the id of the sign in attempt, for the trip to Keycloak and back. `playground_session` holds the id of the session afterwards. Both are random strings that mean nothing outside our server.
+
+#### The cookie settings, and why `SameSite=Lax`
+
+| Setting | Meaning | Why |
+|---|---|---|
+| `HttpOnly` | JavaScript in the page cannot read the cookie | a malicious script cannot steal it (1.11) |
+| `Secure` | sent only over https | nobody on the network can read it. Off on localhost, which is http |
+| `SameSite=Lax` | sent when the person **navigates** to our site, even from another site. Not sent on another site's background requests (forms posted, images, frames) | the callback is a navigation **from Keycloak's site**: it needs the cookie |
+| `Path=/` | sent for every page | the shell and the auth routes both need it |
+
+```mermaid
+flowchart LR
+    KC["Keycloak's page<br/>localhost:8080"] -->|"redirect: a top-level navigation<br/>to localhost:3000/auth/callback"| CB["our callback"]
+    S{"SameSite?"}
+    CB --- S
+    S -->|"Strict: cookie NOT sent<br/>(it came from another site)"| F["no attempt found:<br/>every sign in fails"]
+    S -->|"Lax: cookie sent<br/>(it is a navigation)"| W["attempt found:<br/>sign in works"]
+```
+
+> **Your turn.**
+> `Strict` sounds safer than `Lax`. Explain in one sentence why it would break our sign in, and in another why `Lax` is still safe enough.
+
+<details>
+<summary>Answer</summary>
+
+`Strict` never sends a cookie on a request that started on another site, and the callback starts on Keycloak's page, so `playground_login` would never arrive and every sign in would fail. `Lax` only adds plain navigations, where a person follows a link or redirect. It still refuses the background requests that cross-site attacks use, such as a hidden form posting to our server.
+
+</details>
+
 ### 1.11 The BFF pattern: why the browser holds no token
 
 You could let the browser's JavaScript hold the access token and call the API directly. Many apps do. The risk: any script running in the page (an XSS bug, a compromised dependency) can read the token and use it anywhere.
@@ -240,9 +414,77 @@ flowchart LR
 
 The trade-off: the server must remember sessions (here, in memory, which Part 8 returns to), and your frontend and its server are one deployable thing.
 
+#### Why not keep the tokens in the browser? The threat, drawn
+
+Many single page apps do. The problem is that an access token is a **bearer token**: like a cinema ticket, whoever holds it gets in. No name check.
+
+```mermaid
+flowchart TB
+    subgraph SPA["Tokens in the browser"]
+        T1["access token in<br/>localStorage or JS memory"]
+        X1["one bad script on the page<br/>(XSS, a bad npm package,<br/>a browser extension)"]
+        X1 -->|"reads it, sends it away"| T1
+        T1 --> L1["attacker calls the API as Maya<br/>until the token expires"]
+    end
+    subgraph BFF["Tokens on the server (our design)"]
+        T2["browser holds only<br/>an opaque session id, HttpOnly"]
+        X2["the same bad script"]
+        X2 -.->|"cannot read an HttpOnly cookie"| T2
+        T2 --> L2["no token to steal.<br/>The server can end the session at once"]
+    end
+```
+
+How to read it: on the left, any script that runs in the page can read the token and carry it off. On the right, the browser holds an id that JavaScript cannot read, that means nothing outside Playground, and that the server can cancel in one line.
+
+**BFF** (backend for frontend) is the name for this pattern: a server that belongs to the frontend and does the security work for it. In Playground, the Next.js server is the BFF.
+
+> **Your turn.**
+> The session id cookie still lets someone in, if they get it. So what did we gain by not giving the browser the access token? Name two things.
+
+<details>
+<summary>Answer</summary>
+
+1. **JavaScript cannot read it** (`HttpOnly`), so the most common theft, a malicious script, cannot take it.
+2. **It is useless outside Playground and can be killed on the server.** An access token works against the API directly until it expires, and nobody can take it back. A session id only works through our Next.js server, which can forget it at once (sign out, Flow D) or refuse it.
+
+A third: the access token never appears in browser history, developer tools or logs on the user's machine.
+
+</details>
+
 ### 1.12 Service accounts: the API has its own login too
 
 Sometimes a program, not a person, needs a token. The API calls Keycloak's admin API to disable a person. For that it signs in as a *machine*, using the **client credentials** grant: it sends its own client id and secret and receives an access token. No browser, no code, no person. The Keycloak client for this is `playground-backend`, and its service account has only three rights: `view-users`, `query-users`, `manage-users`.
+
+### 1.13 Open redirect: where we send people after sign in
+
+Maya opens `/dashboard/reports`. She has to sign in first, and afterwards she should land on `/dashboard/reports`, not the home page. So the address travels along as `returnTo`. That convenience is also a classic hole:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor M as Maya
+    participant A as Playground (no check)
+    participant K as Keycloak
+    participant E as evil.example
+    Note over M: email: "your report is ready",<br/>link: playground.example/auth/login?returnTo=https://evil.example
+    M->>A: opens the link: it really is Playground
+    A-->>M: go to Keycloak
+    M->>K: signs in on the real Keycloak page
+    K-->>M: back to Playground
+    A-->>M: redirect to returnTo = evil.example
+    M->>E: a page that looks like Playground:<br/>"session expired, type your password again"
+```
+
+How to read it: every step looks real to Maya, because steps 1 to 4 **are** real. Only the last redirect is wrong, and by then she trusts it. This is an **open redirect**: a trusted site that forwards people to any address it is handed.
+
+The rule, in `safeReturnTo`: a return address must be a **local path**.
+
+| `returnTo` | Result | Why |
+|---|---|---|
+| `/dashboard/reports?tab=2` | kept | starts with one `/` |
+| `https://evil.example` | `/dashboard` | a full address |
+| `//evil.example` | `/dashboard` | browsers read `//` as "same scheme, **other site**" |
+| `/\evil.example` | `/dashboard` | some browsers treat `/\` like `//` |
 
 ---
 
@@ -613,6 +855,91 @@ Both are needed. Keycloak alone would leave up to 5 minutes. The account check a
 
 "Create account" goes to `/auth/login?register=1`, which adds `prompt=create` so Keycloak opens its registration form. The realm has `registrationAllowed: true`. After registering, Keycloak signs the person in, and the flow continues exactly as Flow A. They arrive with a Keycloak user and no API account, and their first request creates a **pending** one (Flow B). That is the whole reason there is no "sign up" code in this repo.
 
+### Flow F: the same story, as the tokens experience it
+
+Flows A to E showed who calls whom. This view follows **the three tokens and the session id through time**: where each is born, where it lives, and what the browser ever sees. Read the session store as a coat check: the browser holds a ticket (the session id), and the server holds the coat (the tokens).
+
+#### Journey a: Sign in: the tokens are born and stored
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor B as Browser
+    participant N as BFF (Next.js server)
+    participant ST as Session store
+    participant K as Keycloak
+    B->>K: Maya signs in on Keycloak's page
+    K-->>B: redirect to the BFF with a one-time code
+    B->>N: /auth/callback?code=...
+    N->>K: code + secret + PKCE verifier (server to server)
+    K-->>N: ID token, access token, refresh token
+    N->>ST: new row: kq3Xv9 -> the 3 tokens
+    N-->>B: Set-Cookie: playground_session=kq3Xv9 (HttpOnly)
+```
+
+The tokens go from Keycloak **straight to the BFF** (step 5) and into the store (step 6). The browser only gets the ticket (step 7).
+
+#### Journey b: Opening a page that needs Playground data (from UC-A13)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor B as Browser
+    participant N as BFF
+    participant ST as Session store
+    participant API as Playground API
+    B->>N: GET /dashboard + Cookie: playground_session=kq3Xv9
+    N->>ST: row kq3Xv9?
+    ST-->>N: Maya's tokens
+    N->>API: GET /me + Authorization: Bearer <access token>
+    API->>API: check the signature with Keycloak's public key, check the expiry
+    API-->>N: {name, email, role, status}
+    N-->>B: the dashboard HTML, showing Maya's profile
+```
+
+The browser sent a **ticket** and got back a **page**. The access token moved only between the BFF and the API (step 4).
+
+#### Journey c: Five minutes later: the access token has expired (UC-A14)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor B as Browser
+    participant N as BFF
+    participant ST as Session store
+    participant K as Keycloak
+    participant API as Playground API
+    B->>N: GET /dashboard + same cookie
+    N->>ST: row kq3Xv9: access token expires in under 30 s
+    N->>K: refresh token + secret
+    K-->>N: NEW access token and a new refresh token (if the realm rotates refresh tokens the old one is now dead: this one does not)
+    N->>ST: update row kq3Xv9 with the new tokens
+    N->>API: Bearer <new access token>
+    API-->>N: profile
+    N-->>B: the page
+```
+
+The browser **noticed nothing**: same cookie, same ticket. Only the coat on the rack was swapped for a fresh one.
+
+#### Journey d: Sign out
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor B as Browser
+    participant N as BFF
+    participant ST as Session store
+    participant K as Keycloak
+    B->>N: Sign out + cookie kq3Xv9
+    N->>ST: delete row kq3Xv9
+    N-->>B: Set-Cookie: playground_session= (expired: the browser deletes it)
+    B->>K: end the Keycloak session (redirect)
+    K->>K: Maya's refresh token is dead
+```
+
+After step 2, the ticket `kq3Xv9` points at nothing, **even if someone copied it**. After step 5, the refresh token can't make new access tokens. The last access token dies on its own within 5 minutes, and it never left the server anyway.
+
+
 ---
 
 ## 4. Keycloak, the other half
@@ -934,6 +1261,36 @@ If the realm rotates refresh tokens, sending the old one twice looks like theft 
 Sessions live in memory, so the cookie's id no longer matches anything and everyone is signed out. Move the session store to ElastiCache by changing only <code>store.ts</code>.
 </details>
 
+<details>
+<summary>11. Name two things we gain by not giving the browser the access token, when a stolen session cookie still lets someone in.</summary>
+(1) JavaScript cannot read an <code>HttpOnly</code> cookie, so the most common theft, a malicious script, cannot take it. (2) A session id is useless outside our server and the server can cancel it at once (sign out, disable), whereas an access token works against the API directly until it expires and nobody can take it back. Also: the token never appears in browser history, developer tools or logs on the person's machine.
+</details>
+
+<details>
+<summary>12. What attack does <code>state</code> stop, and what attack does PKCE stop?</summary>
+<code>state</code> stops login CSRF: being tricked into completing someone else's sign in, so you end up signed in as the attacker. PKCE stops a stolen authorization code from being swapped for tokens.
+</details>
+
+<details>
+<summary>13. A hacker sees the PKCE challenge in the redirect URL. Why can they still not swap the code?</summary>
+The challenge is a hash of the verifier, and a hash cannot be reversed. Only our server knows the verifier, and it sends it only in the back channel at the swap.
+</details>
+
+<details>
+<summary>14. Why would <code>SameSite=Strict</code> break sign in, and why is <code>Lax</code> safe enough?</summary>
+The callback is a navigation that starts on Keycloak's site. <code>Strict</code> never sends a cookie on a request that started on another site, so the <code>playground_login</code> cookie would not arrive and every sign in would fail. <code>Lax</code> only adds plain navigations (following a link or redirect) and still withholds cookies on the background requests that cross-site attacks use, such as a hidden form posting to our server.
+</details>
+
+<details>
+<summary>15. Give two <code>returnTo</code> values that look local but are not.</summary>
+<code>//evil.example</code> (browsers read it as "same scheme, other site") and <code>/\evil.example</code> (some browsers treat <code>/\</code> like <code>//</code>). Also a full address like <code>https://evil.example</code> and a bare <code>dashboard</code> are not local paths. The rule: a return address must start with a single <code>/</code>.
+</details>
+
+<details>
+<summary>16. In Journey c, why does the web server keep the new refresh token, and what could go wrong if two tabs refreshed at the same moment?</summary>
+Keycloak may issue a new refresh token with each refresh, so the session keeps the latest one. If the realm rotates refresh tokens (this one does not today), the old one is dead after the first refresh, and a second refresh with the old token looks like theft and can end the session. The one-at-a-time lock in <code>accessToken()</code> prevents that: the second request waits for the first result.
+</details>
+
 ---
 
 ## 10. Glossary
@@ -944,6 +1301,7 @@ Sessions live in memory, so the cookie's id no longer matches anything and every
 | **Audience (`aud`)** | who a token is meant for. The API requires `playground-api` |
 | **Authorization code** | a one-use ticket in the redirect URL, swapped for tokens by the server |
 | **Back channel** | a direct server to server call, private |
+| **Bearer token** | a token that works for whoever holds it, like a cinema ticket: no name check |
 | **BFF** | backend for frontend: the website's server holds the tokens and the browser gets a cookie |
 | **Callback / redirect URI** | the address Keycloak sends the browser back to (`/auth/callback`), pre-registered in the client |
 | **Claim** | one fact inside a token (`sub`, `email`, `exp`) |
@@ -952,21 +1310,26 @@ Sessions live in memory, so the cookie's id no longer matches anything and every
 | **Client secret** | a password for a confidential client |
 | **Confidential client** | a client that can keep a secret (a server) |
 | **Front channel** | the browser's address bar: visible, not for secrets |
+| **Grant** | a way to get tokens. Ours is the authorization code grant. The API's own login uses the client credentials grant |
 | **ID token** | a JWT saying who just logged in. Here it is kept for the logout hint |
 | **Issuer (`iss`)** | who signed the token. The API requires our realm's address |
 | **JWKS** | Keycloak's list of public keys, at `/protocol/openid-connect/certs` |
 | **JWT** | `header.payload.signature`, a signed, readable token |
 | **`kid`** | key id: which of Keycloak's keys signed the token |
 | **Login attempt** | our record of one sign-in in progress: `state`, `nonce`, verifier |
+| **Login CSRF** | tricking someone into being signed in to the attacker's account. `state` stops it |
 | **Nonce** | a random value inside the ID token, proving it belongs to this attempt |
 | **OAuth 2.0** | the standard for delegated access |
 | **OIDC** | OpenID Connect: identity on top of OAuth |
+| **Open redirect** | a trusted site that forwards people to any address it is handed. `safeReturnTo` stops it |
+| **Optimistic check** | a fast check that trusts a hint (a cookie exists), backed by a real check later. `proxy.ts` is one |
 | **PKCE** | a hashed secret that makes a stolen code useless |
 | **Realm** | an isolated world of users and clients in Keycloak |
 | **Refresh token** | a voucher for a new access token. Only Keycloak accepts it. It can rotate (a realm setting, off here) |
 | **Scope** | a bundle of claims a client may request (`openid`, `profile`, `email`) |
 | **Service account** | a Keycloak identity for a program, not a person |
 | **Session cookie** | `playground_session`: an opaque id pointing at the tokens in server memory |
+| **Session id / ticket** | the random value in the cookie. It holds no information and only means something to the server that made it |
 | **SSO session** | Keycloak's own memory that you are signed in |
 | **State** | a random value tying the callback to our attempt |
 | **`sub`** | the user's stable Keycloak id. Our link to the account |

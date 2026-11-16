@@ -4,6 +4,8 @@ Playground for Keycloak: a working auth module (Keycloak + FastAPI + Next.js wit
 
 Study guide for the sign-in mechanism, with experiments: [docs/AUTH-STUDY-GUIDE.md](docs/AUTH-STUDY-GUIDE.md).
 
+Study material in [docs/study/](docs/study/): the [Keycloak study plan](docs/study/keycloak-study-plan.md), the [web hexagon concepts](docs/study/web-hexagon-concepts.md), and test-first build lessons for [sign in](docs/study/UC-A10-sign-in-test-first.md) and [sign out](docs/study/UC-A11-sign-out-test-first.md).
+
 Spec: [docs/specs/keycloak-auth-module.md](docs/specs/keycloak-auth-module.md). The specs it came from now live under `docs/`: [requirements](docs/requirements/requirements.md), [use cases](docs/usecases/), and the [domain](docs/domain/) (contexts, ontology, decisions).
 
 **New here? Read [docs/GETTING-STARTED.md](docs/GETTING-STARTED.md) first.**
