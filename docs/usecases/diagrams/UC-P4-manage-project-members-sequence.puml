@@ -1,11 +1,5 @@
 @startuml UC-P4-manage-project-members-sequence
 !include ../../domain/diagrams/_style.puml
-skinparam participantPadding 6
-skinparam boxPadding 4
-skinparam maxMessageSize 90
-skinparam sequenceMessageAlign center
-skinparam ParticipantFontSize 11
-skinparam NoteFontSize 11
 hide footbox
 title UC-P4 Manage project members (detailed sequence, planned)
 ' Step ids are the main flow numbers of UC-P4. Not built yet.

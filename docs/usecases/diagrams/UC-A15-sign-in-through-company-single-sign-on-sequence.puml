@@ -1,11 +1,5 @@
 @startuml UC-A15-sign-in-through-company-single-sign-on-sequence
 !include ../../domain/diagrams/_style.puml
-skinparam participantPadding 6
-skinparam boxPadding 4
-skinparam maxMessageSize 90
-skinparam sequenceMessageAlign center
-skinparam ParticipantFontSize 11
-skinparam NoteFontSize 11
 hide footbox
 title UC-A15 Sign in through company SSO (detailed sequence, planned)
 ' Step ids are the main flow numbers of UC-A15. Release 2: not built. Steps 1 and 5 are UC-A10.

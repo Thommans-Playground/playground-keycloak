@@ -121,7 +121,7 @@ New in the design language: **lazy provisioning**. The person exists in two plac
 
 ## Overview
 
-The high level picture. The detailed sequence, with step numbers that match the main flow, is in [UC-A12-register-and-wait-for-approval-registration.puml](diagrams/UC-A12-register-and-wait-for-approval-registration.puml) (steps 1 to 3) and [UC-A12-register-and-wait-for-approval-sequence.puml](diagrams/UC-A12-register-and-wait-for-approval-sequence.puml) (steps 4 to 9).
+The high level picture. The detailed sequence, with step numbers that match the main flow, is in [UC-A12-register-and-wait-for-approval-sequence.puml](diagrams/UC-A12-register-and-wait-for-approval-sequence.puml).
 
 ```mermaid
 sequenceDiagram

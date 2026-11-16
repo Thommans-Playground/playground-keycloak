@@ -1,11 +1,5 @@
 @startuml UC-A14-keep-the-session-alive-sequence
 !include ../../domain/diagrams/_style.puml
-skinparam participantPadding 6
-skinparam boxPadding 4
-skinparam maxMessageSize 90
-skinparam sequenceMessageAlign center
-skinparam ParticipantFontSize 11
-skinparam NoteFontSize 11
 hide footbox
 title UC-A14 Keep the session alive (detailed sequence, built)
 ' Step ids are the main flow numbers of UC-A14.

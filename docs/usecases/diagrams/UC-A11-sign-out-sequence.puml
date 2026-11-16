@@ -1,11 +1,5 @@
 @startuml UC-A11-sign-out-sequence
 !include ../../domain/diagrams/_style.puml
-skinparam participantPadding 6
-skinparam boxPadding 4
-skinparam maxMessageSize 90
-skinparam sequenceMessageAlign center
-skinparam ParticipantFontSize 11
-skinparam NoteFontSize 11
 hide footbox
 title UC-A11 Sign out (detailed sequence, built)
 ' Step ids are the main flow numbers of UC-A11.

@@ -1,21 +1,26 @@
 @startuml UC-A12-register-and-wait-for-approval-sequence
 !include ../../domain/diagrams/_style.puml
-skinparam participantPadding 6
-skinparam boxPadding 4
-skinparam maxMessageSize 90
-skinparam sequenceMessageAlign center
-skinparam ParticipantFontSize 11
-skinparam NoteFontSize 11
 hide footbox
-title UC-A12 First request makes a pending account (steps 4 to 9, built)
-' Step ids are the main flow numbers of UC-A12. Steps 1 to 3 are in the registration file.
+title UC-A12 Register and wait for approval (detailed sequence, built)
+' Step ids are the main flow numbers of UC-A12.
 ' Evolved from MK3 UC-A5: registration is Keycloak's. The account is made on the first request.
 
 actor "Person" as P
 participant "Web server" as W #E6F0FB
+participant "Keycloak" as K #ECECEC
 participant "API" as A #E6F0FB
 participant "AccessService" as S #E7F4EA
 database "API database" as D #ECECEC
+
+== Register at Keycloak ==
+P -> W : 1 create an account
+W --> P : 1 redirect, prompt=create
+P -> K : 2 name, email, password
+K -> K : 2 create the user
+K --> P : 2 signed in, back with code
+P -> W : 3 callback, session made (UC-A10)
+
+== First request ==
 P -> W : 4 first request
 W -> A : 4 request + access token
 A -> S : 5 account_for(identity, name, email, verified)

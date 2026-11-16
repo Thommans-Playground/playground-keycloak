@@ -1,11 +1,5 @@
 @startuml UC-A13-view-my-name-and-role-sequence
 !include ../../domain/diagrams/_style.puml
-skinparam participantPadding 6
-skinparam boxPadding 4
-skinparam maxMessageSize 90
-skinparam sequenceMessageAlign center
-skinparam ParticipantFontSize 11
-skinparam NoteFontSize 11
 hide footbox
 title UC-A13 View my name and role (detailed sequence, built)
 ' Step ids are the main flow numbers of UC-A13. The token refresh (UC-A14) is not drawn.

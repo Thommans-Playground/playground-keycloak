@@ -1,11 +1,13 @@
-' DDD building-block colour key. Include it in a domain model diagram with: !include _legend.puml
-' Four tactical blocks, as in DDD Distilled. No @startuml or @enduml: this file is only included.
-' Domain services and repositories are not building blocks here, so they are not tinted.
+' =====================================================================
+'  _legend.puml: DDD building-block colour key (DDD Distilled only).
+'  Four tactical blocks. No @startuml/@enduml.
+'  Domain services and repositories are not building blocks here, so they are not tinted.
+' =====================================================================
 legend top right
-|= Stereotype |= DDD block |
-|<#CFE8FB> aggregate | Aggregate boundary |
-|<#FFE6CC> root entity | Aggregate root |
-|<#FFF2CC> entity | Entity |
-|<#D5E8D4> value object | Value object |
-|<#F8CECC> domain event | Domain event |
+|= Stereotype |= DDD Distilled Block |
+|<#CFE8FB> «aggregate»    | Aggregate boundary                 |
+|<#FFE6CC> «root entity»  | Aggregate Root                     |
+|<#FFF2CC> «entity»       | Entity                             |
+|<#D5E8D4> «value object» | Value Object                       |
+|<#F8CECC> «domain event» | Domain Event                       |
 endlegend

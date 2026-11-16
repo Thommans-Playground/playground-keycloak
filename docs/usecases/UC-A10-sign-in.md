@@ -118,7 +118,7 @@ What is new in the design language: **a login attempt is a short-lived, single-u
 
 ## Overview
 
-The high level picture. The detailed sequence, with step numbers that match the main flow, is in [UC-A10-sign-in-sequence.puml](diagrams/UC-A10-sign-in-sequence.puml) (steps 1 to 8) and [UC-A10-request-sequence.puml](diagrams/UC-A10-request-sequence.puml) (step 9).
+The high level picture. The detailed sequence, with step numbers that match the main flow, is in [UC-A10-sign-in-sequence.puml](diagrams/UC-A10-sign-in-sequence.puml).
 
 ```mermaid
 sequenceDiagram

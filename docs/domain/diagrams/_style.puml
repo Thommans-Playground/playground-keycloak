@@ -1,223 +1,27 @@
-' Shared look for every diagram. Include it with: !include _style.puml
-'
-' LIGHT MODE ONLY. Every diagram is drawn on a white background with dark text, whatever
-' the viewer is set to. Do not use !theme or dark colours. 
-'
-' The look follows Apple's Human Interface Guidelines.
-' Hierarchy comes from weight, border and position first. Colour carries meaning, one job each.
-'
-' Roles (set with a stereotype, which this file hides):
-'   <<core>>       what the product exists for: bold charcoal border, white fill
-'   <<supporting>> the work around the core: soft grey border, off-white fill
-'   <<generic>>    needed by any product: lightest grey, muted text
-'   <<reference>>  read only knowledge: dashed border
-'   <<ai>>         anything an AI produced: purple (AI content only)
-'   <<human>>      what a person wrote: yellow note colours (human content only)
-'   <<kernel>>     a shared kernel: grey, solid border
-'   <<external>>   a system we do not own: grey, dashed border (draw it as a cloud)
-'
-' DDD building blocks for domain models (the key is in _legend.puml). These stereotypes are
-' shown, so the block is named in words as well as colour:
-'   <<root entity>>  <<entity>>  <<value object>>  <<domain event>>
-'
-' Tokens used:
-'   ink #1F2328   muted #5A6170   charcoal #23272F   surface #FFFFFF   surface-2 #F8F9FA
-'   hover #F1F2F4   border #E3E5E8   border-input #D4D7DC
-'   ai #5B21B6 on #F3EEFF   human #FFF7D1 border #EBD68A text #3D3415
-
-skinparam backgroundColor #FFFFFF
+' =====================================================================
+'  _style.puml: shared styling for all Playground diagrams.
+'  The simple style of MK3: plain boxes, a few skinparams, and colours set on each box.
+'  Included by every diagram so the set stays consistent.
+'  This file has NO @startuml / @enduml: it is meant to be !included.
+' =====================================================================
 skinparam shadowing false
-skinparam dpi 150
-skinparam defaultFontName "Helvetica Neue"
-skinparam defaultFontSize 13
-skinparam defaultFontColor #1F2328
-skinparam roundCorner 12
-skinparam padding 4
-skinparam nodesep 40
-skinparam ranksep 50
-skinparam minClassWidth 90
-skinparam wrapWidth 220
-
-' Title: clear but not loud (HIG hierarchy)
-skinparam titleFontSize 18
-skinparam titleFontStyle bold
-skinparam titleFontColor #1F2328
-
-' Lines: cool grey, thin. Dashed lines mean "through a port" or "optional".
-skinparam ArrowColor #5A6170
-skinparam ArrowThickness 1.2
-skinparam ArrowFontSize 11
-skinparam ArrowFontColor #5A6170
-
-' Grouping boxes: nearly invisible, so the content leads
-skinparam package {
-  BackgroundColor #FAFAFB
-  BorderColor #E3E5E8
-  BorderThickness 1
-  FontColor #5A6170
-  FontSize 12
-  FontStyle bold
-}
+skinparam defaultFontName Helvetica
 skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam wrapWidth 220
+skinparam maxMessageSize 80
 
-' Plain box: the default for a part with no special role
-skinparam rectangle {
-  BackgroundColor #FFFFFF
-  BorderColor #D4D7DC
-  BorderThickness 1
-  FontColor #1F2328
-}
-skinparam rectangle<<core>> {
-  BackgroundColor #FFFFFF
-  BorderColor #23272F
-  BorderThickness 2
-}
-skinparam rectangle<<supporting>> {
-  BackgroundColor #F8F9FA
-  BorderColor #D4D7DC
-  BorderThickness 1
-}
-skinparam rectangle<<generic>> {
-  BackgroundColor #F1F2F4
-  BorderColor #E3E5E8
-  BorderThickness 1
-  FontColor #5A6170
-}
-skinparam rectangle<<reference>> {
-  BackgroundColor #FFFFFF
-  BorderColor #8A90A0
-  BorderThickness 1
-  BorderStyle dashed
-}
-skinparam rectangle<<ai>> {
-  BackgroundColor #F3EEFF
-  BorderColor #5B21B6
-  FontColor #3B1580
-}
-skinparam rectangle<<human>> {
-  BackgroundColor #FFF7D1
-  BorderColor #EBD68A
-  FontColor #3D3415
-}
-
-skinparam rectangle<<kernel>> {
-  BackgroundColor #E6E6E6
-  BorderColor #8A90A0
-  BorderThickness 1
-}
-skinparam cloud<<external>> {
-  BackgroundColor #F1F2F4
-  BorderColor #8A90A0
-  BorderStyle dashed
-  FontColor #5A6170
-}
-skinparam package<<aggregate>> {
-  BackgroundColor #EEF6FD
-  BorderColor #8DB6DC
-}
-skinparam package<<kernel>> {
-  BackgroundColor #E6E6E6
-  BorderColor #8A90A0
-}
-
-' Classes (object maps)
 skinparam class {
+  BorderColor #555555
+  FontColor #1A1A1A
   BackgroundColor #FFFFFF
-  BorderColor #D4D7DC
-  BorderThickness 1
-  FontColor #1F2328
-  AttributeFontColor #5A6170
-  AttributeFontSize 12
-  HeaderBackgroundColor #FFFFFF
 }
-skinparam class<<core>> {
-  BackgroundColor #FFFFFF
-  BorderColor #23272F
-  BorderThickness 2
+skinparam package {
+  BorderColor #888888
+  FontColor #1A1A1A
 }
-skinparam class<<supporting>> {
-  BackgroundColor #F8F9FA
-  BorderColor #D4D7DC
-}
-skinparam class<<generic>> {
-  BackgroundColor #F1F2F4
-  BorderColor #E3E5E8
-}
-skinparam class<<reference>> {
-  BorderColor #8A90A0
-  BorderStyle dashed
-}
-skinparam class<<ai>> {
-  BackgroundColor #F3EEFF
-  BorderColor #5B21B6
-  FontColor #3B1580
-}
-skinparam class<<human>> {
-  BackgroundColor #FFF7D1
-  BorderColor #EBD68A
-  FontColor #3D3415
-}
-' DDD building blocks (colours follow the DDD Distilled key, see _legend.puml)
-skinparam class<<root entity>> {
-  BackgroundColor #FFE6CC
-  BorderColor #C79A4B
-}
-skinparam class<<entity>> {
-  BackgroundColor #FFF2CC
-  BorderColor #C9B24A
-}
-skinparam class<<value object>> {
-  BackgroundColor #D5E8D4
-  BorderColor #6FA06B
-}
-skinparam class<<domain event>> {
-  BackgroundColor #F8CECC
-  BorderColor #C46B66
-}
-skinparam stereotypeFontSize 10
-skinparam stereotypeFontColor #8A90A0
-
-' States
-skinparam state {
-  BackgroundColor #FFFFFF
-  BorderColor #D4D7DC
-  BorderThickness 1
-  FontColor #1F2328
-  StartColor #23272F
-  EndColor #23272F
-}
-skinparam state<<ended>> {
-  BackgroundColor #F1F2F4
-  BorderColor #E3E5E8
-  FontColor #5A6170
-}
-
-' Notes are written by a person, so they use the human note colours
 skinparam note {
-  BackgroundColor #FFF7D1
-  BorderColor #EBD68A
-  FontColor #3D3415
-  FontSize 12
+  BackgroundColor #FFFDF5
+  BorderColor #C9C28F
 }
-
-' Legend: a quiet white card
-skinparam legend {
-  BackgroundColor #FFFFFF
-  BorderColor #E3E5E8
-  FontColor #5A6170
-  FontSize 12
-}
-
-' The role stereotypes are only a way to set colour. Do not print them.
-hide <<core>> stereotype
-hide <<supporting>> stereotype
-hide <<generic>> stereotype
-hide <<reference>> stereotype
-hide <<ai>> stereotype
-hide <<human>> stereotype
-hide <<ended>> stereotype
-hide <<kernel>> stereotype
-hide <<aggregate>> stereotype
-hide <<external>> stereotype
-hide circle
-hide empty members
