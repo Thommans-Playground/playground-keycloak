@@ -12,7 +12,7 @@ change reaches.
 The folder, the file layout and the rules are in `_vbench/standards/usecases.md`. The ids are in
 `_vbench/standards/naming-conventions.md` (section 5, the `use-case` fields). The
 requirements and criteria it links to are described in `_vbench/standards/requirements.md`. Use vbench-req
-to change those. This skill does not edit the two CSV files.
+to change those. This skill does not edit the two requirements files.
 
 ## Why the impact is definite
 
@@ -40,13 +40,13 @@ that no file serves has no use case. If the tool cannot show a link, say "no lin
   facts, what vbench-req should propose. It changes nothing.
 - `freeze UC-ID`: record a hash of each analysis revision, so an edit to a frozen one is caught.
 - `trace UC-ID`: from each analysis element to what became of it in the design. Lost ones are marked.
-- `sync UC-ID`: refresh the copied text of the requirements and criteria from the CSV files.
+- `sync UC-ID`: refresh the copied text of the requirements and criteria from the requirements files.
 - `stamp UC-ID`: after a person has reviewed the use case against the current rows, record that
   (it also syncs).
 
 **The file repeats the text.** A reader should not have to remember an id, so each use case file
 carries the full statement of every requirement it serves and every criterion it runs (Given, When,
-Then), between two `vbench-uc` comment markers. It is generated from the CSV files. Never edit it by
+Then), between two `vbench-uc` comment markers. It is generated from the requirements files. Never edit it by
 hand: change the row with vbench-req, then run `sync`. `validate` reports a copy that has drifted.
 `sync` refreshes the text only. The use case stays suspect until a person reviews it and stamps it,
 because new text is exactly what a person has to read.
@@ -61,7 +61,7 @@ to make a warning go away.
 - **Up (the flow changed):** each use case also records a hash of the flow a person wrote. If the flow is
   edited after the last stamp, `validate` and `impact` say FLOW CHANGED, and `check-upstream` lists
   what the requirements and criteria may be missing. Hand that list to vbench-req, which proposes
-  the edit for the owner to accept. Never edit the CSV files from here.
+  the edit for the owner to accept. Never edit the requirements files from here.
 
 To make the up direction definite, **tag the flow lines with the ids they serve**, at the end of the
 line: a main flow step ends with `(FR-88)`, and an other flow ends with the criterion that proves it,
@@ -107,7 +107,7 @@ written and `validate` is clean, say what comes next and offer it:
 - A criterion the use case lists has no acceptance test (`python3 .claude/skills/vbench-at/scripts/at_tool.py
   report`): offer **vbench-at**. The test is the outer loop, so it comes before the code of the first slice.
 - A requirement it serves has no criteria, or a criterion is vague or wrong: offer **vbench-req**. This skill
-  never edits the CSV files.
+  never edits the requirements files.
 
 ## Slices
 

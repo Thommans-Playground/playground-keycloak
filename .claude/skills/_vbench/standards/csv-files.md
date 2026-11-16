@@ -22,13 +22,13 @@ keep the number of CSV files small, and write each one's columns here.
 
 ## The files
 
-### requirements/requirements.csv
-The requirements, one row each. Columns and meaning are in [requirements.md](requirements.md).
-`req_tool.py init` creates it empty.
+### requirements.md and acceptance-criteria.md are not CSV
 
-### requirements/acceptance-criteria.csv
-The scenarios that prove the requirements, one row each. Explained in
-[requirements.md](requirements.md).
+The requirements and the acceptance criteria are markdown tables, because a person has to read them.
+Their layout and fields are in [requirements.md](requirements.md). `req_tool.py init` creates them empty,
+and `req_tool.py convert` turns an old `requirements.csv` and `acceptance-criteria.csv` into them.
+
+The acceptance criteria fields, for reference:
 - `id`: `AC-<n>`.
 - `requirements`: the requirement ids it proves, separated by semicolons.
 - `given`, `when`, `then`: the scenario.

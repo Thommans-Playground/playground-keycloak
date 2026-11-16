@@ -46,8 +46,8 @@ DEFAULTS = {
     "max_summary": 72,
     "max_title": 72,
     "paths": {
-        "req": "docs/requirements/requirements.csv",
-        "ac": "docs/requirements/acceptance-criteria.csv",
+        "req": "docs/requirements/requirements.md",
+        "ac": "docs/requirements/acceptance-criteria.md",
         "perm": "docs/requirements/permissions.csv",
         "vocab": "docs/domain/vocabulary.csv",
         "rules": "docs/domain/ontology/rule-inventory.csv",

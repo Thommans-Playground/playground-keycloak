@@ -1,8 +1,42 @@
 # Requirements
 
-The requirements of the product are one flat file: `requirements.csv` (default
-`docs/requirements/requirements.csv`). Each row is one requirement. This page says how to read it
-and how a row is written. `req_tool.py` searches, checks and edits it.
+The requirements of the product are one markdown file: `requirements.md` (default
+`docs/requirements/requirements.md`). It holds tables, and each row is one requirement. This page says
+how to read it and how a row is written. `req_tool.py` searches, checks and edits it.
+
+## How the file is laid out
+
+A person reads this file, so it is markdown tables, not a spreadsheet.
+
+- **Two parts.** *Functional requirements* (`FR-`) have one table. *Quality, constraint and process
+  requirements* (`NFR-`) have another, which adds the scenario columns (stimulus, environment, response,
+  measure) and a `Kind` column.
+- **Split by area.** Under each part, a heading `### Area A` starts the rows of that area, so `area` is
+  the heading and not a column. The `group` is not a column either: it is `process` for a process row
+  and `product` otherwise.
+- **Long notes under the table.** The `notes` of a row sit under its table as a bullet,
+  `- **FR-1:** text`, so a wide cell does not stretch the table.
+- **Empty columns are left out.** A column that no row in the table uses (for example `Rules`) is not
+  drawn, and it comes back when a row uses it.
+- **`Built`** is `yes` or `no` (the `today` field is `built` or `not built`).
+- A `|` inside a cell is written `\|`, and a line break is `<br>`.
+
+```markdown
+## Functional requirements
+
+### Area A
+
+| ID | Name | Statement | Verified by | Release | Built | Status | Objects | Sources |
+|---|---|---|---|---|---|---|---|---|
+| FR-1 | Approve an account | The system shall let an administrator approve a pending account. | acceptance test | R1 | no | draft | OBJ-A1 | ADR 0019 |
+
+**Notes**
+
+- **FR-1:** Approval is a status change in Playground only.
+```
+
+The tools see the same flat rows as before (the field names below), whatever the layout. A person may
+fix a cell by hand: `req_tool.py` reads it back.
 
 ## What a requirement is
 
@@ -87,14 +121,12 @@ with `objects` and `rules`. Do not keep a second glossary or a second list of ru
 It also reports warnings: a Release 1 requirement with no acceptance criteria, and a quality
 requirement whose measure is `not decided`.
 
-A long statement or a quality scenario does not fit in a table cell, so a spreadsheet is the easiest
-way to read the file.
-
 ## Acceptance criteria
 
 A requirement is only verifiable when something can confirm it. The conditions that prove a
-requirement are its **acceptance criteria**, written as scenarios in `acceptance-criteria.csv`: one
-row for each scenario, with an id (`AC-<n>`).
+requirement are its **acceptance criteria**, written as scenarios in `acceptance-criteria.md`: one
+row of its table for each scenario, with an id (`AC-<n>`). The table columns are `ID`, `Proves`, `Given`,
+`When`, `Then`, `Level`, `Status`, and `Notes` (left out while no row has one).
 
 - `id`: `AC-<n>`, one global sequence, append only.
 - `requirements`: the requirement ids it proves, separated by semicolons. One scenario may serve
@@ -118,9 +150,9 @@ A requirement and its criteria are the first link in a chain of three skills. **
 them, **vbench-uc** writes the use case that runs them (see [usecases.md](usecases.md)), and
 **vbench-at** turns each acceptance criterion into an acceptance test tagged `Verifies AC-<n>` and
 reports where a criterion has no test or a test is stale. A criterion that cannot be tested as
-written comes back here to be fixed. `vbench-req` is the only skill that edits the two CSV files.
+written comes back here to be fixed. `vbench-req` is the only skill that edits the two requirements files.
 
 ## Beside it
 
-Optional CSV files sit beside the requirements: a permissions matrix, a rule inventory, a
+Optional CSV files sit beside the two markdown files: a permissions matrix, a rule inventory, a
 vocabulary and a list of retired ids. They are explained in [csv-files.md](csv-files.md).

@@ -80,8 +80,8 @@ A file is named `<ID>-<slug>.md`, with a short lowercase slug that says what it 
 
 | Item | Default place |
 | ---- | ------------- |
-| `FR-`, `NFR-` | rows in `docs/requirements/requirements.csv` |
-| `AC-` | rows in `docs/requirements/acceptance-criteria.csv` |
+| `FR-`, `NFR-` | rows in `docs/requirements/requirements.md` |
+| `AC-` | rows in `docs/requirements/acceptance-criteria.md` |
 | `UC-` | `docs/usecases/` |
 | `TSK-` (a slice of a use case) | a line inside its use case file, not a file of its own |
 | Use case diagrams (`.puml`) | `docs/usecases/diagrams/` |

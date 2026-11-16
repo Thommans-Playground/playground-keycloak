@@ -133,5 +133,89 @@ class Tests(unittest.TestCase):
         self.assertEqual(watch, [])
 
 
+class MarkdownFormatTests(unittest.TestCase):
+    """The requirements and criteria are markdown tables, read back as the same flat rows."""
+
+    def roundtrip(self, reqs, acs):
+        root = make_root(reqs, acs)
+        return root, t.read_rows(root / t.PATHS["req"]), t.read_rows(root / t.PATHS["ac"])
+
+    def test_rows_survive_a_write_and_read(self):
+        reqs = [req("FR-1", "The system shall a.", area="A", release="R1", today="built", objects="OBJ-A1",
+                    sources="ADR 1; ADR 2", notes="One note."),
+                req("FR-2", "The system shall b.", area="A"),
+                req("FR-3", "The system shall c.", area="P")]
+        _, back, _ = self.roundtrip(reqs, [])
+        self.assertEqual(sorted(back, key=lambda r: r["id"]), sorted(reqs, key=lambda r: r["id"]))
+
+    def test_a_quality_row_goes_to_its_own_table_with_its_scenario(self):
+        q = req("NFR-1", "The system shall check access.", kind="quality", quality="Security",
+                stimulus="s", environment="e", response="r", measure="m", verification="inspection")
+        root, back, _ = self.roundtrip([req("FR-1", "The system shall a.", area="A"), q], [])
+        self.assertIn(q, back)
+        text = (root / t.PATHS["req"]).read_text(encoding="utf-8")
+        self.assertIn("## Quality, constraint and process requirements", text)
+        self.assertLess(text.index("FR-1"), text.index("NFR-1"))
+
+    def test_process_rows_keep_their_group(self):
+        p = req("NFR-2", "The team shall test a restore.", kind="process", group="process")
+        _, back, _ = self.roundtrip([p], [])
+        self.assertEqual(back[0]["group"], "process")
+
+    def test_pipes_and_line_breaks_in_a_cell_survive(self):
+        r = req("FR-1", "The system shall treat a | b as two.", notes="Line one.\nLine two with | a pipe.")
+        _, back, _ = self.roundtrip([r], [ac("AC-1", "FR-1", given="x | y", then="a\nb")])
+        self.assertEqual(back[0]["statement"], r["statement"])
+        self.assertEqual(back[0]["notes"], r["notes"])
+
+    def test_criteria_roundtrip_and_empty_notes_column_is_left_out(self):
+        acs = [ac("AC-1", "FR-1"), ac("AC-2", "FR-1; FR-2", test_level="unit")]
+        root, _, back = self.roundtrip([req("FR-1", "The system shall a.")], acs)
+        self.assertEqual(back, acs)
+        self.assertNotIn("Notes", (root / t.PATHS["ac"]).read_text(encoding="utf-8"))
+
+    def test_empty_files_are_readable(self):
+        root, reqs, acs = self.roundtrip([], [])
+        self.assertEqual((reqs, acs), ([], []))
+        self.assertIn("_None yet._", (root / t.PATHS["ac"]).read_text(encoding="utf-8"))
+
+    def test_the_file_is_a_markdown_table_a_person_can_read(self):
+        root, _, _ = self.roundtrip([req("FR-1", "The system shall a.", area="A")], [])
+        text = (root / t.PATHS["req"]).read_text(encoding="utf-8")
+        self.assertIn("### Area A", text)
+        self.assertIn("| ID | Name | Statement |", text)
+        self.assertNotIn("stimulus", text.lower())
+
+    def test_a_hand_edited_cell_is_read(self):
+        root, _, _ = self.roundtrip([req("FR-1", "The system shall a.", area="A")], [])
+        path = root / t.PATHS["req"]
+        path.write_text(path.read_text(encoding="utf-8").replace("The system shall a.", "The system shall z."),
+                        encoding="utf-8")
+        self.assertEqual(t.read_rows(path)[0]["statement"], "The system shall z.")
+
+    def test_append_keeps_the_area_and_adds_the_row(self):
+        root = make_root([req("FR-1", "The system shall a.", area="A")], [])
+        code, _ = run(root, "append", "requirements",
+                      stdin=json.dumps({"kind": "functional", "area": "P", "name": "n",
+                                        "statement": "The system shall b.", "verification": "unit test"}))
+        self.assertEqual(code, 0)
+        rows = {r["id"]: r for r in t.read_rows(root / t.PATHS["req"])}
+        self.assertEqual(rows["FR-2"]["area"], "P")
+        self.assertEqual(rows["FR-1"]["area"], "A")
+
+    def test_convert_turns_the_csv_files_into_markdown(self):
+        root = Path(tempfile.mkdtemp())
+        (root / "docs/requirements").mkdir(parents=True)
+        t.write_rows(root / "docs/requirements/requirements.csv", t.REQ_COLS, [req("FR-1", "The system shall a.")])
+        t.write_rows(root / "docs/requirements/acceptance-criteria.csv", t.AC_COLS, [ac("AC-1", "FR-1")])
+        code, out = run(root, "convert")
+        self.assertEqual(code, 0)
+        self.assertEqual(t.read_rows(root / t.PATHS["req"])[0]["id"], "FR-1")
+        self.assertEqual(t.read_rows(root / t.PATHS["ac"])[0]["id"], "AC-1")
+        self.assertTrue((root / "docs/requirements/requirements.csv").exists())
+        code, out = run(root, "convert")
+        self.assertIn("already exists", out)
+
+
 if __name__ == "__main__":
     unittest.main()

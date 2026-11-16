@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Search, check and edit a project's requirements and acceptance criteria.
 
-The requirements are rows in docs/requirements/requirements.csv, and their acceptance criteria are
-rows in docs/requirements/acceptance-criteria.csv. This script reads them (and the permissions,
-rule inventory, vocabulary and decisions log beside them) so a check for "is this already here?"
-does not depend on memory, and it edits the two files safely.
+The requirements are tables in docs/requirements/requirements.md, and their acceptance criteria are a
+table in docs/requirements/acceptance-criteria.md (markdown, so a person can read them). This script
+reads them (and the permissions, rule inventory, vocabulary and decisions log beside them, which are
+CSV) so a check for "is this already here?" does not depend on memory, and it edits the two files safely.
 
 Where the files live comes from vbench.json (see _vbench/config.py); with none, the paths above.
 
@@ -13,6 +13,8 @@ Commands (run from the repo root, or pass --root):
   search "text"           find existing requirements, criteria, rules, permissions and decisions that
                           overlap with the text, and check its shape and wording
   init                    create the empty requirements and acceptance criteria files (a fresh repo)
+  convert                 turn requirements.csv and acceptance-criteria.csv into the markdown files
+                          (once, when a repo moves from CSV; the CSV files are left in place)
   next-ids                show the next free FR-, NFR- and AC- numbers
   validate                check both files (unique ids, "shall" wording, complete scenarios, links)
   append requirements     add rows from JSON on stdin (an object or a list), with new ids
@@ -35,6 +37,7 @@ from pathlib import Path
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "_vbench"))
 import config  # noqa: E402
+import mdtables  # noqa: E402
 
 REQ_COLS = ["id", "kind", "group", "area", "name", "statement", "quality", "stimulus", "environment",
             "response", "measure", "verification", "release", "today", "status", "objects", "rules",
@@ -74,8 +77,12 @@ def find_root(start=None):
 
 
 def read_rows(path):
+    """The rows of a file. A .md file is the requirements or the criteria as markdown tables, anything
+    else is a CSV (permissions, vocabulary, the rule inventory, retired ids)."""
     if not Path(path).exists():
         return []
+    if str(path).endswith(".md"):
+        return mdtables.read_md(Path(path).read_text(encoding="utf-8"))
     with open(path, newline="", encoding="utf-8") as f:
         return list(csv.DictReader(f))
 
@@ -89,6 +96,15 @@ def line_ending(path):
 
 def write_rows(path, cols, rows):
     Path(path).parent.mkdir(parents=True, exist_ok=True)
+    if str(path).endswith(".md"):
+        if cols == REQ_COLS:
+            text = mdtables.requirements_md(rows)
+        elif cols == AC_COLS:
+            text = mdtables.criteria_md(rows)
+        else:
+            raise SystemExit("A markdown file holds the requirements or the acceptance criteria only.")
+        Path(path).write_bytes(text.replace("\n", line_ending(path)).encode("utf-8"))
+        return
     buf = io.StringIO(newline="")
     w = csv.DictWriter(buf, fieldnames=cols, lineterminator=line_ending(path))
     w.writeheader()
@@ -430,6 +446,27 @@ def cmd_update(root, rid, dry):
 
 # ----------------------------------------------------------------------------- main
 
+def cmd_convert(root):
+    """One time: requirements.csv and acceptance-criteria.csv become the markdown tables."""
+    done = []
+    for key, cols in (("req", REQ_COLS), ("ac", AC_COLS)):
+        md = root / PATHS[key]
+        old = md.with_suffix(".csv")
+        if md.exists():
+            print(f"skipped {PATHS[key]}: it already exists")
+            continue
+        if not old.exists():
+            print(f"skipped {PATHS[key]}: no {old.name} to convert")
+            continue
+        with open(old, newline="", encoding="utf-8") as f:
+            rows = [{c: (r.get(c) or "") for c in cols} for r in csv.DictReader(f)]
+        write_rows(md, cols, rows)
+        done.append(f"{old.name} -> {md.name} ({len(rows)} rows)")
+    print("Converted " + "; ".join(done) + ". The CSV files are still there: delete them when you are happy." if done
+          else "Nothing converted.")
+    return 0
+
+
 def cmd_init(root):
     made = []
     for key, cols in (("req", REQ_COLS), ("ac", AC_COLS)):
@@ -449,6 +486,7 @@ def main(argv=None):
     s.add_argument("text")
     s.add_argument("--top", type=int, default=4)
     sub.add_parser("init")
+    sub.add_parser("convert")
     sub.add_parser("next-ids")
     sub.add_parser("validate")
     a = sub.add_parser("append")
@@ -462,6 +500,8 @@ def main(argv=None):
     use_config(root)
     if args.cmd == "init":
         return cmd_init(root)
+    if args.cmd == "convert":
+        return cmd_convert(root)
     if args.cmd == "search":
         cmd_search(root, args.text, args.top)
         return 0

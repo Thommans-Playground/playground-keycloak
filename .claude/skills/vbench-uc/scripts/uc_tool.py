@@ -23,7 +23,7 @@ Commands (run from the repo root, or pass --root):
                          `diagram overview` assembles the composite from the context files
   freeze UC-ID           record a hash of each analysis revision, so an edit to a frozen one is caught
   trace UC-ID            from each analysis element to what became of it in the design (nothing may be lost)
-  sync UC-ID             refresh the copied text of its requirements and criteria from the CSV files
+  sync UC-ID             refresh the copied text of its requirements and criteria from the requirements files
   stamp UC-ID            record that a person has reviewed it against the current rows (also syncs)
 
 Uses only the standard library. Exit code 1 means a problem was found or a write was refused.
@@ -264,9 +264,9 @@ def cmd_impact(root, ids):
             print(f"  {h.get('name')}  [{h.get('status')}], actor {h.get('actor')}, {h.get('context')}")
             for rid in ids_of(h.get("satisfies")):
                 r = reqs_by_id.get(rid)
-                print(f"  serves {rid}: {r['statement'] if r else 'MISSING from requirements.csv'}")
+                print(f"  serves {rid}: {r['statement'] if r else 'MISSING from requirements.md'}")
             for aid in ids_of(h.get("criteria")):
-                print(f"  runs {aid}: {'present' if aid in acs_by_id else 'MISSING from acceptance-criteria.csv'}")
+                print(f"  runs {aid}: {'present' if aid in acs_by_id else 'MISSING from acceptance-criteria.md'}")
             for s in suspects(h, reqs_by_id, acs_by_id):
                 print(f"  SUSPECT: {s}")
             if h.get("flow_reviewed") and h["flow_reviewed"] != flow_hash(p.read_text(encoding="utf-8")):
@@ -422,7 +422,7 @@ def notes_in(root, ucs, reqs, acs):
         if block is None:
             out.append(f"{h['id']}: the copied text of its requirements and criteria is missing, run sync")
         elif block != want:
-            out.append(f"{h['id']}: the copied text is out of date with the CSV files, run sync")
+            out.append(f"{h['id']}: the copied text is out of date with the requirements files, run sync")
         if h.get("flow_reviewed") and h["flow_reviewed"] != flow_hash(text):
             out.append(f"{h['id']}: FLOW CHANGED since the last stamp. Run check-upstream: the requirements "
                        "and criteria it serves may need an edit.")
@@ -591,7 +591,7 @@ def slug(name):
     return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
 
 
-BEGIN = "<!-- vbench-uc:begin mirror (generated from the CSV files, do not edit here: change the row, then run sync) -->"
+BEGIN = "<!-- vbench-uc:begin mirror (generated from the requirements files, do not edit here: change the row, then run sync) -->"
 END = "<!-- vbench-uc:end mirror -->"
 
 
@@ -600,7 +600,7 @@ def mirror(h, reqs_by_id, acs_by_id):
     lines = [BEGIN, "", "## What this serves", ""]
     for item in h["satisfies"]:
         r = reqs_by_id.get(item["id"])
-        lines.append(f"**{item['id']}**: {r['statement'] if r else 'NOT FOUND in requirements.csv'}")
+        lines.append(f"**{item['id']}**: {r['statement'] if r else 'NOT FOUND in requirements.md'}")
         lines.append("")
     lines += ["## Acceptance criteria it runs", ""]
     if not h["criteria"]:
@@ -608,7 +608,7 @@ def mirror(h, reqs_by_id, acs_by_id):
     for item in h["criteria"]:
         a = acs_by_id.get(item["id"])
         if not a:
-            lines += [f"**{item['id']}**: NOT FOUND in acceptance-criteria.csv", ""]
+            lines += [f"**{item['id']}**: NOT FOUND in acceptance-criteria.md", ""]
             continue
         lines += [f"**{item['id']}** ({a['test_level']}, proves {a['requirements']})", "",
                   f"- Given {a['given']}", f"- When {a['when']}", f"- Then {a['then']}", ""]
@@ -628,7 +628,7 @@ def mirror(h, reqs_by_id, acs_by_id):
 
 
 def mirror_block(text):
-    m = re.search(re.escape(BEGIN) + r".*?" + re.escape(END), text, re.S)
+    m = re.search(r"<!-- vbench-uc:begin mirror[^>]*-->.*?" + re.escape(END), text, re.S)
     return m.group(0) if m else None
 
 
@@ -834,9 +834,9 @@ def cmd_check_upstream(root, uid):
                     todo.append(f"{t}: tagged in the flow but this use case does not serve or list it.")
         for note in slice_findings(uid, h, text)[1]:
             todo.append(note.split(": ", 1)[1])
-        csv_missing = [a["id"] for a in acs if a["id"] not in listed and
+        table_missing = [a["id"] for a in acs if a["id"] not in listed and
                        set(x.strip() for x in a["requirements"].split(";")) & set(served)]
-        for aid in csv_missing:
+        for aid in table_missing:
             todo.append(f"{aid}: proves a requirement this use case serves, but is not listed here.")
         if h.get("flow_reviewed") and h["flow_reviewed"] != flow_hash(text):
             print("The flow has been edited since the last stamp.\n")
@@ -866,7 +866,7 @@ def cmd_sync(root, uid):
         if h.get("id") == uid:
             new = refresh(path, h, text, reqs_by_id, acs_by_id)
             if new == text:
-                print(f"{uid}: copied text already matches the CSV files")
+                print(f"{uid}: copied text already matches the requirements files")
             else:
                 path.write_text(new, encoding="utf-8")
                 print(f"{uid}: copied text refreshed. Review hashes are NOT changed: it stays suspect until stamped.")

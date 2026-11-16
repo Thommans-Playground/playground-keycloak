@@ -42,7 +42,7 @@ no:
 
 ## 4. What does it serve and prove?
 
-- Which requirements does it serve? List every one. Each must exist in `requirements.csv`.
+- Which requirements does it serve? List every one. Each must exist in `requirements.md`.
 - Which acceptance criteria does it run? Every criterion of a served requirement should be run by some
   use case. `validate` lists those not listed.
 - A requirement with no criteria cannot be confirmed. Send the user to vbench-req first.

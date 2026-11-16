@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Check the link between a project's acceptance criteria and its acceptance tests, and draft test skeletons.
 
-An acceptance criterion is a Given, When, Then row in docs/requirements/acceptance-criteria.csv. An acceptance
+An acceptance criterion is a Given, When, Then row in docs/requirements/acceptance-criteria.md. An acceptance
 test is an automated test that runs ONE criterion through the front door (the API). It carries a tag in a
 comment or its name:
 
@@ -26,7 +26,7 @@ Options: --tests-dir DIR (repeatable, default tests/acceptance), --release R1 (o
 are planned for that release), --stack pytest|playwright|vitest for a skeleton (default: vbench.json
 test_stack, else detected from the repo, else pytest).
 
-Uses only the standard library. This tool never edits the two CSV files.
+Uses only the standard library. This tool never edits the two requirements files.
 """
 
 import argparse
@@ -195,7 +195,7 @@ def cmd_show(root, dirs, ac_id):
         print(f"  notes: {r['notes']}")
     for ref in [x.strip() for x in r["requirements"].split(";") if x.strip()]:
         q = reqs_by_id.get(ref)
-        print(f"  proves {ref}: {q['statement'] if q else 'NOT FOUND in requirements.csv'}")
+        print(f"  proves {ref}: {q['statement'] if q else 'NOT FOUND in requirements.md'}")
     for path, h, _ in uc.load_ucs(root):
         if "_error" not in h and ac_id in uc.ids_of(h.get("criteria")):
             print(f"  run by {h['id']} {h.get('name')}")

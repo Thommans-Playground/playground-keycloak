@@ -9,7 +9,7 @@ An acceptance test runs **one acceptance criterion through the front door** (the
 person gets, not how the code is built. It is the outer loop of test-first: written first, failing, and green
 last. Unit tests (rules) and integration tests (adapters) are other levels and are not written here.
 
-This skill ties the criteria in `docs/requirements/acceptance-criteria.csv` to the tests that run them, and
+This skill ties the criteria in `docs/requirements/acceptance-criteria.md` to the tests that run them, and
 reports where the tie is missing or broken. It drafts a skeleton and stops there: the checks in a test depend
 on the API, and an assertion written without knowing the API is a guess.
 
@@ -31,7 +31,7 @@ default, and ask those details (`references/questions.md`, sections 1 and 2).
 ## The helper
 
 `python3 .claude/skills/vbench-at/scripts/at_tool.py <command>` (from the repo root). It looks for tests in
-`tests/acceptance` (change it with `--tests-dir`), and it never edits the two CSV files.
+`tests/acceptance` (change it with `--tests-dir`), and it never edits the two requirements files.
 
 - `report [--release R1]`: criteria with no test, tests naming an unknown criterion, stale tests, tests with no
   review hash, and use cases that list a criterion with no test. Exit code 1 means a problem (an unknown tag
@@ -77,7 +77,7 @@ criterion's `notes` does not count. Stamping is the act of review, so never stam
 ## Hand-offs
 
 - **Back to vbench-req** when a criterion is wrong, missing, vague or at the wrong level. Say which criterion
-  and why. vbench-req changes the CSV after the owner accepts. This skill never does.
+  and why. vbench-req changes the row after the owner accepts. This skill never does.
 - **To vbench-ontology** when a test needs a rule or an object that has no ontology file.
 - **From vbench-uc** when a use case lists criteria with no test: that is where this skill starts.
 

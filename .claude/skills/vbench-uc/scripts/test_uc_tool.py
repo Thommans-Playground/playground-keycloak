@@ -143,7 +143,7 @@ class Tests(unittest.TestCase):
         rows[0]["statement"] = "The system shall move an endpoint to any stage."
         rq.write_rows(root / rq.PATHS["req"], rq.REQ_COLS, rows)
         _, out = run(root, "validate")
-        self.assertIn("out of date with the CSV files", out)
+        self.assertIn("out of date with the requirements files", out)
         _, out = run(root, "sync", "UC-E1")
         self.assertIn("still suspect", out.replace("stays suspect", "still suspect"))
         text = next((root / "docs/usecases").glob("*.md")).read_text()

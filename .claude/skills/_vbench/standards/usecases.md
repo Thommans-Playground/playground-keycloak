@@ -10,7 +10,7 @@ Default places. `paths` in `vbench.json` can change them.
 
 | What | Where |
 | ---- | ----- |
-| Requirements and acceptance criteria | `docs/requirements/` (the two CSV files, see [requirements.md](requirements.md)) |
+| Requirements and acceptance criteria | `docs/requirements/` (the two markdown files, see [requirements.md](requirements.md)) |
 | Use cases | `docs/usecases/`, one file each: `UC-<area><n>-<slug>.md`, for example `UC-O1-place-an-order.md` |
 | Slices (the thin pieces of a use case, one card each) | a line inside the use case file, with an id like `TSK-O1.1` |
 | Use case diagrams | `docs/usecases/diagrams/`, one `.puml` for each context and an overview |
@@ -22,7 +22,7 @@ The ids are in [naming-conventions.md](naming-conventions.md).
 
 ## How a use case file is built
 
-The data is a fenced `yaml` block at the top. Under it comes a block copied from the CSV files, then
+The data is a fenced `yaml` block at the top. Under it comes a block copied from the requirements files, then
 the part a person writes.
 
 1. **Header** (`yaml`): `id`, `name`, `status`, `actor`, `context`, the requirements it serves
@@ -31,7 +31,7 @@ the part a person writes.
    section 5.
 2. **A generated block**: the full text of every requirement it serves and every criterion it runs
    (Given, When, Then), and how it is verified. A reader does not have to remember an id. It is
-   copied from the CSV files by `uc_tool.py sync` and is never edited by hand.
+   copied from the requirements files by `uc_tool.py sync` and is never edited by hand.
 3. **The flow**, written by a person: Description, Preconditions, Main flow, Other flows,
    Postconditions, Slices, and Not in this use case.
 4. **Analysis, design and the change log**, added as the use case is worked (see "Analysis, design,
@@ -48,7 +48,7 @@ Every line of the main flow ends with the requirement it serves, such as `(FR-88
 | A requirement or criterion changes | The use case is **suspect**, until a person reviews it and stamps it. Each pointer carries a hash of the row as it was reviewed. A change to `notes` does not count. |
 | The flow changes | The use case says **flow changed**. `check-upstream` lists what the requirements and criteria may be missing: a step with no requirement, an other flow with no criterion. |
 
-The CSV files own the wording of requirements and criteria. The use case owns the flow. Nothing is
+The requirements files own the wording of requirements and criteria. The use case owns the flow. Nothing is
 copied upward: the tool proposes, and a person accepts the edit through the requirements skill.
 
 ## How a use case is verified
@@ -116,7 +116,7 @@ Three skills hand work on in a line: **vbench-req** writes the requirements and 
 criteria, **vbench-uc** writes the use case that runs them, and **vbench-at** turns each acceptance
 criterion into an acceptance test and checks that the two stay linked. Each ends by offering the
 next, and each sends a problem back: a vague or wrong criterion goes back to vbench-req, which is
-the only skill that edits the CSV files.
+the only skill that edits the requirements files.
 
 ## What the tool checks
 

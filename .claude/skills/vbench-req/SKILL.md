@@ -1,6 +1,6 @@
 ---
 name: vbench-req
-description: Check, write and tidy requirements and their acceptance criteria. The user types one or more requirements, and the skill searches docs/requirements/requirements.csv and acceptance-criteria.csv to say whether each one already exists, is a change to an existing row, or is new, then helps write the row and its Given/When/Then criteria with multiple-choice questions. Use this whenever the user says "vbench-req", "add a requirement", "is this requirement already there", "do we already have", "write acceptance criteria for", "check this requirement", "new FR", "update FR-12", or pastes a sentence that sounds like "the system shall ...", even if they never say "vbench".
+description: Check, write and tidy requirements and their acceptance criteria. The user types one or more requirements, and the skill searches docs/requirements/requirements.md and acceptance-criteria.md to say whether each one already exists, is a change to an existing row, or is new, then helps write the row and its Given/When/Then criteria with multiple-choice questions. Use this whenever the user says "vbench-req", "add a requirement", "is this requirement already there", "do we already have", "write acceptance criteria for", "check this requirement", "new FR", "update FR-12", or pastes a sentence that sounds like "the system shall ...", even if they never say "vbench".
 ---
 
 # vbench-req
@@ -8,7 +8,7 @@ description: Check, write and tidy requirements and their acceptance criteria. T
 Examine a requirement in small, scoped steps: is it already here, what is it, what proves it. The
 files are the source of truth, so every claim starts from a search, not from memory.
 
-The rules for the files are in `_vbench/standards/requirements.md` and `_vbench/standards/csv-files.md`. The ids are in
+The rules for the files are in `_vbench/standards/requirements.md` (the layout of the two markdown files) and `_vbench/standards/csv-files.md` (the CSV files beside them). The ids are in
 `_vbench/standards/naming-conventions.md`. This skill applies them and does not restate them.
 
 ## The helper
@@ -18,11 +18,12 @@ The rules for the files are in `_vbench/standards/requirements.md` and `_vbench/
 - `search "text"`: close requirements (with their criteria), similar criteria, rules, permissions,
   decisions, and wording problems (shape and retired words).
 - `next-ids`, `validate`
+- `convert`: once, when a repo still has `requirements.csv` and `acceptance-criteria.csv`: writes the two markdown files. The CSV files stay until the person deletes them.
 - `append requirements|acceptance` and `update ID`: JSON on stdin. Add `--dry-run` to preview. They
   assign ids, keep the CRLF line endings, and refuse a row that fails the checks.
 
-Do not edit the CSV files by hand or with Edit. Use the helper, so the ids, columns and line endings
-stay right.
+Do not edit the requirements or criteria files with Edit. Use the helper, so the ids, columns, notes and
+line endings stay right. A person may fix a cell by hand: the tool reads it back.
 
 ## Steps
 

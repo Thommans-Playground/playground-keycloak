@@ -20,7 +20,7 @@ Nothing else is needed. There is no config to write and no folder to create: the
 The scripts use only the Python 3.10+ standard library (PlantUML checks also want Java and a PlantUML jar).
 
 ```bash
-python3 .claude/skills/vbench-req/scripts/req_tool.py init      # optional: creates the two CSV files
+python3 .claude/skills/vbench-req/scripts/req_tool.py init      # optional: creates the two requirements files (markdown)
 ```
 
 ## Settings: `vbench.json` (optional)
@@ -40,7 +40,7 @@ Put it at the repo root or in `.claude/`. Leave out any key to keep its default.
 | `test_stack` | detected | `pytest`, `vitest` or `playwright` for drafted tests |
 | `commit_types`, `branch_types` | Conventional Commits | Allowed types |
 | `max_branch`, `max_summary`, `max_title` | 60, 72, 72 | Length limits |
-| `paths` | `docs/...` | Where the CSV files, use cases and ontology live |
+| `paths` | `docs/...` | Where the requirements files, use cases and ontology live |
 | `diagram` | `{}` | Optional colours and names for generated use case diagrams |
 
 Example:
