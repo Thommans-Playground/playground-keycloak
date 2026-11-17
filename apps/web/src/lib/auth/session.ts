@@ -1,13 +1,11 @@
 import "server-only";
-import { randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
+import { app } from "@/composition";
 import { env, SESSION_COOKIE } from "./config";
-import { refresh } from "./oidc";
-import { dropSession, getSessionById, putSession, refreshing, type Session } from "./store";
+
+// The Next.js side of sessions: the cookie. What a session holds, and what happens to it, is in application/.
 
 const secure = () => env.appUrl.startsWith("https://");
-
-export const newSessionId = () => randomBytes(32).toString("base64url");
 
 export const cookieOptions = (maxAgeSeconds?: number) => ({
   httpOnly: true, // JavaScript in the page cannot read it
@@ -21,34 +19,7 @@ export async function currentSessionId() {
   return (await cookies()).get(SESSION_COOKIE)?.value;
 }
 
-/**
- * The access token for this browser's session, refreshed when it is about to expire.
- * One refresh at a time per session: refresh tokens rotate, so two at once would log the person out.
- */
-export async function accessToken(): Promise<string | null> {
-  const id = await currentSessionId();
-  const session = getSessionById(id);
-  if (!id || !session) return null;
-  if (session.accessExpiresAt - Date.now() > 30_000) return session.accessToken;
-
-  let pending = refreshing.get(id);
-  if (!pending) {
-    pending = refresh(session)
-      .then((fresh) => (putSession(id, fresh), fresh))
-      .catch(() => (dropSession(id), null)) // Keycloak refused: session ended or person disabled
-      .finally(() => refreshing.delete(id));
-    refreshing.set(id, pending);
-  }
-  return (await pending)?.accessToken ?? null;
-}
-
 export async function hasSession() {
-  return getSessionById(await currentSessionId()) !== null;
-}
-
-export async function endSession(): Promise<Session | null> {
-  const id = await currentSessionId();
-  const session = getSessionById(id);
-  if (id) dropSession(id);
-  return session;
+  const sessionId = await currentSessionId(); // read the cookie first: that makes the page dynamic, so nothing runs at build time
+  return app().hasSession(sessionId);
 }

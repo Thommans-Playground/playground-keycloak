@@ -1,7 +1,7 @@
 import "server-only";
 import { cache } from "react";
-import { env } from "./auth/config";
-import { accessToken } from "./auth/session";
+import { app } from "@/composition";
+import { currentSessionId } from "./auth/session";
 
 export type Account = {
   id: string;
@@ -26,22 +26,21 @@ export type ApiResult<T> =
   | { ok: true; data: T }
   | { ok: false; status: number; code: string };
 
-/** Server side call to the FastAPI API with the person's access token. */
+/** Server side call to the FastAPI API, for the signed-in person. */
 export async function api<T>(path: string): Promise<ApiResult<T>> {
-  const token = await accessToken();
-  if (!token) return { ok: false, status: 401, code: "no_session" };
-  try {
-    const res = await fetch(`${env.apiUrl}${path}`, {
-      headers: { Authorization: `Bearer ${token}` },
-      cache: "no-store",
-    });
-    const body = await res.json().catch(() => ({}));
-    if (res.ok) return { ok: true, data: body as T };
-    const code = body?.detail?.code ?? body?.code ?? "error";
-    return { ok: false, status: res.status, code };
-  } catch {
-    return { ok: false, status: 502, code: "api_unreachable" };
-  }
+  const sessionId = await currentSessionId(); // before app(): the cookie makes the page dynamic
+  const result = await app().callBackend(sessionId, { method: "GET", path: path.replace(/^\//, "") });
+  if (result.kind === "no_session") return { ok: false, status: 401, code: "no_session" };
+  if (result.kind === "unreachable") return { ok: false, status: 502, code: "api_unreachable" };
+  const body = (() => {
+    try {
+      return JSON.parse(result.body);
+    } catch {
+      return {};
+    }
+  })();
+  if (result.status >= 200 && result.status < 300) return { ok: true, data: body as T };
+  return { ok: false, status: result.status, code: body?.detail?.code ?? body?.code ?? "error" };
 }
 
 /** The signed-in person's account. Asked once per request, however many components want it. */

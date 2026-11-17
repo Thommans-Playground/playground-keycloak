@@ -16,4 +16,3 @@ export const env = {
 
 export const SESSION_COOKIE = "playground_session";
 export const LOGIN_COOKIE = "playground_login";
-export const LOGIN_ATTEMPT_TTL_MS = 10 * 60 * 1000;

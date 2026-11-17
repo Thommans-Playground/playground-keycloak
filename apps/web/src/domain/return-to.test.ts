@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { safeReturnTo } from "./safe-return-to.ts";
+import { safeReturnTo } from "./return-to.ts";
 
 test("keeps local paths", () => {
   assert.equal(safeReturnTo("/admin/accounts?tab=2"), "/admin/accounts?tab=2");
