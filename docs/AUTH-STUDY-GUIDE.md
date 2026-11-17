@@ -96,7 +96,7 @@ The password crosses one line. The tokens cross two, and the browser is on neith
 
 ### 0.3 One sign in, numbered
 
-Maya opens the dashboard for the first time. Eighteen messages later she sees "Waiting for approval". A solid arrow is a request, a dashed arrow its answer.
+Maya opens the dashboard for the first time. Here is everything that happens until she sees "Waiting for approval": 18 numbered messages, and the three checks (`state`, PKCE, `nonce`) as notes.
 
 ```mermaid
 sequenceDiagram
@@ -109,289 +109,330 @@ sequenceDiagram
     B->>W: GET /dashboard, no cookie
     W-->>B: 307 to /auth/login
     B->>W: GET /auth/login
-    W-->>B: 307 to Keycloak, playground_login cookie
-    B->>K: GET /auth with state, nonce, challenge
+    W-->>B: 307 to Keycloak
+    B->>K: GET /auth
     K-->>B: the sign in page
     B->>K: POST username and password
     K-->>B: 302 to /auth/callback with code
-    B->>W: GET /auth/callback with code and cookie
-    W->>K: POST /token with code, verifier, secret
+    B->>W: GET /auth/callback
+    Note over W: CHECK state
+    W->>K: POST /token with code and verifier
+    Note over K: CHECK PKCE
     K-->>W: access, ID and refresh tokens
-    W-->>B: 307 to /dashboard, playground_session cookie
+    Note over W: CHECK nonce
+    W-->>B: 307 to /dashboard, session cookie
     B->>W: GET /dashboard with cookie
-    W->>A: GET /me with Bearer access token
-    A->>K: GET /certs, the public keys, once
-    A->>D: find or create the account by sub
-    A-->>W: the account, pending
-    W-->>B: the page, waiting for approval
+    W->>A: GET /me with access token
+    A->>K: GET /certs, the public keys
+    A->>D: find or create the account
+    A-->>W: the account
+    W-->>B: the page
 ```
 
-The eighteen steps fall into four phases:
+A solid arrow is a request, a dashed arrow its answer. The steps fall into four phases:
 
-| Steps | Phase | What happens |
+| Steps | Phase | In one line |
 |---|---|---|
-| 1 to 4 | Next.js prepares | It makes `state`, `nonce` and a PKCE pair, stores them, and sends Maya to Keycloak |
-| 5 to 8 | Maya proves who she is | To Keycloak only. She leaves with a one-time code |
-| 9 to 12 | The swap | Next.js trades the code for tokens on the back channel and gives Maya a session cookie |
-| 13 to 18 | The first real page | The API checks the token, then reads (here, creates) her account |
+| 1 to 4 | Prepare | Next.js makes `state`, `nonce` and a PKCE pair, saves them, and sends Maya to Keycloak |
+| 5 to 8 | Prove who she is | Maya signs in at Keycloak and comes back with a one-time code |
+| 9 to 12 | Swap | Next.js swaps the code for tokens and gives Maya a session cookie |
+| 13 to 18 | First page | The API checks the token and finds (here, creates) her account |
 
-Now the data at each step. The values are the same made-up but consistent ones as [Flow G](#flow-g-what-the-data-looks-like-at-each-step), where you can see them in full; `…` means cut short. URLs are shown decoded, one parameter per line, for reading.
+Below, each step shows what is sent, in the shape it really has. The values match [Flow G](#flow-g-what-the-data-looks-like-at-each-step), where you can see them in full. `…` means cut short; URLs are split one parameter per line so you can read them.
 
-#### Phase 1: Next.js prepares (steps 1 to 4)
+#### Phase 1: Prepare (steps 1 to 4)
 
-**Step 1. Browser to Next.js: ask for a protected page.** No cookie yet.
+**1. Browser → Next.js: ask for the dashboard**
 
-```text
-GET http://localhost:3000/dashboard
-Cookie: (none)
+Maya has no cookie yet.
+
+```http
+GET /dashboard HTTP/1.1
+Host: localhost:3000
 ```
 
-**Step 2. Next.js to browser: "sign in first".** [proxy.ts](../apps/web/src/proxy.ts) sees no `playground_session` cookie and remembers where she was going.
+**2. Next.js → browser: "sign in first"**
 
-```text
+[proxy.ts](../apps/web/src/proxy.ts) sees no session cookie and sends her to the sign in route, remembering where she was going.
+
+```http
 HTTP/1.1 307 Temporary Redirect
-location: http://localhost:3000/auth/login?returnTo=%2Fdashboard
+Location: http://localhost:3000/auth/login?returnTo=/dashboard
 ```
 
-**Step 3. Browser to Next.js: start the sign in.** `/auth/login` makes four random values and stores them as a login attempt. (The very first time, it also reads Keycloak's discovery document, `/.well-known/openid-configuration`, to learn Keycloak's addresses.)
+**3. Browser → Next.js: start the sign in**
+
+Next.js makes three random values and saves them in memory, in a **login attempt** row. The challenge is not saved; it is worked out from the verifier.
+
+```http
+GET /auth/login?returnTo=/dashboard HTTP/1.1
+Host: localhost:3000
+```
 
 ```text
-GET http://localhost:3000/auth/login?returnTo=%2Fdashboard
-
-attempt store (Next.js memory), one new row:
+attempt store (Next.js memory)
   "BdDMr8vG…" -> {
       state:        "LxS312w3…",
       nonce:        "-byilA98…",
-      pkceVerifier: "V-QRS7wG…",      // the secret half of PKCE, never leaves Next.js
-      returnTo:     "/dashboard",
-      startedAt:    1794880401000      // dead 10 minutes later
+      pkceVerifier: "V-QRS7wG…",      secret: never leaves Next.js until step 10
+      returnTo:     "/dashboard"
   }
+
+challenge = base64url(SHA-256(verifier)) = "otVZCOO6…"
 ```
 
-**Step 4. Next.js to browser: go to Keycloak, and keep this ticket.** Full detail: [G2](#g2-authlogin-the-login-attempt-is-stored-the-browser-is-sent-away).
+**4. Next.js → browser: go to Keycloak**
 
-```text
+`state`, `nonce` and the challenge ride in the URL. The cookie lets Next.js find the attempt row again at step 9.
+
+```http
 HTTP/1.1 307 Temporary Redirect
-location: http://localhost:8080/realms/playground/protocol/openid-connect/auth
-            ?client_id=playground-web
-            &response_type=code
-            &redirect_uri=http://localhost:3000/auth/callback
-            &scope=openid profile email
-            &state=LxS312w3…
-            &nonce=-byilA98…
-            &code_challenge=otVZCOO6…          <- SHA-256 of the verifier
-            &code_challenge_method=S256
-set-cookie: playground_login=BdDMr8vG…; Path=/; Max-Age=600; HttpOnly; SameSite=lax
+Location: http://localhost:8080/realms/playground/protocol/openid-connect/auth
+    ?client_id=playground-web
+    &response_type=code
+    &redirect_uri=http://localhost:3000/auth/callback
+    &scope=openid profile email
+    &state=LxS312w3…
+    &nonce=-byilA98…
+    &code_challenge=otVZCOO6…
+    &code_challenge_method=S256
+Set-Cookie: playground_login=BdDMr8vG…; Path=/; Max-Age=600; HttpOnly; SameSite=lax
 ```
 
-Compare step 3 and step 4: the **verifier** stays in the row, only its **hash** (the challenge) goes out. That is PKCE.
+#### Phase 2: Prove who she is (steps 5 to 8)
 
-#### Phase 2: Maya proves who she is, to Keycloak only (steps 5 to 8)
+**5. Browser → Keycloak: follow the redirect**
 
-**Step 5. Browser to Keycloak: follow the redirect.** The address bar now shows `localhost:8080`. Keycloak keeps the client, `state`, `nonce` and challenge in a sign in session of its own.
+Keycloak keeps `state`, `nonce` and the challenge for later.
 
-```text
-GET http://localhost:8080/realms/playground/protocol/openid-connect/auth?client_id=playground-web&…
+```http
+GET /realms/playground/protocol/openid-connect/auth?client_id=playground-web&…&state=LxS312w3…&nonce=-byilA98…&code_challenge=otVZCOO6… HTTP/1.1
+Host: localhost:8080
 ```
 
-**Step 6. Keycloak to browser: the sign in page.** It sets Keycloak's own cookies, for `localhost:8080` only, and serves a form that posts back to Keycloak.
+**6. Keycloak → browser: the sign in page**
 
-```text
+An HTML form that posts back to Keycloak.
+
+```http
 HTTP/1.1 200 OK
-set-cookie: AUTH_SESSION_ID=YjBmZDk4…; …
-set-cookie: KC_RESTART=eyJhbGciOiJkaXIi…; …
+Content-Type: text/html
 
-<form method="post" action="http://localhost:8080/realms/playground/login-actions/authenticate
-                              ?session_code=crEEdYtO…&execution=346e05fc-…&client_id=playground-web&tab_id=uDctyW3dqLg">
-  <input name="username">  <input name="password" type="password">  …
+<form method="post" action="http://localhost:8080/realms/playground/login-actions/authenticate?session_code=crEEdYtO…">
+  <input name="username"> <input name="password" type="password">
 </form>
 ```
 
-**Step 7. Browser to Keycloak: the password.** This is the only message in the whole system that carries it, and it goes to `localhost:8080`. Next.js never sees it.
+**7. Browser → Keycloak: the password**
 
-```text
-POST http://localhost:8080/realms/playground/login-actions/authenticate?session_code=crEEdYtO…&…
+The only message in the whole system that carries the password. It goes to Keycloak, never to Next.js.
+
+```http
+POST /realms/playground/login-actions/authenticate?session_code=crEEdYtO…&… HTTP/1.1
+Host: localhost:8080
 Content-Type: application/x-www-form-urlencoded
 
-username=maya%40example.test&password=Maya123%21&credentialId=
+username=maya%40example.test&password=Maya123%21
 ```
 
-**Step 8. Keycloak to browser: back to the app, with a code.** Keycloak also sets its single sign on cookies, so another sign in within its session (8 hours here) needs no password. Full detail: [G3](#g3-keycloak-sends-her-back-with-a-code).
+**8. Keycloak → browser: back to the app, with a code**
 
-```text
+The same `state` comes back, plus a one-time `code`. Keycloak also sets its own cookies, so Maya need not type her password again for a while.
+
+```http
 HTTP/1.1 302 Found
-location: http://localhost:3000/auth/callback
-            ?state=LxS312w3…                   <- the same state as step 4
-            &session_state=6194819b-…
-            &iss=http://localhost:8080/realms/playground
-            &code=9e2b4c1a-…                   <- one use, about a minute to live
-set-cookie: KEYCLOAK_IDENTITY=eyJhbGciOiJIUzUxMiIs…; …
-set-cookie: KEYCLOAK_SESSION=AmVhjweV…; Path=/realms/playground/; Max-Age=28800; Secure; SameSite=None
+Location: http://localhost:3000/auth/callback
+    ?state=LxS312w3…
+    &code=9e2b4c1a-…
+    &session_state=6194819b-…
+    &iss=http://localhost:8080/realms/playground
+Set-Cookie: KEYCLOAK_IDENTITY=eyJhbGci…; …
+Set-Cookie: KEYCLOAK_SESSION=AmVhjweV…; …
 ```
 
-The code passes through the browser, so treat it as seen. On its own it is useless: swapping it needs the verifier and the client secret, which only Next.js has.
+#### Phase 3: Swap (steps 9 to 12)
 
-#### Phase 3: the swap (steps 9 to 12)
+**9. Browser → Next.js: hand over the code**
 
-**Step 9. Browser to Next.js: hand over the code, with the attempt ticket.**
-
-```text
-GET http://localhost:3000/auth/callback?state=LxS312w3…&session_state=…&iss=…&code=9e2b4c1a-…
+```http
+GET /auth/callback?state=LxS312w3…&code=9e2b4c1a-…&session_state=…&iss=… HTTP/1.1
+Host: localhost:3000
 Cookie: playground_login=BdDMr8vG…
 ```
 
-Next.js **takes** the attempt row (read and deleted in one go) and checks the `state` in the URL equals the `state` in the row.
+> **CHECK `state`** (Next.js). The cookie finds the attempt row, which is taken out of memory so it can be used only once.
+>
+> ```text
+> state in the URL = "LxS312w3…"
+> state in the row = "LxS312w3…"   ✔ same sign in that left at step 4
+> ```
 
-**Step 10. Next.js to Keycloak, on the back channel: swap the code.** The browser never sees this. Full detail: [G4](#g4-the-back-channel-the-code-is-swapped-for-tokens).
+**10. Next.js → Keycloak: swap the code for tokens**
 
-```text
-POST http://keycloak:8080/realms/playground/protocol/openid-connect/token
+Server to server: the browser never sees this. The **verifier** leaves Next.js for the first and only time.
+
+```http
+POST /realms/playground/protocol/openid-connect/token HTTP/1.1
+Host: keycloak:8080
 Content-Type: application/x-www-form-urlencoded
 
-grant_type    = authorization_code
-code          = 9e2b4c1a-…
-redirect_uri  = http://localhost:3000/auth/callback
-code_verifier = V-QRS7wG…            <- Keycloak hashes it and compares with step 4's challenge
-client_id     = playground-web
-client_secret = playground-web-dev-secret
+grant_type=authorization_code
+&code=9e2b4c1a-…
+&redirect_uri=http://localhost:3000/auth/callback
+&code_verifier=V-QRS7wG…
+&client_id=playground-web
+&client_secret=playground-web-dev-secret
 ```
 
-(`keycloak:8080` is Keycloak's name inside Docker; a local `npm run dev` uses `localhost:8080`. The issuer stays `localhost:8080` either way.)
+> **CHECK PKCE** (Keycloak).
+>
+> ```text
+> base64url(SHA-256("V-QRS7wG…")) = "otVZCOO6…"
+> challenge kept at step 5        = "otVZCOO6…"   ✔ the one swapping is the one who asked
+> ```
 
-**Step 11. Keycloak to Next.js: three tokens.**
+**11. Keycloak → Next.js: three tokens**
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "access_token":  "eyJhbGciOiJSUzI1NiIs…",
+  "id_token":      "eyJhbGciOiJSUzI1NiIs…",
+  "refresh_token": "eyJhbGciOiJIUzUxMiIs…",
+  "token_type":    "Bearer",
+  "expires_in":    300
+}
+```
+
+Decoded, the middle of the access token says who Maya is and who the token is for. It holds no role and no status: those are the API's.
 
 ```json
 {
-  "access_token":  "eyJhbGciOiJSUzI1NiIs…",
-  "expires_in": 300,
-  "id_token":      "eyJhbGciOiJSUzI1NiIs…",
-  "refresh_token": "eyJhbGciOiJIUzUxMiIs…",
-  "refresh_expires_in": 1800,
-  "token_type": "Bearer",
-  "scope": "openid email profile"
-}
-```
-
-`openid-client` checks the ID token's `nonce` equals the attempt's. Decode the middle of the access token and you see who it is about and who it is for. Full detail: [G5](#g5-inside-the-three-tokens).
-
-```jsonc
-{
-  "iss": "http://localhost:8080/realms/playground",   // who signed it
-  "aud": "playground-api",                            // who it is for
-  "sub": "64b93477-984d-439f-a60c-a61cc1489a93",      // who it is about: Maya
-  "exp": 1794880728,                                  // five minutes from now
+  "iss": "http://localhost:8080/realms/playground",
+  "aud": "playground-api",
+  "sub": "64b93477-984d-439f-a60c-a61cc1489a93",
+  "exp": 1794880728,
   "name": "Maya Rao",
   "email": "maya@example.test"
-  // no role, no status: those are the API's
 }
 ```
 
-**Step 12. Next.js to browser: the session ticket.** The tokens go into a session row in Next.js memory. The browser gets only the row's random id. Full detail: [G6](#g6-the-session-is-stored-the-browser-gets-the-ticket).
+> **CHECK `nonce`** (Next.js). The ID token carries the `nonce`, sealed by Keycloak's signature.
+>
+> ```text
+> nonce in the ID token = "-byilA98…"
+> nonce in the row      = "-byilA98…"   ✔ this token was made for this sign in
+> ```
+
+**12. Next.js → browser: the session cookie**
+
+The tokens go into a **session** row in Next.js memory. The browser gets only the row's random id.
 
 ```text
-session store (Next.js memory), one new row:
+session store (Next.js memory)
   "qzRp2pmH…" -> {
-      idToken:         "eyJhbGciOiJSUzI1NiIs…",   // kept for sign out
-      accessToken:     "eyJhbGciOiJSUzI1NiIs…",   // sent to the API
-      refreshToken:    "eyJhbGciOiJIUzUxMiIs…",   // sent to Keycloak only
-      accessExpiresAt: 1794880728000
+      idToken:      "eyJhbGci…",
+      accessToken:  "eyJhbGci…",
+      refreshToken: "eyJhbGci…"
   }
-
-HTTP/1.1 307 Temporary Redirect
-location: http://localhost:3000/dashboard
-set-cookie: playground_session=qzRp2pmH…; Path=/; HttpOnly; SameSite=lax
-set-cookie: playground_login=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT     <- deletes the attempt ticket
 ```
 
-#### Phase 4: the first real page (steps 13 to 18)
+```http
+HTTP/1.1 307 Temporary Redirect
+Location: http://localhost:3000/dashboard
+Set-Cookie: playground_session=qzRp2pmH…; Path=/; HttpOnly; SameSite=lax
+Set-Cookie: playground_login=; Expires=Thu, 01 Jan 1970 00:00:00 GMT
+```
 
-**Step 13. Browser to Next.js: the same page as step 1, now with the cookie.**
+The second `Set-Cookie` deletes the attempt cookie: same name, a date in the past.
 
-```text
-GET http://localhost:3000/dashboard
+#### Phase 4: First page (steps 13 to 18)
+
+**13. Browser → Next.js: the dashboard again, now with the cookie**
+
+```http
+GET /dashboard HTTP/1.1
+Host: localhost:3000
 Cookie: playground_session=qzRp2pmH…
 ```
 
-**Step 14. Next.js to API: the access token, finally used.** Next.js finds the session row by the cookie, sees the token has minutes left, and calls the API. Full detail: [G7](#g7-the-first-page-the-api-sees-her-for-the-first-time).
+**14. Next.js → API: the access token**
 
-```text
-GET http://api:8000/me
+Next.js finds the session row by the cookie and sends the access token on.
+
+```http
+GET /me HTTP/1.1
+Host: api:8000
 Authorization: Bearer eyJhbGciOiJSUzI1NiIs…
 ```
 
-**Step 15. API to Keycloak: the public keys.** Only the first time; the library then caches them. The token's header names the key (`kid`) that signed it, and the API picks the key with that `kid`.
+**15. API → Keycloak: the public keys**
 
-```text
-token header:  { "alg": "RS256", "typ": "JWT", "kid": "CdLHpIsQ…" }
+Only the first time; then they are cached. The API picks the key whose `kid` matches the token's header, checks the signature, then `iss`, `aud` and `exp`. Any failure is a `401`.
 
-GET http://keycloak:8080/realms/playground/protocol/openid-connect/certs
-{
-  "keys": [
-    { "kid": "CdLHpIsQ…", "kty": "RSA", "alg": "RS256", "use": "sig", "n": "vlAq2PODp6Qz…", "e": "AQAB" },
-    …
-  ]
-}
+```http
+GET /realms/playground/protocol/openid-connect/certs HTTP/1.1
+Host: keycloak:8080
 ```
-
-With the key it checks the signature, then `iss`, `aud` (must be `playground-api`) and `exp`. If any fails: `401`. If all pass, it keeps only who she is:
-
-```text
-Principal(identity="64b93477-…", name="Maya Rao", email="maya@example.test", email_verified=True)
-```
-
-**Step 16. API to its database: find the account by `sub`, or create it.** Shown as SQL to read; SQLAlchemy writes the real statements.
-
-```sql
-SELECT * FROM accounts WHERE identity = '64b93477-984d-439f-a60c-a61cc1489a93';
--- nothing: her first visit, so
-INSERT INTO accounts (id, identity, name, email, role, status, …)
-     VALUES ('0c1f6d2e-…', '64b93477-…', 'Maya Rao', 'maya@example.test', 'user', 'pending', …);
-INSERT INTO audit_entries (at, actor_id, action, target_id)
-     VALUES ('2026-11-17 01:53:49', NULL, 'register', '0c1f6d2e-…');
-```
-
-On every later request this step is a read only, and it is where role and status are checked.
-
-**Step 17. API to Next.js: the account.** `identity` (the `sub`) is not sent out.
 
 ```json
-{
-  "id": "0c1f6d2e-7a43-4b8e-9d51-2f6a8e3b9c07",
-  "name": "Maya Rao",
-  "email": "maya@example.test",
-  "role": "user",
-  "status": "pending",
-  "created": "2026-11-17T01:53:49",
-  "created_by": null
-}
+{ "keys": [ { "kid": "CdLHpIsQ…", "kty": "RSA", "alg": "RS256", "use": "sig", "n": "vlAq2PODp6Qz…", "e": "AQAB" } ] }
 ```
 
-**Step 18. Next.js to browser: the page.** HTML that says "Waiting for approval". No token, no JSON, only the page.
+**16. API → database: find the account by `sub`, or create it**
 
-#### The eighteen steps in one table
+Maya is new, so the API creates a pending account and an audit entry. On every later request this is a read, and it is where role and status are checked.
 
-| # | From → to | What travels | Secret on this step |
+```sql
+SELECT * FROM accounts WHERE identity = '64b93477-…';     -- nothing found
+
+INSERT INTO accounts (id, identity, name, email, role, status)
+     VALUES ('0c1f6d2e-…', '64b93477-…', 'Maya Rao', 'maya@example.test', 'user', 'pending');
+INSERT INTO audit_entries (actor_id, action, target_id)
+     VALUES (NULL, 'register', '0c1f6d2e-…');
+```
+
+**17. API → Next.js: the account**
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{ "id": "0c1f6d2e-…", "name": "Maya Rao", "email": "maya@example.test", "role": "user", "status": "pending" }
+```
+
+**18. Next.js → browser: the page**
+
+HTML that says "Waiting for approval". No token reaches the browser.
+
+*Hosts:* `keycloak:8080` and `api:8000` are the names inside Docker. With `npm run dev` on your machine they are `localhost:8080` and `localhost:8000`. The issuer in the tokens is always `http://localhost:8080/realms/playground`.
+
+#### The 18 steps in one table
+
+| # | From → to | What travels | Secret? |
 |---|---|---|---|
-| 1 | Browser → Next.js | `GET /dashboard` | none |
-| 2 | Next.js → browser | redirect to `/auth/login` | none |
-| 3 | Browser → Next.js | `GET /auth/login`; attempt row stored | `state`, `nonce`, verifier made (stay in memory) |
-| 4 | Next.js → browser | redirect to Keycloak; `playground_login` cookie | challenge only (a hash) |
-| 5 | Browser → Keycloak | `GET /auth` | none |
-| 6 | Keycloak → browser | sign in page; Keycloak's cookies | none |
+| 1 | Browser → Next.js | `GET /dashboard` | |
+| 2 | Next.js → browser | redirect to `/auth/login` | |
+| 3 | Browser → Next.js | `GET /auth/login` | `state`, `nonce`, verifier made, kept in memory |
+| 4 | Next.js → browser | redirect to Keycloak, attempt cookie | challenge only (a hash) |
+| 5 | Browser → Keycloak | `GET /auth` | |
+| 6 | Keycloak → browser | sign in page | |
 | 7 | Browser → Keycloak | username and password | **the password** |
-| 8 | Keycloak → browser | redirect with `code`; SSO cookies | the code (useless alone) |
-| 9 | Browser → Next.js | `code` and `state`; attempt cookie | the code |
-| 10 | Next.js → Keycloak | code, verifier, client secret | **verifier, client secret** |
-| 11 | Keycloak → Next.js | access, ID and refresh tokens | **all three tokens** |
-| 12 | Next.js → browser | `playground_session` cookie | the session id |
+| 8 | Keycloak → browser | redirect with `code` and `state` | the code |
+| 9 | Browser → Next.js | `code` and `state`, attempt cookie | the code. **CHECK `state`** |
+| 10 | Next.js → Keycloak | code, verifier, client secret | **verifier, client secret.** **CHECK PKCE** |
+| 11 | Keycloak → Next.js | three tokens | **the tokens.** **CHECK `nonce`** |
+| 12 | Next.js → browser | session cookie | the session id |
 | 13 | Browser → Next.js | `GET /dashboard` with cookie | the session id |
 | 14 | Next.js → API | `Authorization: Bearer` | **the access token** |
-| 15 | API → Keycloak | `GET /certs` | none: public keys |
-| 16 | API → database | find or create by `sub` | none |
-| 17 | API → Next.js | account JSON | none |
-| 18 | Next.js → browser | HTML | none |
+| 15 | API → Keycloak | `GET /certs` | public keys, not secret |
+| 16 | API → database | find or create by `sub` | |
+| 17 | API → Next.js | the account | |
+| 18 | Next.js → browser | HTML | |
 
-Read down the "From → to" column for the bold rows: the password goes browser to Keycloak, and every token stays between servers.
+Look at the bold rows: the password only goes browser → Keycloak, and every token stays between servers.
 
 ### 0.4 Where the data ends up
 
