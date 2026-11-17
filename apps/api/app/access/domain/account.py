@@ -25,8 +25,9 @@ class Action(StrEnum):
 
 
 class DomainError(Exception):
+    """A rule refused something. It says what went wrong, never how HTTP answers: the web layer maps that."""
+
     code = "domain_error"
-    http_status = 400
 
     def __init__(self, message: str):
         super().__init__(message)
@@ -35,27 +36,22 @@ class DomainError(Exception):
 
 class ReasonRequired(DomainError):  # RULE-A3
     code = "reason_required"
-    http_status = 422
 
 
 class CannotChangeSelf(DomainError):  # RULE-A2
     code = "cannot_change_self"
-    http_status = 403
 
 
 class LastAdministrator(DomainError):  # RULE-A1
     code = "last_administrator"
-    http_status = 409
 
 
 class InvalidTransition(DomainError):
     code = "invalid_transition"
-    http_status = 409
 
 
 class AccountNotFound(DomainError):
     code = "account_not_found"
-    http_status = 404
 
 
 @dataclass(frozen=True)

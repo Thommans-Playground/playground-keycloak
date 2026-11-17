@@ -2,22 +2,23 @@
 
 import uuid
 from datetime import datetime, timezone
+from typing import Callable
 
-from app.domain.account import (
+from app.access.domain.account import (
     Account, AccountNotFound, Action, DomainError, REASON_ACTIONS, Role, Status, clean_reason, decide,
 )
-from app.ports import AccountRepository, AuditLog, IdentityProvider
+from app.access.ports import AccountRepository, AuditLog, IdentityProvider
 
 
 class IdentityProviderUnavailable(DomainError):
     code = "identity_provider_unavailable"
-    http_status = 502
 
 
 class AccessService:
     def __init__(self, accounts: AccountRepository, audit: AuditLog, idp: IdentityProvider,
-                 bootstrap_admins: set[str]):
+                 bootstrap_admins: set[str], now: Callable[[], datetime] = lambda: _utc_now()):
         self.accounts, self.audit, self.idp, self.bootstrap_admins = accounts, audit, idp, bootstrap_admins
+        self._now = now  # a clock that a test can fix
 
     def account_for(self, identity: str, name: str, email: str, email_verified: bool) -> Account:
         """Find the person's account, or make one the first time they are seen (FR-123).
@@ -36,10 +37,10 @@ class AccessService:
             id=str(uuid.uuid4()), identity=identity, name=name, email=email,
             role=Role.administrator if first_admin else Role.user,
             status=Status.active if first_admin else Status.pending,
-            created=_now(),
+            created=self._now(),
         )
         self.accounts.add(account)
-        self.audit.record(None, "create_bootstrap_admin" if first_admin else "register", account.id, None, _now())
+        self.audit.record(None, "create_bootstrap_admin" if first_admin else "register", account.id, None, self._now())
         return account
 
     def change(self, actor: Account, target_id: str, action: Action, reason: str | None = None) -> Account:
@@ -60,9 +61,9 @@ class AccessService:
             raise IdentityProviderUnavailable("Keycloak could not be reached. Nothing was changed.") from exc
 
         self.accounts.save(updated)
-        self.audit.record(actor.id, action.value, target.id, cleaned, _now())
+        self.audit.record(actor.id, action.value, target.id, cleaned, self._now())
         return updated
 
 
-def _now() -> datetime:
+def _utc_now() -> datetime:
     return datetime.now(timezone.utc).replace(tzinfo=None)

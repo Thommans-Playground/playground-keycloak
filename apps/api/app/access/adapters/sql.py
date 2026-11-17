@@ -3,7 +3,7 @@ from datetime import datetime
 from sqlalchemy import DateTime, Integer, String, Text, func, select
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
 
-from app.domain.account import Account, Role, Status
+from app.access.domain.account import Account, Role, Status
 
 
 class Base(DeclarativeBase):

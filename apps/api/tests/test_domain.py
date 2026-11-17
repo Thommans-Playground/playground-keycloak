@@ -2,9 +2,9 @@ from datetime import datetime
 
 import pytest
 
-from app.domain.account import (
-    Account, Action, CannotChangeSelf, InvalidTransition, LastAdministrator, ReasonRequired, Role, Status,
-    clean_reason, decide,
+from app.access.domain.account import (
+    Account, AccountNotFound, Action, CannotChangeSelf, InvalidTransition, LastAdministrator, ReasonRequired, Role,
+    Status, clean_reason, decide,
 )
 
 
@@ -46,3 +46,9 @@ def test_transitions():
         decide(Action.reinstate, admin, acct("u"), 1)
     with pytest.raises(InvalidTransition):
         decide(Action.promote, admin, acct("p", status=Status.pending), 1)
+
+
+def test_domain_errors_say_what_went_wrong_and_not_how_http_answers():
+    # The domain does not know HTTP. The web layer maps a rule to a status (NFR-4).
+    for cls in (ReasonRequired, CannotChangeSelf, LastAdministrator, InvalidTransition, AccountNotFound):
+        assert not hasattr(cls, "http_status"), cls.__name__

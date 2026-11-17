@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Protocol
 
-from app.domain.account import Account
+from app.access.domain.account import Account
 
 
 class IdentityProvider(Protocol):

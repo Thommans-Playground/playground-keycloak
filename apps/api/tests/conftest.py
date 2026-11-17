@@ -8,9 +8,10 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
 
-from app.adapters.sql import Base
+from app.access.adapters.sql import Base
 from app.auth import TokenVerifier
 from app.config import Settings
+from tests.fakes import FakeIdp
 from app.main import create_app
 
 ISSUER = "http://kc.test/realms/playground"
@@ -24,23 +25,6 @@ def make_token(sub: str, email: str, name: str = "Test Person", *, verified: boo
     claims = {"sub": sub, "email": email, "name": name, "email_verified": verified, "iss": issuer,
               "aud": audience, "exp": int(time.time()) + expires_in}
     return jwt.encode(claims, key, algorithm="RS256")
-
-
-class FakeIdp:
-    """Stands in for Keycloak's admin API and records what it was asked."""
-
-    def __init__(self):
-        self.calls: list[tuple[str, str]] = []
-        self.fail = False
-
-    def _do(self, what: str, identity: str):
-        if self.fail:
-            raise RuntimeError("keycloak down")
-        self.calls.append((what, identity))
-
-    def enable_user(self, identity): self._do("enable", identity)
-    def disable_user(self, identity): self._do("disable", identity)
-    def end_sessions(self, identity): self._do("logout", identity)
 
 
 @pytest.fixture

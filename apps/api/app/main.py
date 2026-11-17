@@ -9,12 +9,26 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from app.adapters.keycloak_admin import KeycloakAdmin
-from app.adapters.sql import Base, SqlAccounts, SqlAudit
+from app.access.adapters.keycloak_admin import KeycloakAdmin
+from app.access.adapters.sql import Base, SqlAccounts, SqlAudit
 from app.auth import InvalidToken, Principal, TokenVerifier
 from app.config import Settings, get_settings
-from app.domain.account import Account, Action, DomainError, Role, Status
-from app.service import AccessService
+from app.access.domain.account import (
+    Account, AccountNotFound, Action, CannotChangeSelf, DomainError, InvalidTransition, LastAdministrator,
+    ReasonRequired, Role, Status,
+)
+from app.access.service import AccessService, IdentityProviderUnavailable
+
+
+# How HTTP answers each rule. The domain only says what went wrong, so this map lives at the web edge.
+HTTP_STATUS: dict[type[DomainError], int] = {
+    ReasonRequired: 422,
+    CannotChangeSelf: 403,
+    LastAdministrator: 409,
+    InvalidTransition: 409,
+    AccountNotFound: 404,
+    IdentityProviderUnavailable: 502,
+}
 
 
 class AccountOut(BaseModel):
@@ -54,7 +68,7 @@ def create_app(settings: Settings | None = None, verifier: TokenVerifier | None 
 
     @app.exception_handler(DomainError)
     async def domain_error(_: Request, exc: DomainError):
-        return JSONResponse({"code": exc.code, "message": exc.message}, status_code=exc.http_status)
+        return JSONResponse({"code": exc.code, "message": exc.message}, status_code=HTTP_STATUS.get(type(exc), 400))
 
     def db() -> Iterator[Session]:
         with sessions() as session:
