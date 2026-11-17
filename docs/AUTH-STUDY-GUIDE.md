@@ -2,7 +2,7 @@
 
 Read this with the app running. Every claim points at a file you can open or a command you can run. By the end you should be able to explain the whole mechanism without notes, and know what to check before you deploy it.
 
-**How to use it.** Read Part 1 once for the ideas. Then run the app (Part 2) and follow Part 3 with the code open next to it. Part 6 is a set of experiments: do them, because seeing the real values is what makes this stick. Part 8 is the pre-deploy checklist.
+**How to use it.** Read Part 1 once for the ideas. Then run the app (Part 2) and follow Part 3 with the code open next to it. If the ideas feel abstract, jump to [Flow G](#flow-g-what-the-data-looks-like-at-each-step): it prints every record, request and token for one sign in, with example values. Part 6 is a set of experiments: do them, because seeing the real values is what makes this stick. Part 8 is the pre-deploy checklist.
 
 **You will know:** what each of code, access token, ID token, refresh token, session cookie, `state`, `nonce` and PKCE is for, who creates it, who holds it, and what breaks without it.
 
@@ -13,7 +13,7 @@ Read this with the app running. Every claim points at a file you can open or a c
 0. [The map](#0-the-map)
 1. [The theory, in small pieces](#1-the-theory-in-small-pieces)
 2. [Run it and look around](#2-run-it-and-look-around)
-3. [The code, one flow at a time](#3-the-code-one-flow-at-a-time)
+3. [The code, one flow at a time](#3-the-code-one-flow-at-a-time), ending with [Flow G: what the data looks like at each step](#flow-g-what-the-data-looks-like-at-each-step)
 4. [Keycloak, the other half](#4-keycloak-the-other-half)
 5. [What lives where, and what an attacker gets](#5-what-lives-where-and-what-an-attacker-gets)
 6. [Experiments](#6-experiments)
@@ -938,6 +938,398 @@ sequenceDiagram
 ```
 
 After step 2, the ticket `kq3Xv9` points at nothing, **even if someone copied it**. After step 5, the refresh token can't make new access tokens. The last access token dies on its own within 5 minutes, and it never left the server anyway.
+
+### Flow G: what the data looks like at each step
+
+Flows A to F name the data. This one **shows** it. We follow Maya through one sign in, one page, one deactivation and one sign out, and at each step print exactly what is stored or sent, in the shape the code uses.
+
+**About the values.** The shapes are real: the Keycloak user, the token claims and the redirect were read from the running stack, and the records match the types in the code. The random values are made up for this guide but consistent with each other: the same `state` appears everywhere it should, and the PKCE challenge really is the hash of the verifier shown. Long tokens are cut short with `…`. Times are in UTC, on 17 Nov 2026.
+
+The cast, so you can follow the ids:
+
+| Name | Value | Made by |
+|---|---|---|
+| Maya's Keycloak id (`sub`) | `64b93477-984d-439f-a60c-a61cc1489a93` | Keycloak, when her user was created |
+| login attempt id | `BdDMr8vGftiANiN1aXnYHl2LXeOOV4c3B4WXrFQsiU8` | Next.js, at `/auth/login` |
+| `state` | `LxS312w3QNd3pdlJ3YgJwJlf6B_w0-HNzzH8wjG6ZAM` | Next.js |
+| `nonce` | `-byilA98fUxc1_dRkK6ytNB7SHjFrmarPpbcr1_4xEM` | Next.js |
+| PKCE verifier | `V-QRS7wGCAooYIQhdabZYFyzGxcTqVpq9wtag334Lo4` | Next.js, never leaves it |
+| PKCE challenge | `otVZCOO644o2mTBvbqW8Wew4tLsPEGsu1Arx_CsvGWY` | SHA-256 of the verifier, base64url |
+| session id | `qzRp2pmHUgXwm6PKAT9Ohvm-2gv_J513URogcTDR1jA` | Next.js, at `/auth/callback` |
+| Maya's account id | `0c1f6d2e-7a43-4b8e-9d51-2f6a8e3b9c07` | the API, on her first request |
+
+Every id Next.js makes is 32 random bytes in base64url (`randomBytes(32).toString("base64url")` in [composition.ts](../apps/web/src/composition.ts)): 43 characters, no meaning inside.
+
+#### G1. Before anything: Maya exists in one place only
+
+Keycloak has her user (from the admin API, trimmed):
+
+```json
+{
+  "id": "64b93477-984d-439f-a60c-a61cc1489a93",
+  "username": "maya@example.test",
+  "firstName": "Maya",
+  "lastName": "Rao",
+  "email": "maya@example.test",
+  "emailVerified": true,
+  "enabled": true
+}
+```
+
+Her password is not in that record. Keycloak keeps a hash of it separately, and no API hands it out.
+
+The API's database has **no row for her yet**. Its two tables, as PostgreSQL shows them (`\d accounts`, and the model in [sql.py](../apps/api/app/access/adapters/sql.py)):
+
+```text
+accounts                                  audit_entries
+  id          varchar  primary key          id         integer  primary key, counts up
+  identity    varchar  unique  <- the sub   at         timestamp
+  name        varchar                       actor_id   varchar  (null = the system)
+  email       varchar                       action     varchar
+  role        varchar  user | administrator target_id  varchar
+  status      varchar  pending | active |   reason     text     (null when none is needed)
+                       deactivated
+  created     timestamp
+  created_by  varchar
+```
+
+Notice what is **not** there: no password, no token, no session. Just who (`identity`) and what they may do (`role`, `status`).
+
+#### G2. `/auth/login`: the login attempt is stored, the browser is sent away
+
+Next.js stores one row in the login attempt store ([in-memory-stores.ts](../apps/web/src/adapters/in-memory-stores.ts)), a `Map` from attempt id to a `LoginAttempt` ([login-attempt.ts](../apps/web/src/domain/login-attempt.ts)):
+
+```text
+attempt store (Next.js memory)
+  "BdDMr8vGftiANiN1aXnYHl2LXeOOV4c3B4WXrFQsiU8" ->
+    {
+      state:        "LxS312w3QNd3pdlJ3YgJwJlf6B_w0-HNzzH8wjG6ZAM",
+      nonce:        "-byilA98fUxc1_dRkK6ytNB7SHjFrmarPpbcr1_4xEM",
+      pkceVerifier: "V-QRS7wGCAooYIQhdabZYFyzGxcTqVpq9wtag334Lo4",
+      returnTo:     "/dashboard",
+      startedAt:    1794880401000      // 01:53:21, ms since 1970. Dead 10 minutes later
+    }
+```
+
+The browser receives a `307` with two headers:
+
+```text
+location: http://localhost:8080/realms/playground/protocol/openid-connect/auth?redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fauth%2Fcallback&scope=openid+profile+email&state=LxS312w3QNd3pdlJ3YgJwJlf6B_w0-HNzzH8wjG6ZAM&nonce=-byilA98fUxc1_dRkK6ytNB7SHjFrmarPpbcr1_4xEM&code_challenge=otVZCOO644o2mTBvbqW8Wew4tLsPEGsu1Arx_CsvGWY&code_challenge_method=S256&client_id=playground-web&response_type=code
+set-cookie: playground_login=BdDMr8vGftiANiN1aXnYHl2LXeOOV4c3B4WXrFQsiU8; Path=/; Max-Age=600; HttpOnly; SameSite=lax
+```
+
+The same address, one parameter per line:
+
+| Parameter | Value | For |
+|---|---|---|
+| `client_id` | `playground-web` | which app is asking |
+| `response_type` | `code` | "send me back a code", the code flow |
+| `redirect_uri` | `http://localhost:3000/auth/callback` | where to send the code. Must match the client's setting exactly |
+| `scope` | `openid profile email` | ID token, plus name and email in the tokens |
+| `state` | `LxS312w3…` | comes back unchanged, checked by Next.js |
+| `nonce` | `-byilA98…` | Keycloak copies it into the ID token |
+| `code_challenge` | `otVZCOO6…` | the hash. Keycloak keeps it with the code |
+| `code_challenge_method` | `S256` | how the hash was made |
+
+Compare the row and the URL. `state` and `nonce` are in both. The **verifier is only in the row**, the challenge only in the URL. That is PKCE in two lines.
+
+#### G3. Keycloak sends her back with a code
+
+Maya types her password on `localhost:8080`. Keycloak answers with a redirect (illustrative: Keycloak's code is several ids joined by dots):
+
+```text
+location: http://localhost:3000/auth/callback
+            ?state=LxS312w3QNd3pdlJ3YgJwJlf6B_w0-HNzzH8wjG6ZAM
+            &session_state=6194819b-7ca0-cc4b-9f59-47b2b88fedcc
+            &iss=http%3A%2F%2Flocalhost%3A8080%2Frealms%2Fplayground
+            &code=9e2b4c1a-…-58d0.6194819b-…-fedcc.2f9d3e71-…-a4c1
+```
+
+The browser follows it, and carries the attempt cookie along (`SameSite=Lax` allows it, 1.10):
+
+```text
+GET /auth/callback?state=LxS312w3…&session_state=…&iss=…&code=9e2b4c1a-…
+Cookie: playground_login=BdDMr8vGftiANiN1aXnYHl2LXeOOV4c3B4WXrFQsiU8
+```
+
+Next.js **takes** the attempt row (it is deleted as it is read), checks the URL's `state` equals the row's `state`, and moves on. The attempt store is now empty.
+
+#### G4. The back channel: the code is swapped for tokens
+
+Next.js posts to Keycloak's token endpoint. The browser never sees this request. Its body is a form (`application/x-www-form-urlencoded`), shown one field per line:
+
+```text
+POST http://keycloak:8080/realms/playground/protocol/openid-connect/token
+
+grant_type    = authorization_code
+code          = 9e2b4c1a-…-a4c1
+redirect_uri  = http://localhost:3000/auth/callback
+code_verifier = V-QRS7wGCAooYIQhdabZYFyzGxcTqVpq9wtag334Lo4
+client_id     = playground-web
+client_secret = playground-web-dev-secret
+```
+
+Keycloak hashes `code_verifier`, gets `otVZCOO6…`, finds it equals the challenge it kept with the code, checks the secret, and answers:
+
+```json
+{
+  "access_token": "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJDZExI…",
+  "expires_in": 300,
+  "refresh_expires_in": 1800,
+  "refresh_token": "eyJhbGciOiJIUzUxMiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICI3…",
+  "token_type": "Bearer",
+  "id_token": "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJDZExI…",
+  "not-before-policy": 0,
+  "session_state": "6194819b-7ca0-cc4b-9f59-47b2b88fedcc",
+  "scope": "openid email profile"
+}
+```
+
+`expires_in` is the 5 minute access token, `refresh_expires_in` the 30 minute idle limit of Keycloak's session (Part 4).
+
+#### G5. Inside the three tokens
+
+Each JWT is `header.payload.signature`. Decode the middle part and you get these. They were generated by Keycloak for Maya (experiment 6 shows how).
+
+**Access token**: for the API.
+
+```jsonc
+{
+  "exp": 1794880728,                         // 01:58:48, five minutes after iat
+  "iat": 1794880428,                         // 01:53:48, issued at
+  "jti": "onrtna:ce74d9f9-f26d-9c5d-d7b6-b53f55d9671c",  // this token's own id
+  "iss": "http://localhost:8080/realms/playground",
+  "aud": "playground-api",                   // added by the audience mapper
+  "sub": "64b93477-984d-439f-a60c-a61cc1489a93",
+  "typ": "Bearer",
+  "azp": "playground-web",                   // the client that asked for it
+  "sid": "6194819b-7ca0-cc4b-9f59-47b2b88fedcc",  // Keycloak's session
+  "acr": "1",                                // how strongly she signed in: 1 = password
+  "scope": "openid email profile",
+  "email_verified": true,
+  "name": "Maya Rao",
+  "preferred_username": "maya@example.test",
+  "given_name": "Maya",
+  "family_name": "Rao",
+  "email": "maya@example.test"
+}
+```
+
+**ID token**: for Next.js, about the sign in itself.
+
+```jsonc
+{
+  "exp": 1794880728,
+  "iat": 1794880428,
+  "iss": "http://localhost:8080/realms/playground",
+  "aud": "playground-web",                   // for our web app, not the API
+  "sub": "64b93477-984d-439f-a60c-a61cc1489a93",
+  "typ": "ID",
+  "azp": "playground-web",
+  "sid": "6194819b-7ca0-cc4b-9f59-47b2b88fedcc",
+  "nonce": "-byilA98fUxc1_dRkK6ytNB7SHjFrmarPpbcr1_4xEM",  // the one from the attempt row
+  "at_hash": "kT3m…",                        // ties it to the access token issued with it
+  "email_verified": true,
+  "name": "Maya Rao",
+  "email": "maya@example.test"
+}
+```
+
+**Refresh token**: for Keycloak only. Keycloak happens to make it a JWT too (signed `HS512` with a key only Keycloak has), but our code treats it as an opaque string and never decodes it. For the curious, its payload is short: `typ: "Refresh"`, `aud` is the realm itself, the same `sub` and `sid`, and an `exp` 30 minutes out.
+
+Compare the access token and the ID token. Same person (`sub`), same Keycloak session (`sid`), but a **different `aud`**: each says who it is for. And look for what is missing from both: no role, no status. Those are the API's (1.1).
+
+#### G6. The session is stored, the browser gets the ticket
+
+Next.js turns the response into a `Session` ([session.ts](../apps/web/src/domain/session.ts), filled in by `toSession` in [keycloak-identity-provider.ts](../apps/web/src/adapters/keycloak-identity-provider.ts)) and stores it under a new id:
+
+```text
+session store (Next.js memory)
+  "qzRp2pmHUgXwm6PKAT9Ohvm-2gv_J513URogcTDR1jA" ->
+    {
+      idToken:         "eyJhbGciOiJSUzI1NiIs…",   // kept for sign out
+      accessToken:     "eyJhbGciOiJSUzI1NiIs…",   // sent to the API
+      refreshToken:    "eyJhbGciOiJIUzUxMiIs…",   // sent to Keycloak only
+      accessExpiresAt: 1794880728000              // now + expires_in, in ms: 01:58:48
+    }
+```
+
+The browser gets:
+
+```text
+HTTP/1.1 307 Temporary Redirect
+location: http://localhost:3000/dashboard
+set-cookie: playground_session=qzRp2pmHUgXwm6PKAT9Ohvm-2gv_J513URogcTDR1jA; Path=/; HttpOnly; SameSite=lax
+set-cookie: playground_login=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT
+```
+
+The second `set-cookie` is how a server deletes a cookie: same name, a date in the past. The session cookie has no `Max-Age`, so it goes when the browser closes.
+
+Here is everything the browser now holds for `localhost:3000`, all of it:
+
+```text
+playground_session = qzRp2pmHUgXwm6PKAT9Ohvm-2gv_J513URogcTDR1jA
+```
+
+#### G7. The first page: the API sees her for the first time
+
+The browser asks for `/dashboard` with the cookie. Next.js finds the session row, the access token still has minutes left, so it calls the API:
+
+```text
+GET http://api:8000/me
+Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJDZExI…
+```
+
+The API verifies the token ([auth.py](../apps/api/app/auth.py)) and keeps only what it needs from it, a `Principal`:
+
+```text
+Principal(identity="64b93477-984d-439f-a60c-a61cc1489a93",
+          name="Maya Rao", email="maya@example.test", email_verified=True)
+```
+
+It looks for an account with that `identity`, finds none, and creates one (`account_for` in [service.py](../apps/api/app/access/service.py)). Her email is not in `BOOTSTRAP_ADMIN_EMAILS`, so she starts as a pending user. Two rows are written:
+
+```text
+accounts
+ id                                   | identity                             | name     | email             | role | status  | created             | created_by
+--------------------------------------+--------------------------------------+----------+-------------------+------+---------+---------------------+-----------
+ 0c1f6d2e-7a43-4b8e-9d51-2f6a8e3b9c07 | 64b93477-984d-439f-a60c-a61cc1489a93 | Maya Rao | maya@example.test | user | pending | 2026-11-17 01:53:49 |
+
+audit_entries
+ id | at                  | actor_id | action   | target_id                            | reason
+----+---------------------+----------+----------+--------------------------------------+-------
+  2 | 2026-11-17 01:53:49 |          | register | 0c1f6d2e-7a43-4b8e-9d51-2f6a8e3b9c07 |
+```
+
+(Entry 1 is the administrator's own first sign in, with action `create_bootstrap_admin`.) Two ids sit side by side in the account row: `id` is **ours**, made by the API, and is what other tables point at. `identity` is **Keycloak's** `sub`, the link back to the token. An empty `actor_id` means the system did it, not a person.
+
+The API answers `/me` with `AccountOut` ([main.py](../apps/api/app/main.py)). Note that `identity` is not sent out:
+
+```json
+{
+  "id": "0c1f6d2e-7a43-4b8e-9d51-2f6a8e3b9c07",
+  "name": "Maya Rao",
+  "email": "maya@example.test",
+  "role": "user",
+  "status": "pending",
+  "created": "2026-11-17T01:53:49",
+  "created_by": null
+}
+```
+
+The page shows "Waiting for approval". The browser received HTML, never this JSON's source token.
+
+#### G8. Five minutes on: a refresh changes only the session row
+
+At 01:58:30 the access token has 18 seconds left, under the 30 second margin, so Next.js refreshes:
+
+```text
+POST http://keycloak:8080/realms/playground/protocol/openid-connect/token
+
+grant_type    = refresh_token
+refresh_token = eyJhbGciOiJIUzUxMiIs…
+client_id     = playground-web
+client_secret = playground-web-dev-secret
+```
+
+The answer has the same shape as in G4. The session row is overwritten under the **same id**:
+
+```text
+  "qzRp2pmHUgXwm6PKAT9Ohvm-2gv_J513URogcTDR1jA" ->
+    {
+      idToken:         "eyJhbGciOiJSUzI1NiIs…",   // the new one, or the old one kept
+      accessToken:     "eyJhbGciOiJSUzI1NiIs…",   // NEW: iat 01:58:30, exp 02:03:30
+      refreshToken:    "eyJhbGciOiJIUzUxMiIs…",   // NEW if Keycloak sent one, else the old one kept
+      accessExpiresAt: 1794881010000              // 02:03:30
+    }
+```
+
+The cookie does not change. The database does not change. Only the coat on the rack is new.
+
+#### G9. An administrator approves, then deactivates her
+
+Approve: `POST /accounts/0c1f6d2e-…/approve` with no body. No Keycloak call, one field changes:
+
+```text
+ id          | … | role | status  →  status
+ 0c1f6d2e-…  | … | user | pending →  active
+```
+
+Deactivate, with a reason. The request:
+
+```text
+POST /accounts/0c1f6d2e-7a43-4b8e-9d51-2f6a8e3b9c07/deactivate
+Content-Type: application/json
+
+{"reason": "Left the project team"}
+```
+
+Keycloak is changed first (`enabled` becomes `false` on her user, and her sessions, including `sid` `6194819b-…`, are ended). Then our two tables:
+
+```text
+accounts
+ id          | identity    | name     | role | status
+ 0c1f6d2e-…  | 64b93477-…  | Maya Rao | user | deactivated
+
+audit_entries
+ id | at                  | actor_id                             | action     | target_id   | reason
+----+---------------------+--------------------------------------+------------+-------------+-----------------------
+  2 | 2026-11-17 01:53:49 |                                      | register   | 0c1f6d2e-…  |
+  3 | 2026-11-17 02:05:10 | 7d3a9b25-1e6f-4c80-b2d4-93a1f0e6c518 | approve    | 0c1f6d2e-…  |
+  4 | 2026-11-17 02:20:42 | 7d3a9b25-1e6f-4c80-b2d4-93a1f0e6c518 | deactivate | 0c1f6d2e-…  | Left the project team
+```
+
+`7d3a9b25-…` is the administrator's account id. Approve needs no reason, so its `reason` is empty. Deactivate does.
+
+Now look at Maya's session row in Next.js. **It has not changed.** Her access token is still validly signed. Her next request goes to the API with it, the API reads her row, sees `deactivated`, and refuses with a `403`:
+
+```json
+{"detail": {"code": "account_deactivated", "message": "Your account is deactivated."}}
+```
+
+That is the rule from the top of this guide, as data: the token says who, the row says what.
+
+#### G10. Sign out: rows disappear
+
+When a signed-in person signs out, Next.js takes their session row out of the store and sends the browser to Keycloak:
+
+```text
+HTTP/1.1 303 See Other
+location: http://localhost:8080/realms/playground/protocol/openid-connect/logout?post_logout_redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&id_token_hint=eyJhbGciOiJSUzI1NiIs…&client_id=playground-web
+set-cookie: playground_session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT
+```
+
+Afterwards:
+
+| Place | Holds for this person |
+|---|---|
+| browser, `localhost:3000` | nothing |
+| Next.js attempt store | nothing |
+| Next.js session store | nothing |
+| Keycloak | the user record, no session |
+| API database | the account row and its audit entries, unchanged. Signing out is not an account change |
+
+#### The whole journey in one table
+
+| Step | Browser (`localhost:3000`) | Next.js memory | Keycloak | API database |
+|---|---|---|---|---|
+| before | nothing | nothing | user, no session | no row |
+| G2 `/auth/login` | `playground_login` | attempt row | user | no row |
+| G3 to G6 callback | `playground_session` | session row (3 tokens) | user, session `sid` | no row |
+| G7 first page | same cookie | same row | same | account `pending`, audit `register` |
+| G8 refresh | same cookie | same id, new tokens | same session | unchanged |
+| G9 deactivate | same cookie | same row, now useless | user disabled, no session | account `deactivated`, 2 more audit rows |
+| G10 sign out | nothing | nothing | no session | unchanged |
+
+> **Your turn.**
+> In G9, Maya is deactivated but her session row in Next.js still holds a validly signed access token with minutes left. Name the one piece of data that stops her, and where it lives.
+
+<details>
+<summary>Answer</summary>
+
+The `status` column of her row in the `accounts` table, in the API's PostgreSQL: `deactivated`. The API reads it on every request, after the token has passed its checks. The token itself carries no status at all (look at G5), so it cannot be what stops her.
+
+</details>
 
 
 ---
