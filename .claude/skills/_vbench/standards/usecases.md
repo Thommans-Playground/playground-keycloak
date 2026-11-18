@@ -85,6 +85,17 @@ analysis is lost on the way to the design.
 | 5. Change log | the **Changes from analysis to design** section | none: the tool checks it |
 | 6. Tasks | the slices, each one card | unit inside, acceptance outside |
 
+**The two sequence diagrams (decision 9).** The analysis and the design each have their own.
+- **Analysis: a system sequence diagram**, `docs/usecases/diagrams/UC-<id>-<slug>-analysis-sequence.puml`. The person,
+  the product as one box, and any outside system, with the messages between them and the failure branches. No route,
+  store, port, adapter, token or cookie. Its steps carry the main flow numbers. It is frozen with the analysis.
+- **Design: a design sequence diagram**, `UC-<id>-<slug>-design-sequence.puml`, showing the routes, use cases, ports
+  and adapters that do the work, with the same step numbers. Beside it the **class diagram** of the context
+  (`docs/domain/diagrams/<context>-design.puml`, and one for the web server where the use case runs there). Every
+  step lands on a class, and every port and adapter carries a step.
+- **A use case with one system and no security flow** keeps one sequence diagram, named `UC-<id>-<slug>-sequence.puml`,
+  and says in its Design section that the analysis and the design are the same.
+
 **Elements.** Each element of the analysis (an object, a step, a rule, a port) is a line
 `A1 (object): Order`, and each element of the design is `D1 (aggregate): Order`. The ids are local to
 the file and append only, and from outside they read `UC-O1/A3`. No new id prefix.

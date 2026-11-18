@@ -265,3 +265,32 @@ enforced on the server). Keeping pending in our API needs no Keycloak extension.
   audience check in decision 1, where the pending account is created, identity by `sub` and not by email, and
   replacing the old session on a second sign in are the other findings still to settle.
 
+## 9. A use case has an analysis sequence diagram and a design sequence diagram (18 Nov 2026)
+
+**Decided.** By the owner. The sequence diagram of a use case used to be "the analysis", but UC-A1's named web routes,
+a session store, token verification and cookies, which is the design. Two diagrams now, one for each level.
+- **Analysis: a system sequence diagram.** It shows the person, Playground as one box, and any outside system
+  (for example Keycloak), with the messages between them and the failure branches. It names no route, store, port,
+  adapter, token, cookie or algorithm. It is the diagram reviewed with the owner, and it is frozen with the Analysis
+  section.
+- **Design: a design sequence diagram, and the class diagram.** The sequence diagram shows the parts that do the work:
+  routes, use cases, ports and adapters. It is the old detailed diagram. The class diagram (aggregates, ports and
+  adapters) is the one that follows the architecture: one for each context under `docs/domain/diagrams/`, plus one
+  for the web server (BFF) where a use case runs there. Every step of the design sequence lands on a class, and
+  every port or adapter carries a step.
+- **The link is the change log.** Each analysis element says what became of it in the design (`A3 became -> D3`),
+  as the tool already checks.
+- **Not every use case needs both.** A use case with one system and no security flow (for example sign out) keeps a
+  single sequence diagram and says so. Both are drawn when more than one system takes part or a security rule
+  shapes the steps.
+
+**Why.** One diagram cannot serve the owner, who asks what the person sees, and the builder, who asks which port does
+it. Mixing them hid a real disagreement: the state check sat in a different step in the flow and in the diagram.
+
+**Changes.** The standard `.claude/skills/_vbench/standards/usecases.md`, the use case, diagram and PlantUML skills, the
+spec-challenger agent, and the use case files and diagrams, starting with UC-A1.
+
+**Still open.**
+- The web server (BFF) class diagram is not drawn yet.
+- UC-A1's analysis is a first revision and is not frozen: freeze it after its open gaps are settled.
+
