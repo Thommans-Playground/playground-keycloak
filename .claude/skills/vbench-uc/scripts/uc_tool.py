@@ -597,7 +597,11 @@ END = "<!-- vbench-uc:end mirror -->"
 
 def mirror(h, reqs_by_id, acs_by_id):
     """The text of the requirements and criteria this use case points at, so it reads on its own."""
-    lines = [BEGIN, "", "## What this serves", ""]
+    nr, nc = len(h["satisfies"]), len(h["criteria"])
+    summary = (f"The requirements and criteria it runs, copied from docs/requirements "
+               f"({nr} requirement{'' if nr == 1 else 's'}, {nc} criteri{'on' if nc == 1 else 'a'}). Do not edit.")
+    # Collapsed, so a reader sees the flow first and opens the copy on purpose.
+    lines = [BEGIN, "", "<details>", f"<summary>{summary}</summary>", "", "## What this serves", ""]
     for item in h["satisfies"]:
         r = reqs_by_id.get(item["id"])
         lines.append(f"**{item['id']}**: {r['statement'] if r else 'NOT FOUND in requirements.md'}")
@@ -623,7 +627,7 @@ def mirror(h, reqs_by_id, acs_by_id):
     for level in ["acceptance", "integration", "unit", "manual", "inspection", "future"]:
         if level in levels:
             lines.append(f"- {level}: {', '.join(levels[level])}")
-    lines += ["", "Each criterion is run by a test tagged `Verifies AC-<n>`.", "", END]
+    lines += ["", "Each criterion is run by a test tagged `Verifies AC-<n>`.", "", "</details>", "", END]
     return "\n".join(lines)
 
 

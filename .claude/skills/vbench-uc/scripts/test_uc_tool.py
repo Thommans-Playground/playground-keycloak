@@ -459,5 +459,40 @@ class Tests(unittest.TestCase):
         self.assertIn("belongs to BC-ENDPOINTS", out)
 
 
+class CollapsedCopyTests(unittest.TestCase):
+    """The copied requirement text is collapsed, so a reader sees the flow first and opens the copy on purpose."""
+
+    def block(self):
+        reqs = {"FR-1": req("FR-1", "The system shall x.")}
+        acs = {"AC-1": ac("AC-1", "FR-1")}
+        return u.mirror({"satisfies": [{"id": "FR-1"}], "criteria": [{"id": "AC-1"}]}, reqs, acs)
+
+    def test_the_copy_sits_inside_a_collapsed_details_block(self):
+        b = self.block()
+        self.assertIn("<details>", b)
+        self.assertIn("<summary>", b)
+        self.assertLess(b.index("<details>"), b.index("## What this serves"))
+        self.assertLess(b.index("Each criterion is run"), b.index("</details>"))
+
+    def test_the_summary_says_what_is_inside_and_not_to_edit_it(self):
+        summary = self.block().split("<summary>")[1].split("</summary>")[0]
+        self.assertIn("copied", summary)
+        self.assertIn("1 requirement", summary)
+        self.assertIn("1 criterion", summary)
+
+    def test_the_markers_still_find_the_block_and_the_written_text_starts_after_it(self):
+        b = self.block()
+        text = "# Title\n\n" + b + "\n\n## Description\n\nThe flow."
+        self.assertEqual(u.mirror_block(text), b)
+        self.assertTrue(u.written_text(text).startswith("## Description"))
+
+    def test_changing_only_the_copy_does_not_change_the_flow_hash(self):
+        a = "# T\n\n" + self.block() + "\n\n## Main flow\n\n1. Do it.\n"
+        reqs = {"FR-1": req("FR-1", "A different statement.")}
+        other = u.mirror({"satisfies": [{"id": "FR-1"}], "criteria": []}, reqs, {})
+        b = "# T\n\n" + other + "\n\n## Main flow\n\n1. Do it.\n"
+        self.assertEqual(u.flow_hash(a), u.flow_hash(b))
+
+
 if __name__ == "__main__":
     unittest.main()
