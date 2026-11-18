@@ -81,10 +81,10 @@ with the skills. Agents load when a session starts, so restart or reload after a
 
 | Agent | Model | Job |
 | ----- | ----- | --- |
-| `tdd-red` | sonnet | One failing test for one behaviour, proved to fail for the right reason. Writes no production code |
-| `tdd-green` | sonnet | The minimum code that makes that test pass. Never edits the test |
-| `tdd-refactor` | sonnet | Tidies code on green only, running the tests after each change. Behaviour does not change |
-| `spec-challenger` | opus | Read-only adversarial review of a use case and its requirements, criteria and ontology. Reports gaps, decides nothing |
+| `vbench-tdd-red` | sonnet | One failing test for one behaviour, proved to fail for the right reason. Writes no production code |
+| `vbench-tdd-green` | sonnet | The minimum code that makes that test pass. Never edits the test |
+| `vbench-tdd-refactor` | sonnet | Tidies code on green only, running the tests after each change. Behaviour does not change |
+| `vbench-spec-challenger` | opus | Read-only adversarial review of a use case and its requirements, criteria and ontology. Reports gaps, decides nothing |
 
 They read the test, typecheck and lint commands from the `stacks` block of `vbench.json`.
 

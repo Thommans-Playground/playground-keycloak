@@ -31,7 +31,7 @@ is `not designed` (fine for light-tier UCs), not a failure.
 `boundaries` and `vbench check` in one call.
 
 ## Acceptance rung detail
-1. **Traceability.** Run the `trace-checker` subagent (or `vbench check`). Failures are must-fix.
+1. **Traceability.** Run the `vbench-trace-checker` subagent (or `vbench check`). Failures are must-fix.
 2. **AC → test matrix.** `vbench check acs --matrix`; for each AC report the marked test and its result:
    `pass` / `fail` / `skipped (scaffold)` / `no test`.
 3. **Tasks.** `vbench status <UC>` shows tasks closed / declared. Report any task row that names no AC, an AC

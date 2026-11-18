@@ -1,5 +1,5 @@
 ---
-name: tdd-refactor
+name: vbench-tdd-refactor
 description: The REFACTOR step of test driven development. On green only, improves names, removes duplication and tidies the structure of the code just written, without changing behaviour, running the tests after every change. If nothing is worth changing it says so and changes nothing. Stops so a person can review the diff. Use it from the vbench-tdd skill, after a reviewed GREEN.
 tools: Bash, Read, Grep, Glob, Write, Edit
 model: sonnet

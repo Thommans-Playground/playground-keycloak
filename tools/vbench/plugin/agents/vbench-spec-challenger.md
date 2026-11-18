@@ -1,5 +1,5 @@
 ---
-name: spec-challenger
+name: vbench-spec-challenger
 description: Stress-tests a designed use-case spec before any code is written. Attacks its acceptance criteria, design decisions and verification plan, and reports gaps. Advisory only; it never edits. Use at the end of /vbench:v-2-design, before asking for approval.
 tools: Bash, Read, Grep, Glob
 model: opus

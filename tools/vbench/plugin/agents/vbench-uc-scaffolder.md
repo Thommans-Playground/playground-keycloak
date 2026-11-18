@@ -1,5 +1,5 @@
 ---
-name: uc-scaffolder
+name: vbench-uc-scaffolder
 description: Scaffolds a new use-case spec (and, when asked, a test stub tagged "Verifies UC-<id>") from the project's template, with a collision-free id. Use when starting a new use case.
 tools: Bash, Read, Write, Edit, Grep, Glob
 model: sonnet

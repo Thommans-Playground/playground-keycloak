@@ -1,5 +1,5 @@
 ---
-name: trace-checker
+name: vbench-trace-checker
 description: Runs `vbench check` (refs, rungs, acs) and summarises dangling references, untested use cases and uncovered acceptance criteria. Use before opening a PR that touches specs, docs or tagged tests.
 tools: Bash, Read, Grep, Glob
 model: haiku

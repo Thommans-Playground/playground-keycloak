@@ -1,5 +1,5 @@
 ---
-name: tdd-red
+name: vbench-tdd-red
 description: The RED step of test driven development. Writes ONE failing test for ONE behaviour, runs it, and proves it fails for the right reason (an assertion on the missing behaviour). Writes no production code beyond an empty stub. Stops after the failing run so a person can review. Use it from the vbench-tdd skill, or whenever a failing test is needed first.
 tools: Bash, Read, Grep, Glob, Write, Edit
 model: sonnet

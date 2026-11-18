@@ -1,13 +1,13 @@
 ---
 name: vbench-tdd
-description: Build a slice of a use case test first, with red, green and refactor run by three subagents (tdd-red, tdd-green, tdd-refactor), and a pause for the person's review after each step. Use whenever the user says "tdd", "red green refactor", "build UC-P1 test first", "write the failing test for AC-12", "next slice", "start the first task", or wants to implement a use case, even if they never say "vbench".
+description: Build a slice of a use case test first, with red, green and refactor run by three subagents (vbench-tdd-red, vbench-tdd-green, vbench-tdd-refactor), and a pause for the person's review after each step. Use whenever the user says "tdd", "red green refactor", "build UC-P1 test first", "write the failing test for AC-12", "next slice", "start the first task", or wants to implement a use case, even if they never say "vbench".
 ---
 
 # vbench-tdd
 
 Drive one slice of a use case through **red, green, refactor**, one behaviour at a time, with the person reviewing
 after every step. The rules (red for the right reason, the minimum code, refactor only on green) are in the three
-agents in `.claude/agents/`: `tdd-red`, `tdd-green`, `tdd-refactor`. The rules for branches, commits and asking are
+agents in `.claude/agents/`: `vbench-tdd-red`, `vbench-tdd-green`, `vbench-tdd-refactor`. The rules for branches, commits and asking are
 in `_vbench/standards/conventions.md`. The method is the vbench V-cycle: the failing test comes first, so a pass means something.
 
 **Why subagents, and where the pause is.** A subagent runs to the end and returns: it cannot wait for you. So each
@@ -31,14 +31,14 @@ between agents**. You decide after each one.
    answers from conventions.md ("How the skills ask"): **Accept**, **Change it**, **Reject**, **I'll do it myself**.
 
 4. **For each behaviour, run the loop. Pause after every step.**
-   - **RED.** Start the `tdd-red` agent (Agent tool, `subagent_type: "tdd-red"`). Brief it in full, because it starts
+   - **RED.** Start the `vbench-tdd-red` agent (Agent tool, `subagent_type: "vbench-tdd-red"`). Brief it in full, because it starts
      cold: the behaviour in one sentence, the app, the ids (`AC-n`, `UC-..`), where the test goes, and the commands from
      `vbench.json`. Show its report as it is, the test and the failing run. **Pause:** is this the right failing test?
-     Ask: **Accept** (go to GREEN), **Change it** (say what, then run `tdd-red` again), **Reject**, **I'll do it myself**.
+     Ask: **Accept** (go to GREEN), **Change it** (say what, then run `vbench-tdd-red` again), **Reject**, **I'll do it myself**.
      Also offer **Run to the end of the slice** (drops the pauses, and still shows every red and green run in the summary).
-   - **GREEN.** Start `tdd-green` with the test, the app and the use case id. Show the diff and the passing run.
+   - **GREEN.** Start `vbench-tdd-green` with the test, the app and the use case id. Show the diff and the passing run.
      **Pause:** is this the right behaviour, and is it the minimum? Same four answers.
-   - **REFACTOR.** Offer it only if the code earns it. Start `tdd-refactor` with the files that changed. Show the diff and
+   - **REFACTOR.** Offer it only if the code earns it. Start `vbench-tdd-refactor` with the files that changed. Show the diff and
      the green run. **Pause** again. "Nothing worth refactoring" is a fine answer: say it and move on.
    - Then the next behaviour. Do not write the next test until the previous one is green.
 

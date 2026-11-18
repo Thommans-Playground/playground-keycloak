@@ -1,5 +1,5 @@
 ---
-name: tdd-green
+name: vbench-tdd-green
 description: The GREEN step of test driven development. Given one failing test, writes the minimum production code that makes it pass, runs the whole test suite of the app, and stops so a person can review. Never edits the test. Use it from the vbench-tdd skill, after a reviewed RED.
 tools: Bash, Read, Grep, Glob, Write, Edit
 model: sonnet
