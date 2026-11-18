@@ -10,6 +10,7 @@ satisfies:
 criteria:
   - id: AC-3
   - id: AC-4
+  - id: AC-47
 parameters:
   - name, email and password (given to Keycloak, not to us)
 objects: [OBJ-A1]
@@ -26,7 +27,7 @@ evolved_from: [MK3 UC-A5]
 <!-- vbench-uc:begin mirror (generated from the requirements files, do not edit here: change the row, then run sync) -->
 
 <details>
-<summary>The requirements and criteria it runs, copied from docs/requirements (1 requirement, 2 criteria). Do not edit.</summary>
+<summary>The requirements and criteria it runs, copied from docs/requirements (1 requirement, 3 criteria). Do not edit.</summary>
 
 ## What this serves
 
@@ -46,9 +47,15 @@ evolved_from: [MK3 UC-A5]
 - When its owner asks for their status, then for anything else
 - Then the status says it is waiting, and everything else is refused
 
+**AC-47** (acceptance, proves FR-3)
+
+- Given a pending account
+- When its person signs in
+- Then they land on the waiting page
+
 ## How it is verified
 
-- acceptance: AC-3, AC-4
+- acceptance: AC-3, AC-4, AC-47
 
 Each criterion is run by a test tagged `Verifies AC-<n>`.
 
@@ -97,6 +104,7 @@ New in the design language: **lazy provisioning**. The person exists in two plac
 - The person's email is in `BOOTSTRAP_ADMIN_EMAILS` and Keycloak says it is verified: the account is created active, with role administrator, and the audit entry says it came from setup. (RULE-A1)
 - The email is in `BOOTSTRAP_ADMIN_EMAILS` but not verified: the account is created pending, as for anyone else, so someone cannot claim the first administrator by registering with an unverified address.
 - A pending person asks for anything other than their own status: the API answers 403 "waiting for approval". (AC-4)
+- A person who signs in and whose account is pending lands on the waiting page, built from their own status. (AC-47)
 - The person's name or email changed in Keycloak: the account is updated on the next request. The link stays the Keycloak id.
 - Two first requests arrive at the same moment: only one account may exist. Open: the account table needs a unique identity, and the second insert must be treated as "found". (AC-3)
 

@@ -23,3 +23,6 @@ None set aside yet. Add a line here, with the decision, when an item does not ap
 
 - **Email verification is off** (decision 10): the product is deployed inside the corporate network. This accepts a
   risk under WEB-13 and WEB-10. Revisit it with UC-A7 or before the product is reachable from outside the network.
+- **Registration is not rate limited**: anyone who can reach Keycloak can create pending accounts without limit (API-4
+  and API-6 in `.claude/skills/_vbench/standards/security/api.md`). Reason: the product is deployed inside the
+  corporate network (as decision 10). Revisit it before the product is reachable from outside, or with UC-A3.

@@ -36,7 +36,7 @@
 | AC-30 | FR-13; FR-11 | a project | a member is added, changed or removed, or a manager is restored with a reason | each has an entry saying who, what and whom, and the reason for a restore | acceptance | draft |  |
 | AC-31 | FR-13 | an administrator | their attempt to change a project's members is refused | an audit entry records the attempt | acceptance | draft |  |
 | AC-32 | NFR-1 | any role, and a person who is not a member | each makes a command or read it may not, even if the screen hides it | the server refuses it | acceptance | draft |  |
-| AC-33 | NFR-1 | a request with no token, an expired one, one from another issuer, or one made for another audience | it reaches a protected route | it is answered 401, and no account or audit entry is made | acceptance | draft |  |
+| AC-33 | NFR-1 | a request with no token, an expired one, one from another issuer, one made for another audience, or one signed with an algorithm we do not allow | it reaches a protected route | it is answered 401, and no account or audit entry is made | acceptance | draft |  |
 | AC-34 | NFR-2 | the final deployment design | its data stores and hosting are listed | each is an AWS service | inspection | draft |  |
 | AC-35 | NFR-2 | the API | it runs, and its tests are run on PostgreSQL | it uses PostgreSQL and they pass | integration | draft |  |
 | AC-36 | NFR-3 | the domain code | its imports are checked, and its tests run with fake adapters | it imports nothing outside itself and the tests pass unchanged | unit | draft | Tests: test_architecture.py, architecture.test.ts, test_service.py. |

@@ -10,7 +10,7 @@ Distilled from an earlier prototype for this playground. The originals now live 
 | FastAPI API | `apps/api/` | Validates the token on every request, owns the **account** (status, role), audit trail, account admin |
 | Next.js web (BFF) | `apps/web/` | Runs the OIDC code flow with PKCE, keeps tokens on the server, gives the browser one opaque cookie |
 
-Source: decisions 1 and 2, `BC-ACCESS`, `OBJ-A1`, `SET-1`, `SET-2`, `RULE-A1/A2/A3/A4`, `UC-A4`, and the requirements and criteria in [docs/requirements](../requirements/requirements.md) (FR-1 to FR-5, NFR-1, AC-1 to AC-8, AC-32 and AC-33).
+Source: decisions 1 and 2, `BC-ACCESS`, `OBJ-A1`, `SET-1`, `SET-2`, `RULE-A1/A2/A3/A4`, `UC-A4`, and the requirements and criteria in [docs/requirements](../requirements/requirements.md) (FR-1 to FR-5, NFR-1, NFR-5, AC-1 to AC-8, AC-33 and AC-38 to AC-48).
 
 ## The model
 
@@ -66,16 +66,21 @@ Never deleted. Deactivation removes nothing (RULE-A4).
 | Unknown person, valid token | A `pending` account is created (AC-3), once only (AC-3) |
 | Pending | Every request except `GET /me` is refused with `account_pending` (FR-3, AC-4, AC-4) |
 | Deactivated | Every request is refused with `account_deactivated`, checked per request (AC-6) |
-| No / expired / foreign token | 401 (NFR-1, AC-33) |
+| No, expired, foreign-issuer or wrong-audience token | 401, and no account or audit entry is made (NFR-1, AC-33) |
 | Approve | Status change in our API only. Keycloak is not called (decision 2) |
-| Deactivate | Reason required. Disables the person in Keycloak and ends their sessions, then updates the account |
-| Reinstate | Reason required. Enables the person in Keycloak, then updates the account |
+| Deactivate | Reason required. Updates the account first, so the API refuses the person at once, then disables the person in Keycloak and ends their sessions. If Keycloak fails the deactivation stands, the administrator is told and the call can be retried (decision 10) |
+| Reinstate | Reason required. The reverse: enables the person in Keycloak, then updates the account, so a failure leaves them locked out (decision 10) |
 | Promote / demote | Administrator only, reason required, audited |
 | RULE-A1 | A change that leaves no active administrator is refused |
 | RULE-A2 | Nobody deactivates or demotes themselves |
 | RULE-A3 | Deactivate, reinstate, promote, demote need a real reason |
 | Audit | Every account change writes who, what, why, when (UC-A4 step 7) |
 | First administrator | Comes from setup: an email in `BOOTSTRAP_ADMIN_EMAILS` becomes an active administrator on first request |
+| Second sign in | Ends the earlier session of this browser only. Other devices stay signed in (AC-43, decision 12) |
+| Callback from another browser | Refused, and no session is made. The state is checked before the code is exchanged (AC-42, decision 12) |
+| Keycloak unreachable | Sign in is refused with "sign in is not available, try again", and no session is made (AC-44) |
+| Deactivated but still signed in | The person lands on the deactivated page and both sessions end, ours and Keycloak's (AC-45) |
+| Security events | Each refused callback, each 401, each session that starts or ends and each AC-45 case writes a log line: event, result, the `sub` when known, a hash of the session id, never a token or a code (NFR-5, AC-48) |
 | Sessions | Keycloak SSO session: 30 min idle, 8 h max. Access token: 5 min |
 | Backend credential | Keycloak service account `playground-backend` with `view-users`, `manage-users` only |
 
@@ -99,4 +104,4 @@ Time-limited access (undecided), project membership (moved to Projects), the acc
 
 - Open: can `manage-users` assign roles? In Keycloak, yes, it can map roles. The backend account is therefore limited by realm design (no sensitive realm roles exist) and not by Keycloak rights alone.
 - Account created in Keycloak and ours together: if one side fails (BC-ACCESS Q6). For a deactivation our database changes first and Keycloak is disabled after it (decision 10): if Keycloak fails, the deactivation stands, the administrator is told and the call is retried. A reinstatement is the reverse, Keycloak first, so a failure locks the person out.
-- Rate limiting on registration is not done.
+- Rate limiting on registration is not done (accepted for now, see `docs/standards/security-checklist.md`).

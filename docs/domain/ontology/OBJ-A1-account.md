@@ -106,6 +106,7 @@ administrator comes from the setup and starts active.
 
 ## Good to know
 
+- The identity is the `sub` alone, because there is one issuer today. It becomes (issuer, `sub`) if a second issuer is trusted (revisit with UC-A7).
 - The **role lives here**, not in Keycloak. Promotion, its reason and its guardrails are in one place, and nobody can
   change a role behind the product's back ([RULE-A1](RULE-A1-always-an-administrator.md),
   [RULE-A2](RULE-A2-administrator-cannot-change-themselves.md),

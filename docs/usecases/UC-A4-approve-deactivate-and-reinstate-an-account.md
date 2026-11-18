@@ -120,7 +120,8 @@ An administrator decides who can sign in. A person who registers is pending unti
 For the product owner to decide.
 
 1. Decided (decision 10): a deactivation changes our database first, then Keycloak, and if Keycloak fails the deactivation stands, the administrator is told and the call can be retried. A reinstatement is the reverse: Keycloak first, then our database, so a failure locks the person out. Both Keycloak calls are safe to repeat.
-2. An evaluation that a deactivated person had running should reach its end. No criterion yet, because evaluations do not exist.
+2. No use case describes an administrator promoting or demoting an account. Which use case should it be?
+3. An evaluation that a deactivated person had running should reach its end. No criterion yet, because evaluations do not exist.
 
 ## Slices
 
@@ -132,5 +133,5 @@ For the product owner to decide.
 ## Not in this use case
 
 - Signing in, signing out, refreshing the session and resetting a password. Those are Keycloak's (decision 1).
-- Giving or taking away the administrator or auditor role. That is done in Keycloak, never from the browser.
+- Giving or taking away the administrator role. Roles live in our database and are changed in Playground by an administrator, with a reason and an audit entry (decision 1 amendment, OBJ-A1). No use case describes it yet (see the open question).
 - Adding a person to a project (UC-P2).
