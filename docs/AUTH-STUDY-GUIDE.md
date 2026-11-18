@@ -523,22 +523,60 @@ Four things to keep open while you read:
 
 First, where things live:
 
+**The web side** (`apps/web/src`) is built as ports and adapters (decision 27). Read it from the inside out:
+
+| Layer | File | Job |
+|---|---|---|
+| Domain (pure rules) | [domain/return-to.ts](../apps/web/src/domain/return-to.ts) | `safeReturnTo`: only a local path is allowed |
+| | [domain/login-attempt.ts](../apps/web/src/domain/login-attempt.ts) | what a login attempt is, and when it expires (10 minutes) |
+| | [domain/session.ts](../apps/web/src/domain/session.ts) | what a session holds, and when a token needs a refresh (30 seconds left) |
+| Use cases | [application/sign-in.ts](../apps/web/src/application/sign-in.ts) | `startLogin`, `finishLogin`: the attempt is taken once, then Keycloak is asked |
+| | [application/sign-out.ts](../apps/web/src/application/sign-out.ts) | `signOut`: forget our session, point at Keycloak's end-session address |
+| | [application/access-token.ts](../apps/web/src/application/access-token.ts) | `accessTokenFor`: the token, refreshed one at a time per session |
+| | [application/call-backend.ts](../apps/web/src/application/call-backend.ts) | `callBackend`: call the API for the person, adding their token |
+| Ports | [application/ports.ts](../apps/web/src/application/ports.ts) | `IdentityProvider`, `LoginAttemptStore`, `SessionStore`, `BackendApi` |
+| Adapters | [adapters/keycloak-identity-provider.ts](../apps/web/src/adapters/keycloak-identity-provider.ts) | Keycloak over OIDC, with `openid-client`. The only file that knows either |
+| | [adapters/in-memory-stores.ts](../apps/web/src/adapters/in-memory-stores.ts) | login attempts and sessions, in memory |
+| | [adapters/fetch-backend-api.ts](../apps/web/src/adapters/fetch-backend-api.ts) | the API over HTTP, with the `Bearer` header |
+| Wiring | [composition.ts](../apps/web/src/composition.ts) | the one place that says which adapters to use |
+| Next.js edge | [auth/login/route.ts](../apps/web/src/app/auth/login/route.ts), [auth/callback/route.ts](../apps/web/src/app/auth/callback/route.ts), [auth/logout/route.ts](../apps/web/src/app/auth/logout/route.ts) | HTTP only: read the request, call a use case, set the cookie, redirect |
+| | [api/backend/[...path]/route.ts](../apps/web/src/app/api/backend/[...path]/route.ts), [lib/api.ts](../apps/web/src/lib/api.ts) | the browser's and the server pages' way to the API |
+| | [lib/auth/session.ts](../apps/web/src/lib/auth/session.ts) | the cookie: its options and `currentSessionId` |
+| | [proxy.ts](../apps/web/src/proxy.ts) | the quick gate: no cookie, no protected page |
+
+**The API** (`apps/api/app`) has the same shape, in one folder for each bounded context:
+
 | Piece | File | Job |
 |---|---|---|
-| Start a login | [auth/login/route.ts](../apps/web/src/app/auth/login/route.ts) | makes the login attempt, redirects to Keycloak |
-| Finish a login | [auth/callback/route.ts](../apps/web/src/app/auth/callback/route.ts) | checks the return, gets the tokens, sets the cookie |
-| OIDC calls | [lib/auth/oidc.ts](../apps/web/src/lib/auth/oidc.ts) | `beginLogin`, `finishLogin`, `refresh`, `endSessionUrl` (uses the `openid-client` library) |
-| Sessions | [lib/auth/session.ts](../apps/web/src/lib/auth/session.ts) | cookie options, `accessToken()` with the refresh |
-| Memory store | [lib/auth/store.ts](../apps/web/src/lib/auth/store.ts) | login attempts and sessions, in memory |
-| Gate | [proxy.ts](../apps/web/src/proxy.ts) | no cookie, no protected page |
-| Forwarder | [api/backend/[...path]/route.ts](../apps/web/src/app/api/backend/[...path]/route.ts) | adds `Bearer` and calls the API |
-| Server calls | [lib/api.ts](../apps/web/src/lib/api.ts) | the same, for pages rendered on the server |
-| Sign out | [auth/logout/route.ts](../apps/web/src/app/auth/logout/route.ts) | ends both sessions |
 | Token check | [auth.py](../apps/api/app/auth.py) | verifies the token |
-| Endpoints | [main.py](../apps/api/app/main.py) | one check chain per request |
-| Use cases | [service.py](../apps/api/app/service.py) | `account_for`, `change` |
-| Rules | [domain/account.py](../apps/api/app/domain/account.py) | pure rules, no framework |
-| Keycloak admin | [adapters/keycloak_admin.py](../apps/api/app/adapters/keycloak_admin.py) | the API's own login, then enable and disable people |
+| Endpoints and wiring | [main.py](../apps/api/app/main.py) | one check chain per request, and the composition root |
+| Rules | [access/domain/account.py](../apps/api/app/access/domain/account.py) | pure rules, no framework, no HTTP |
+| Ports | [access/ports.py](../apps/api/app/access/ports.py) | what the domain needs from outside |
+| Use cases | [access/service.py](../apps/api/app/access/service.py) | `account_for`, `change` |
+| Adapters | [access/adapters/keycloak_admin.py](../apps/api/app/access/adapters/keycloak_admin.py), [access/adapters/sql.py](../apps/api/app/access/adapters/sql.py) | Keycloak's admin API, and PostgreSQL |
+
+### The shape of the code
+
+Arrows point **inward**: the use cases know the ports, never the adapters. Only `composition.ts` (and `main.py` in the API) says "use Keycloak, keep sessions in memory".
+
+```mermaid
+flowchart TB
+    EDGE["Next.js edge<br/>routes, pages, proxy.ts"] --> UC["application/<br/>use cases"]
+    UC --> DOM["domain/<br/>pure rules"]
+    UC --> PORTS["ports<br/>IdentityProvider, SessionStore,<br/>LoginAttemptStore, BackendApi"]
+    KC["KeycloakIdentityProvider"] -. implements .-> PORTS
+    MEM["in-memory stores"] -. implements .-> PORTS
+    FETCH["FetchBackendApi"] -. implements .-> PORTS
+    CO["composition.ts"] --> KC
+    CO --> MEM
+    CO --> FETCH
+    EDGE --> CO
+```
+
+Why bother? Three things you can see in this repo:
+- **Tests without Keycloak.** A strict fake identity provider lets the sign-in checks (wrong `state`, reused code, expired attempt) run in milliseconds: `npm test` in `apps/web`, 36 tests.
+- **A swap is one file.** The session store is in memory today. For AWS you write an ElastiCache adapter with the same two interfaces and change two lines in `composition.ts`.
+- **The rules are enforced.** An architecture test fails if the domain or a use case imports a framework or an adapter (`src/architecture.test.ts` on the web side, `tests/test_architecture.py` in the API).
 
 ### Flow A: the first sign-in
 
@@ -550,38 +588,49 @@ sequenceDiagram
     participant W as Next.js server
     participant K as Keycloak
     P->>W: 1 GET /auth/login
-    Note over W: login/route.ts<br/>beginLogin makes state, nonce, verifier<br/>saveAttempt keeps them 10 min
+    Note over W: login/route.ts calls startLogin<br/>the Keycloak adapter makes state, nonce, verifier<br/>the attempt is kept 10 min
     W-->>P: 2 redirect to Keycloak, Set-Cookie playground_login
     P->>K: 3 types email and password
     K-->>P: 4 redirect to /auth/callback?code=...&state=...
     P->>W: 5 GET /auth/callback
-    Note over W: callback/route.ts<br/>takeAttempt (once), finishLogin
+    Note over W: callback/route.ts calls finishLogin<br/>the attempt is taken (once)
     W->>K: 6 POST token endpoint<br/>code, verifier, client secret
     K-->>W: 7 access, refresh, ID tokens
-    Note over W: putSession keeps them in memory<br/>under a new random session id
+    Note over W: the session store keeps them<br/>under a new random session id
     W-->>P: 8 Set-Cookie playground_session, redirect to the page
 ```
 
-**Step 1 to 2: starting.** [login/route.ts](../apps/web/src/app/auth/login/route.ts) does this:
+**Step 1 to 2: starting.** [login/route.ts](../apps/web/src/app/auth/login/route.ts) only speaks HTTP. It asks the use case and sets the cookie:
 
 ```ts
-const returnTo = safeReturnTo(params.get("returnTo"));
-const { url, ...attempt } = await beginLogin({ register: params.get("register") === "1" });
-const id = newSessionId();
-saveAttempt(id, { ...attempt, returnTo });
-const res = NextResponse.redirect(url);
-res.cookies.set(LOGIN_COOKIE, id, cookieOptions(LOGIN_ATTEMPT_TTL_MS / 1000));
+const { attemptId, redirectTo } = await app().startLogin({
+  returnTo: params.get("returnTo"),
+  register: params.get("register") === "1",
+});
+const res = NextResponse.redirect(redirectTo);
+res.cookies.set(LOGIN_COOKIE, attemptId, cookieOptions(LOGIN_ATTEMPT_TTL_MS / 1000));
 ```
 
-- `safeReturnTo` ([safe-return-to.ts](../apps/web/src/lib/auth/safe-return-to.ts)) only allows a path that starts with a single `/`. Otherwise `/auth/login?returnTo=https://evil.com` would become an *open redirect*: after login, send the person to an attacker's site.
-- `beginLogin` ([oidc.ts](../apps/web/src/lib/auth/oidc.ts)) makes the three secrets and builds the Keycloak URL:
+The use case, [application/sign-in.ts](../apps/web/src/application/sign-in.ts), holds the decisions:
+
+```ts
+const returnTo = safeReturnTo(input.returnTo);
+const begun = await deps.idp.beginLogin({ register: input.register });
+const attemptId = deps.newId();
+await deps.attempts.save(attemptId, { state: begun.state, nonce: begun.nonce,
+  pkceVerifier: begun.pkceVerifier, returnTo, startedAt: deps.now() });
+return { attemptId, redirectTo: begun.redirectTo };
+```
+
+- `safeReturnTo` ([domain/return-to.ts](../apps/web/src/domain/return-to.ts)) only allows a path that starts with a single `/`. Otherwise `/auth/login?returnTo=https://evil.com` would become an *open redirect*: after login, send the person to an attacker's site (1.13).
+- `deps.idp` is the `IdentityProvider` port. In production it is the Keycloak adapter, whose `beginLogin` ([keycloak-identity-provider.ts](../apps/web/src/adapters/keycloak-identity-provider.ts)) makes the three secrets and builds the Keycloak URL:
 
 ```ts
 const state = client.randomState();
 const nonce = client.randomNonce();
 const pkceVerifier = client.randomPKCECodeVerifier();
 const params = {
-  redirect_uri: redirectUri(),
+  redirect_uri: this.redirectUri(),
   scope: "openid profile email",
   state, nonce,
   code_challenge: await client.calculatePKCECodeChallenge(pkceVerifier),
@@ -609,23 +658,31 @@ Find every piece from the theory in that output: `response_type=code` (code flow
 
 **Step 3 to 4: Keycloak.** You type the password **into Keycloak's page on `localhost:8080`**. Our code never sees it. Keycloak then redirects you to the callback address, which must exactly match the realm's `redirectUris` (`http://localhost:3000/auth/callback`). Keycloak refuses any other address, so an attacker cannot redirect your code to their own server.
 
-**Step 5 to 8: the callback.** [callback/route.ts](../apps/web/src/app/auth/callback/route.ts):
+**Step 5 to 8: the callback.** [callback/route.ts](../apps/web/src/app/auth/callback/route.ts) calls the use case and turns the answer into a cookie and a redirect:
 
 ```ts
-const attempt = takeAttempt(request.cookies.get(LOGIN_COOKIE)?.value);
-if (!attempt) return fail("login_expired");
-if (request.nextUrl.searchParams.has("error")) return fail("login_refused");
-...
-const session = await finishLogin(callbackUrl, attempt); // checks state, nonce and PKCE
-const id = newSessionId();
-putSession(id, session);
-const res = NextResponse.redirect(new URL(attempt.returnTo, env.appUrl));
-res.cookies.set(SESSION_COOKIE, id, cookieOptions());
+const { sessionId, returnTo } = await app().finishLogin(request.cookies.get(LOGIN_COOKIE)?.value, callbackUrl);
+const res = NextResponse.redirect(new URL(returnTo, env.appUrl));
+res.cookies.set(SESSION_COOKIE, sessionId, cookieOptions());
 res.cookies.delete(LOGIN_COOKIE);
+// any failure: redirect to /?error=<login_expired | login_refused | login_failed>
 ```
 
-- `takeAttempt` returns the saved attempt **and deletes it**, so a replayed callback finds nothing (`login_expired`).
-- `finishLogin` calls the library's `authorizationCodeGrant`, passing the saved `state`, `nonce` and verifier:
+The rules are in `finishLogin` ([application/sign-in.ts](../apps/web/src/application/sign-in.ts)):
+
+```ts
+const attempt = await deps.attempts.take(attemptId);   // once only: taking it removes it
+if (!attempt || isExpired(attempt, deps.now())) throw new SignInFailed("login_expired");
+if (callbackUrl.searchParams.has("error")) throw new SignInFailed("login_refused");
+try { session = await deps.idp.completeLogin(callbackUrl, attempt); }   // state, nonce, PKCE
+catch { throw new SignInFailed("login_failed"); }
+const sessionId = deps.newId();
+await deps.sessions.put(sessionId, session);
+return { sessionId, returnTo: attempt.returnTo };
+```
+
+- `take` returns the saved attempt **and deletes it**, so a replayed callback finds nothing (`login_expired`). An attempt older than ten minutes is expired too (the rule is `isExpired` in [domain/login-attempt.ts](../apps/web/src/domain/login-attempt.ts)).
+- `completeLogin` is the Keycloak adapter calling the library's `authorizationCodeGrant`, passing the saved `state`, `nonce` and verifier:
 
 ```ts
 const tokens = await client.authorizationCodeGrant(cfg, callbackUrl, {
@@ -635,8 +692,8 @@ const tokens = await client.authorizationCodeGrant(cfg, callbackUrl, {
 });
 ```
 
-  The library sends the code, verifier and client secret to Keycloak, checks that `state` matches, and checks the ID token's claims, including the `nonce`. Any failure throws, and the person lands on `/?error=login_failed`.
-- The tokens are stored by [store.ts](../apps/web/src/lib/auth/store.ts):
+  The library sends the code, verifier and client secret to Keycloak, checks that `state` matches, and checks the ID token's claims, including the `nonce`. Any failure throws, and the use case turns it into `login_failed`.
+- The tokens stay in the session store. The use case returns only a session id and an address, never a token. A session is this shape ([domain/session.ts](../apps/web/src/domain/session.ts)):
 
 ```ts
 export type Session = {
@@ -644,9 +701,9 @@ export type Session = {
   refreshToken: string | undefined;
   accessExpiresAt: number; // ms since epoch
 };
-// In memory, kept on globalThis so dev hot reloads do not drop it. A restart signs everyone out.
 ```
 
+  Today the store is [adapters/in-memory-stores.ts](../apps/web/src/adapters/in-memory-stores.ts): a restart signs everyone out. It sits behind the `SessionStore` port, so a different store is a different adapter.
 - The cookie `playground_session` is a random 32-byte id with no `Max-Age`, so it is a *session cookie* the browser drops when closed. The tokens themselves never leave the server.
 
 **What you can observe.** Sign in with DevTools open (Network, Preserve log). You should see, in order: `/auth/login` (307), Keycloak's `auth` page, the form POST, then `/auth/callback?...code=...&state=...` (307), then your page. Click the callback request and read `code` and `state` in the URL. Then open Application, Cookies, `localhost:3000`: `playground_session` is there, flagged `HttpOnly`, and `playground_login` is gone. In the console, type `document.cookie` and notice the session cookie is **not** listed: scripts cannot read it.
@@ -688,17 +745,19 @@ if (!request.cookies.has("playground_session")) {
 
 It only checks that a cookie *exists*. It is a quick bounce, not a security check. The real check is that the page then asks the API, which verifies the token.
 
-**Hop 2: getting a usable access token.** [session.ts](../apps/web/src/lib/auth/session.ts) `accessToken()`:
+**Hop 2: getting a usable access token.** [application/access-token.ts](../apps/web/src/application/access-token.ts) `accessTokenFor`:
 
 ```ts
-if (session.accessExpiresAt - Date.now() > 30_000) return session.accessToken;
-let pending = refreshing.get(id);
+const session = await deps.sessions.get(sessionId);
+if (!sessionId || !session) return null;
+if (!needsRefresh(session, deps.now())) return session.accessToken;   // more than 30 s left
+let pending = refreshing.get(sessionId);
 if (!pending) {
-  pending = refresh(session)
-    .then((fresh) => (putSession(id, fresh), fresh))
-    .catch(() => (dropSession(id), null))   // Keycloak refused: session ended or person disabled
-    .finally(() => refreshing.delete(id));
-  refreshing.set(id, pending);
+  pending = deps.idp.refresh(session)
+    .then(async (fresh) => { await deps.sessions.put(sessionId, fresh); return fresh; })
+    .catch(async () => { await deps.sessions.take(sessionId); return null; })   // Keycloak refused
+    .finally(() => { refreshing.delete(sessionId); });
+  refreshing.set(sessionId, pending);
 }
 return (await pending)?.accessToken ?? null;
 ```
@@ -707,19 +766,20 @@ Read it as three cases:
 
 1. More than 30 seconds left: use the token as is.
 2. Under 30 seconds: refresh. The `refreshing` map holds *one refresh in flight per session*. If two requests arrive together, the second **waits for the first** instead of sending a second refresh. Why it matters: if the realm rotates refresh tokens (it does not today, but production should consider it), sending the old one twice looks like theft and kills the session. Even without rotation, two refreshes at once are wasted calls. This lock is the fix for the log-out-when-switching-windows bug MK3 had, which came from exactly that race.
-3. Keycloak refuses (session ended, user disabled, token already used): drop our session. The person is asked to sign in again.
+3. Keycloak refuses (session ended, user disabled, or a rotated token reused): drop our session. The person is asked to sign in again.
 
-**Hop 3: the forwarder.** [api/backend/[...path]/route.ts](../apps/web/src/app/api/backend/[...path]/route.ts) adds the token and goes no further:
+**Hop 3: the forwarder.** [api/backend/[...path]/route.ts](../apps/web/src/app/api/backend/[...path]/route.ts) asks the `callBackend` use case ([application/call-backend.ts](../apps/web/src/application/call-backend.ts)), which adds the token and goes no further:
 
 ```ts
-const token = await accessToken();
-if (!token) return NextResponse.json({ code: "no_session", ... }, { status: 401 });
-const upstream = await fetch(`${env.apiUrl}/${...}`, {
-  headers: { Authorization: `Bearer ${token}`, ... }, ...
-});
+const token = await deps.accessTokenFor(sessionId);
+if (!token) return { kind: "no_session" };                 // no session, no call at all
+try { return { kind: "response", ...(await deps.backend.request(req, token)) }; }
+catch { return { kind: "unreachable" }; }
 ```
 
-Pages rendered on the server use [lib/api.ts](../apps/web/src/lib/api.ts) (`getMe()`), which does the same thing directly.
+The route turns `no_session` into a 401, `unreachable` into a 502, and passes any other answer straight back. The `Authorization: Bearer ...` header is added by the `BackendApi` adapter ([adapters/fetch-backend-api.ts](../apps/web/src/adapters/fetch-backend-api.ts)).
+
+Pages rendered on the server use [lib/api.ts](../apps/web/src/lib/api.ts) (`getMe()`), which calls the same use case.
 
 **Hop 4: the API verifies the token.** [auth.py](../apps/api/app/auth.py):
 
@@ -755,7 +815,7 @@ flowchart TB
 - Admin endpoints need `administrator`, which needs `active_account`, which needs `not_deactivated`.
 - **The account is read from the database on every request.** That is why deactivating someone, or changing a role, takes effect on their very next request, not when their token expires.
 
-**First sight creates an account.** `any_account` calls `AccessService.account_for` ([service.py](../apps/api/app/service.py)):
+**First sight creates an account.** `any_account` calls `AccessService.account_for` ([access/service.py](../apps/api/app/access/service.py)):
 
 ```python
 existing = self.accounts.by_identity(identity)       # identity is the token's sub
@@ -792,7 +852,7 @@ sequenceDiagram
     A-->>Adm: the updated account
 ```
 
-[service.py](../apps/api/app/service.py) `change`:
+[access/service.py](../apps/api/app/access/service.py) `change`:
 
 ```python
 updated = decide(action, actor, target, self.accounts.count_active_administrators())
@@ -806,13 +866,13 @@ try:
 except Exception as exc:
     raise IdentityProviderUnavailable("Keycloak could not be reached. Nothing was changed.") from exc
 self.accounts.save(updated)
-self.audit.record(actor.id, action.value, target.id, cleaned, _now())
+self.audit.record(actor.id, action.value, target.id, cleaned, self._now())
 ```
 
-- `decide` ([domain/account.py](../apps/api/app/domain/account.py)) is **pure**: no database, no HTTP. It enforces the rules (a reason of at least three letters, nobody deactivates themselves, there is always an administrator).
+- `decide` ([access/domain/account.py](../apps/api/app/access/domain/account.py)) is **pure**: no database, no HTTP (not even a status code: the web layer maps a rule to one). It enforces the rules (a reason of at least three letters, nobody deactivates themselves, there is always an administrator).
 - **Keycloak is called first.** Two systems cannot change in one transaction. If Keycloak succeeds and our database then fails, a person is disabled but our record still says active. If we did it the other way and Keycloak failed, we would say deactivated while they could still sign in. Calling Keycloak first means a failure leaves *nothing* changed. (Open: a failure between the two steps. Decision 26 lists it.)
 - **Approve does not call Keycloak.** A pending person already has a Keycloak login. Approving is only a status change in our database.
-- The API proves itself to Keycloak in [keycloak_admin.py](../apps/api/app/adapters/keycloak_admin.py) with the **client credentials** grant (Part 1.12), caching the token until 10 seconds before it expires:
+- The API proves itself to Keycloak in [access/adapters/keycloak_admin.py](../apps/api/app/access/adapters/keycloak_admin.py) with the **client credentials** grant (Part 1.12), caching the token until 10 seconds before it expires:
 
 ```python
 r = self._http.post(f"{...}/protocol/openid-connect/token", data={
@@ -824,14 +884,15 @@ r = self._http.post(f"{...}/protocol/openid-connect/token", data={
 
 ### Flow D: sign out, and what happens to tokens you already issued
 
-[auth/logout/route.ts](../apps/web/src/app/auth/logout/route.ts) is a **POST** only, so a link or an image on another site cannot sign you out.
+[auth/logout/route.ts](../apps/web/src/app/auth/logout/route.ts) is a **POST** only, so a link or an image on another site cannot sign you out. It calls the `signOut` use case:
 
 ```ts
-const session = await endSession();                   // forget our session and its tokens
-target = await endSessionUrl(session?.idToken);       // Keycloak's end-session address
-const res = NextResponse.redirect(target, 303);
+const { redirectTo } = await app().signOut(sessionId);     // forget our session, ask Keycloak for its end-session address
+const res = NextResponse.redirect(redirectTo ?? new URL("/", env.appUrl), 303);
 res.cookies.delete(SESSION_COOKIE);
 ```
+
+`signOut` ([application/sign-out.ts](../apps/web/src/application/sign-out.ts)) takes the session out of the store and asks the identity provider for the address. If Keycloak cannot be reached, `redirectTo` is `null` and the person just goes home: our session is gone either way.
 
 Two sessions end: ours (memory plus cookie) and Keycloak's (by sending you to its end-session address with the ID token as `id_token_hint`, which is the one real use the app makes of the ID token). If Keycloak's session stayed alive, the next "Sign in" would log you straight back in.
 
@@ -998,7 +1059,7 @@ jwks_uri               = .../protocol/openid-connect/certs     (the public keys)
 end_session_endpoint   = .../protocol/openid-connect/logout    (sign out)
 ```
 
-**A Docker wrinkle that confuses everyone.** Tokens carry `iss=http://localhost:8080/...` because that is the address the *browser* uses. But inside Docker, the web and API containers reach Keycloak at `http://keycloak:8080`. So two addresses exist for one server. The code handles this on purpose: `KEYCLOAK_ISSUER` is the public one (what to *expect* in tokens), `KEYCLOAK_INTERNAL_ISSUER` is where to *call*, and Keycloak runs with `KC_HOSTNAME_BACKCHANNEL_DYNAMIC=true`. The web app reads Keycloak's discovery document by hand ([oidc.ts](../apps/web/src/lib/auth/oidc.ts)) because the library would otherwise reject the mismatch. If you ever see "issuer mismatch" or "invalid_token" in Docker, start here.
+**A Docker wrinkle that confuses everyone.** Tokens carry `iss=http://localhost:8080/...` because that is the address the *browser* uses. But inside Docker, the web and API containers reach Keycloak at `http://keycloak:8080`. So two addresses exist for one server. The code handles this on purpose: `KEYCLOAK_ISSUER` is the public one (what to *expect* in tokens), `KEYCLOAK_INTERNAL_ISSUER` is where to *call*, and Keycloak runs with `KC_HOSTNAME_BACKCHANNEL_DYNAMIC=true`. The web app reads Keycloak's discovery document by hand ([keycloak-identity-provider.ts](../apps/web/src/adapters/keycloak-identity-provider.ts)) because the library would otherwise reject the mismatch. If you ever see "issuer mismatch" or "invalid_token" in Docker, start here.
 
 ---
 
@@ -1169,7 +1230,7 @@ In DevTools, edit `playground_session`'s value to anything else and reload. You 
 | What you see | Most likely cause | Where to look |
 |---|---|---|
 | `Invalid redirect_uri` on Keycloak's page | the URL the app sent is not in the client's `redirectUris` | realm file, `playground-web` |
-| back on `/?error=login_expired` | the `playground_login` cookie is missing or used (a second tab, an old tab, cookies blocked) | callback route, `takeAttempt` |
+| back on `/?error=login_expired` | the `playground_login` cookie is missing or used (a second tab, an old tab, cookies blocked) | callback route, `finishLogin` (`take` in the attempt store) |
 | back on `/?error=login_failed` | the exchange or the `state`, `nonce` or PKCE check failed | `docker compose logs web` |
 | endless redirect to sign in | the cookie is set but the lookup fails (the web server restarted) | experiment 8 |
 | API says `invalid_token` for a real token | wrong `iss` (a localhost vs `keycloak:8080` mix), missing `aud` mapper, or no `email` | experiment 3, the Docker wrinkle in Part 4 |
@@ -1190,7 +1251,7 @@ The playground cuts corners on purpose. Here is each corner, why it is safe loca
 | **Client secrets** | `playground-web-dev-secret` and `playground-backend-dev-secret` in a file in git | generate new ones, keep them in AWS Secrets Manager, never in git, rotate them |
 | **Keycloak mode** | `start-dev` (no caching, dev database settings, admin console open) | run in production mode (`start`) with a proper hostname, proxy header settings behind the load balancer, and the admin console not exposed to the internet |
 | **Keycloak bootstrap admin** | `admin` / `admin` | a strong, unique password, and remove the bootstrap account after creating a real one |
-| **Session store** | web server memory: a restart signs everyone out, and you cannot run two copies | a shared store (ElastiCache). The code is ready: [store.ts](../apps/web/src/lib/auth/store.ts) is the only file to change |
+| **Session store** | web server memory: a restart signs everyone out, and you cannot run two copies | a shared store (ElastiCache). The code is ready: write an adapter for the `SessionStore` and `LoginAttemptStore` ports and change two lines in [composition.ts](../apps/web/src/composition.ts). A shared store also needs a shared refresh lock |
 | **Realm import** | a file read once, with sample users | no sample users or passwords. Manage the realm through a controlled process |
 | **Redirect URIs** | one localhost address | exactly your production callback, no wildcards |
 | **Email** | `verifyEmail: false` | turn it on, and configure SMTP (Amazon SES), so `email_verified` means something. The first-administrator rule relies on it |
@@ -1258,7 +1319,7 @@ If the realm rotates refresh tokens, sending the old one twice looks like theft 
 
 <details>
 <summary>10. What breaks if you restart the web server, and what is the fix for AWS?</summary>
-Sessions live in memory, so the cookie's id no longer matches anything and everyone is signed out. Move the session store to ElastiCache by changing only <code>store.ts</code>.
+Sessions live in memory, so the cookie's id no longer matches anything and everyone is signed out. Move the session store to ElastiCache by writing one adapter behind the <code>SessionStore</code> port and changing <code>composition.ts</code>.
 </details>
 
 <details>

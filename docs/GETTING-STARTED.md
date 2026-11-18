@@ -111,7 +111,7 @@ Why this shape:
 3. The account is not *deactivated* (`403 account_deactivated`) and not *pending* (`403 account_pending`, except `/me`).
 4. The role allows the action (`403 forbidden`).
 
-The rules about accounts (reasons, last administrator, no self-changes) live in `apps/api/app/domain/account.py`, as plain Python with no framework.
+The rules about accounts (reasons, last administrator, no self-changes) live in `apps/api/app/access/domain/account.py`, as plain Python with no framework, no database and no HTTP.
 
 ## 5. Code tour
 
@@ -121,23 +121,29 @@ Read in this order. Each file is short.
 
 | File | What to learn |
 |---|---|
-| `app/domain/account.py` | The `Account`, its statuses and roles, and every rule (`decide`). Start here |
+| `app/access/domain/account.py` | The `Account`, its statuses and roles, and every rule (`decide`). Start here |
 | `tests/test_domain.py` | The rules as examples |
-| `app/ports.py` | The three things the domain needs from outside |
+| `app/access/ports.py` | The three things the domain needs from outside |
 | `app/auth.py` | Token check, about 50 lines |
-| `app/service.py` | The use cases: first sight of a person, approve, deactivate. Keycloak is called **before** our database changes |
-| `app/adapters/keycloak_admin.py` | How the API enables or disables a person in Keycloak |
-| `app/main.py` | Routes and the chain of dependencies: `principal` → `any_account` → `not_deactivated` → `active_account` → `administrator` |
+| `app/access/service.py` | The use cases: first sight of a person, approve, deactivate. Keycloak is called **before** our database changes. The clock is injected |
+| `app/access/adapters/` | `keycloak_admin.py` (enable or disable a person in Keycloak) and `sql.py` (PostgreSQL) |
+| `app/main.py` | Routes, the chain of dependencies (`principal` → `any_account` → `not_deactivated` → `active_account` → `administrator`), the rule-to-HTTP-status map, and the wiring of adapters |
+| `tests/test_service.py` | The use cases with in-memory fakes: no database, no Keycloak, a fixed clock |
 | `tests/test_api.py` | Whole flows, with a fake Keycloak and a test signing key |
+| `tests/test_architecture.py` | Fails if the domain, the ports or a use case imports an adapter or a framework |
 
 **Web** (`apps/web/src`)
 
 | File | What to learn |
 |---|---|
-| `lib/auth/oidc.ts` | The OIDC calls (`openid-client`): begin login, finish login, refresh, end session |
-| `lib/auth/store.ts` | Where login attempts and sessions live (memory) |
-| `app/auth/login/route.ts`, `callback/route.ts`, `logout/route.ts` | The sign-in, step by step |
-| `lib/auth/session.ts` | Cookie settings, and the single-flight token refresh |
+| `domain/` | The pure rules: `safeReturnTo`, when a login attempt expires, when a token needs a refresh |
+| `application/sign-in.ts`, `sign-out.ts`, `access-token.ts`, `call-backend.ts` | The use cases. `access-token.ts` is the single-flight token refresh |
+| `application/ports.ts` | What the use cases need from outside: the identity provider, two stores, the API |
+| `adapters/` | Keycloak (`openid-client`), the in-memory stores, `fetch` to the API |
+| `composition.ts` | The one place that picks the adapters |
+| `app/auth/login/route.ts`, `callback/route.ts`, `logout/route.ts` | The HTTP edge: read the request, call a use case, set the cookie |
+| `lib/auth/session.ts` | Cookie settings |
+| `*.test.ts` | `npm test`: the rules and use cases with a strict fake Keycloak, plus `architecture.test.ts` |
 | `app/api/backend/[...path]/route.ts` | The only door from the browser to the API. Adds the token |
 | `proxy.ts` | A quick "no cookie, no page" gate |
 | `app/dashboard/page.tsx`, `app/admin/accounts/page.tsx`, `components/accounts-table.tsx` | The screens |
@@ -166,13 +172,13 @@ Paste an access token into https://jwt.io to read it. You can get one from the N
 
 | Idea | Where |
 |---|---|
-| Add a new action, say "suspend" | `Action` and `decide` in `domain/account.py`, a test, a button in `accounts-table.tsx` |
-| Add a role | `Role` in `account.py`, then check `administrator` in `main.py` |
+| Add a new action, say "suspend" | `Action` and `decide` in `access/domain/account.py`, a test, a button in `accounts-table.tsx` |
+| Add a role | `Role` in `access/domain/account.py`, then check `administrator` in `main.py` |
 | Make deactivated people see their own page | `dashboard/page.tsx` already handles `account_deactivated` |
 | Shorten the access token to 1 minute | `accessTokenLifespan` in the realm JSON, `docker compose down -v`, up again |
 | Add MFA for administrators | Keycloak: Authentication → flows (no code change) |
 | Point the API at Amazon RDS | `DATABASE_URL` only: it is already PostgreSQL, so the adapter does not change |
-| Keep sessions across restarts | Implement `store.ts` against Redis |
+| Keep sessions across restarts | Write a store adapter (Redis or ElastiCache) for the `SessionStore` port in `application/ports.ts`, then change `composition.ts` |
 
 ## 8. When things go wrong
 

@@ -121,12 +121,44 @@ differences in types, locking and migrations, so the API's database is now Postg
 and adapters are what make the swap cheap: an adapter changes and the domain does not.
 
 **Changes.** The API's database is PostgreSQL (`api-db` in Docker Compose). The API tests run on SQLite for speed, and on
-PostgreSQL when `TEST_DATABASE_URL` is set. `CLAUDE.md` records both constraints.
+PostgreSQL when `TEST_DATABASE_URL` is set. `CLAUDE.md` records both constraints. **Amended 18 Nov 2026:** the PostgreSQL run must use the separate `playground_test` database. An earlier run pointed at the app's own database dropped its tables, so the tests now refuse any database whose name does not end in `_test`.
 
 **Still open.**
 - Schema changes: the API creates its tables at start-up. On AWS they need migrations (for example Alembic), run as a
   deploy step.
 - Whether Playground's database is RDS PostgreSQL or Aurora PostgreSQL.
-- How the web side applies hexagonal: its session store is behind a few functions today, and the other adapters
-  (the API client, the OpenID Connect calls) are not yet ports.
+- How the web side applies hexagonal: decided in decision 27.
 - Keycloak on ECS needs a production setup (not `start-dev`), its own sizing, and a decision on high availability.
+
+## 27. The frontend follows ports and adapters where they pay (18 Nov 2026)
+
+**Decided.** This narrows decision 26 for the frontend, by the owner after discussion.
+- **The frontend's server side (the BFF) follows ports and adapters, test first.** It has a pure `domain/`
+  (`safeReturnTo`, when a login attempt expires, when a token needs a refresh), `application/` use cases (sign in,
+  sign out, the access token with a one-at-a-time refresh, calling the API) and four ports: `IdentityProvider`,
+  `LoginAttemptStore`, `SessionStore` and `BackendApi`. Keycloak, the in-memory stores and `fetch` are adapters,
+  and `composition.ts` is the one place that picks them. The stores are asynchronous, so ElastiCache fits.
+- **The UI stays thin.** Pages and components have no ports and no use cases of their own. They are tested with
+  component or end to end tests when that earns its cost.
+- **DDD stays in the API.** The rules that matter (roles, status, membership, who may do what) are in the API's
+  domain. The frontend keeps only a few small rules of its own.
+- **The API is organised by bounded context** (`app/access/`, later `app/projects/`). Its domain errors carry no
+  HTTP status (the web layer maps them), its use cases take an injectable clock, and an architecture test fails if
+  a domain, a port file or a use case imports an adapter or a framework, or if one context imports another.
+
+**Why.** The BFF is a backend in disguise: it runs the sign-in flow, holds tokens and refreshes them, so it has
+real failure modes that were only checked by hand. Ports let a strict fake Keycloak test them in milliseconds and
+make the session store a one-file change for AWS. Putting ports around React components would add files and
+indirection for no gain in testing or swapping.
+
+**Changes.** API: `app/access/` package, `tests/test_architecture.py`, `tests/test_service.py` with in-memory
+ports, HTTP statuses moved to `main.py`. Web: `domain/`, `application/`, `adapters/`, `composition.ts`, 36 tests
+including `architecture.test.ts`, no new dependency (Node runs TypeScript directly). A real sign in, a page load,
+an API call, a failed callback, sign out and a replayed cookie were checked end to end against Keycloak.
+
+**Still open.**
+- The in-memory refresh lock is per process. With more than one web server it needs a shared lock.
+- Schema migrations for the API (for example Alembic) before the first AWS deploy.
+- Where `app/projects/` gets account status from: a port answered by Access (see BC-PROJECTS).
+- Tagging the web and API tests with the acceptance criteria they prove (`Verifies AC-n`), then the criteria that
+  have no test yet.

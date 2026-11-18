@@ -9,7 +9,7 @@
 | SO-1 | after sign out, the session is gone and the answer is Keycloak's end session address with the ID token as a hint | **AC-79** (FR-125) |
 | SO-2 | signing out twice with the same id is harmless, and the old id opens nothing | *proposed*: no criterion yet |
 
-> **Status: plan.** The specification, diagrams, tests and steps are here. The step by step code is written when it is built, so it matches what really happens.
+> **Status: built (decision 27).** `application/sign-out.ts` and `application/sign-out.test.ts` do this, and `auth/logout/route.ts` is the thin edge. The tests are `node:test`, not vitest. The lesson stays as the walk-through of why.
 
 ## 1. Specification
 
