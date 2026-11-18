@@ -4,33 +4,45 @@ hide footbox
 title UC-A1 Sign in (analysis: system sequence)
 ' Analysis level (decision 9): the person, Playground as one box, and Keycloak as an outside system.
 ' No route, store, port, adapter, token or cookie. Step numbers are the main flow numbers of UC-A1.
-' Not decided yet, so not drawn: what a pending or a deactivated person sees after signing in, and Keycloak being
-' unreachable. They are open gaps of UC-A1 (see its open questions).
+' Revised for decision 10: the refusals, the second sign in, Keycloak being down, and what each account sees.
+' Not drawn: a deactivated person is normally refused on Keycloak's own page and never comes back to us.
 
 actor "Person" as P
 participant "Playground" as PG #E6F0FB
 participant "Keycloak\n(outside system)" as K #ECECEC
 
 P -> PG : 1 ask to sign in
-PG --> P : 2 go to Keycloak
-P -> K : 3 prove who I am
-K --> P : 4 go back to Playground, with proof
-P -> PG : 5 here is the proof
+alt Keycloak cannot be reached
+  PG --> P : "sign in is not available", no session
+else
+  PG --> P : 2 go to Keycloak
+  P -> K : 3 prove who I am
+  K --> P : 4 go back to Playground, with proof
+  P -> PG : 5 here is the proof
 
-alt this sign in is missing, used already or expired
-  PG --> P : "login expired", start again
-else the person cancelled, or Keycloak refused
-  PG --> P : "login refused", start again
-else the proof fails a check
-  PG --> P : "login failed", start again
-else the proof is genuine and for this sign in
-  PG --> P : 6 you are signed in, here is the page you asked for
+  alt missing, used already, expired, or from another browser
+    PG --> P : "login expired", start again
+  else the person cancelled, or Keycloak refused
+    PG --> P : "login refused", start again
+  else the proof fails a check
+    PG --> P : "login failed", start again
+  else the proof is genuine and for this sign in
+    PG --> P : 6 you are signed in (any earlier session ends)
+    P -> PG : 9 ask for my account
+    alt a pending person, or one Playground does not know
+      PG --> P : 10 waiting page
+    else a deactivated person
+      PG --> P : 10 deactivated page, session ends
+    else an active person
+      PG --> P : 10 their page
+    end
+  end
 end
 
 == Every later request ==
-P -> PG : 7 ask for something
+P -> PG : ask for something
 alt no valid proof of who the person is
-  PG --> P : refused, sign in again
+  PG --> P : refused (401), sign in again
 else
   PG --> P : the answer, once the account has been checked
 end

@@ -46,4 +46,11 @@ else
   A --> W : answer
   W --> P : answer
 end
+
+note over W, S
+  Planned by decision 10, not built yet:
+  - step 7: also end the person's earlier session in the store (D13)
+  - step 9 and after: show the waiting page or the deactivated page, from the account status (D12)
+  - step 2: Keycloak unreachable shows "sign in is not available" (built, but not in this diagram)
+end note
 @enduml
