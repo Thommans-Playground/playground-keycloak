@@ -52,7 +52,7 @@
 | AC-111 | NFR-2 | the final deployment design | each data store and the hosting are listed | each runs on an AWS service | inspection | draft |  |
 | AC-112 | NFR-3 | the running API | its database setting is inspected | it is a PostgreSQL database | inspection | draft |  |
 | AC-113 | NFR-3 | the API tests and a PostgreSQL database | the tests are run against it | they all pass | integration | draft |  |
-| AC-114 | NFR-4 | the domain code | its imports are inspected | none comes from an adapter, a framework or an outside service | unit | draft |  |
-| AC-115 | NFR-4 | a test double in place of the database adapter | the domain tests are run | they pass unchanged | unit | draft |  |
+| AC-114 | NFR-4 | the domain code | its imports are inspected | none comes from an adapter, a framework or an outside service | unit | draft | Verified by apps/api/tests/test_architecture.py and apps/web/src/architecture.test.ts. |
+| AC-115 | NFR-4 | a test double in place of the database adapter | the domain tests are run | they pass unchanged | unit | draft | Verified by apps/api/tests/test_service.py and apps/web/src/application/*.test.ts, which use in-memory ports and a fake Keycloak. |
 | AC-116 | NFR-5 | a rule or a use case and its code | the history is read | its test was committed before, or with, its code | inspection | draft |  |
 | AC-117 | NFR-6 | the domain code | its names are compared with the ontology and the vocabulary | the same words are used | inspection | draft |  |
