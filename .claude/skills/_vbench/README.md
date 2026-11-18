@@ -91,6 +91,12 @@ with the skills. Agents load when a session starts, so restart or reload after a
 | `vbench-tdd-green` | sonnet | The minimum code that makes that test pass. Never edits the test |
 | `vbench-tdd-refactor` | sonnet | Tidies code on green only, running the tests after each change. Behaviour does not change |
 | `vbench-spec-challenger` | opus | Read-only adversarial review of a use case and its requirements, criteria and ontology. Reports gaps, decides nothing |
+| `vbench-security-reviewer` | opus | Read-only review of a use case, its diagrams and decisions against OWASP and the OAuth BCP, using `docs/standards/security-checklist.md`. Teaches what is wrong, why and the options |
+| `vbench-design-reviewer` | opus | Read-only review of a use case's design against DDD, ports and adapters and the AWS target. Teaches what is wrong, why and the options |
+
+**The three reviewers run together** (they are read-only and independent) after a use case, its diagrams, a requirement
+or a decision is written or changed: `vbench-uc`, `vbench-req` and the decision records end by running them. Each
+finding says what is wrong, why it matters and up to three options. They do not edit, and a person decides.
 
 They read the test, typecheck and lint commands from the `stacks` block of `vbench.json`.
 

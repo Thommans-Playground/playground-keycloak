@@ -341,3 +341,29 @@ of steps, the spec and BC-ACCESS, and a note in OBJ-A1 (identity).
 - Lifetimes of a login attempt (10 minutes) and of a session (30 minutes idle, 8 hours) are in the code and the spec,
   and BC-ACCESS still calls them a proposal.
 
+## 11. Three review agents run after a spec change, and teach (18 Nov 2026)
+
+**Decided.** By the owner. Specs are reviewed by three read-only agents, from three lenses, after a use case, its
+diagrams, a requirement or a decision is written or changed, and before it is built.
+- `vbench-spec-challenger`: does the spec agree with itself (criteria, flows, diagrams, ids).
+- `vbench-security-reviewer`: is it sound by OWASP ASVS, the Top 10, the OAuth 2.0 Security BCP and the cheat sheets,
+  using the checklist `docs/standards/security-checklist.md`.
+- `vbench-design-reviewer`: does the design fit domain driven design, ports and adapters and the AWS target.
+- Each finding teaches: what is wrong, why it matters in a concrete case, and up to three options with one marked as
+  leaning. They never edit and never decide.
+- The skills run them: `vbench-uc` after a use case is written or changed, `vbench-req` after a security related
+  criterion changes. `CLAUDE.md` says so for decisions. The agents' descriptions also say "use proactively".
+
+**Why.** The first review of UC-A1 found sixteen gaps by a single lens. Security and architecture are separate
+questions from consistency, and a model reciting OWASP from memory can be wrong, so the checklist is kept in the
+repo and each finding says whether it is from the checklist or from memory.
+
+**Changes.** Two new agents, the checklist, the challenger's report (a "why it matters" line), the skills `vbench-uc`
+and `vbench-req`, the agent table in `_vbench/README.md` and `CLAUDE.md`.
+
+**Still open.**
+- The checklist is from memory and has no section numbers: look each item up before relying on it.
+- A hook that nudges the model after an edit under `docs/usecases/` or to `decisions.md` was not added. It would run
+  on every edit, so it needs a decision on noise and cost.
+- The agents load at session start: restart to use them.
+

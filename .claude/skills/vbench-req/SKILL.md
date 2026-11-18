@@ -70,7 +70,8 @@ say which one you are on.
    `python3 .claude/skills/vbench-uc/scripts/uc_tool.py sync --all`, so the copied text in every use case
    file matches the rows you just wrote. This refreshes the generated copy only: it never edits a flow and never
    changes a review hash, so each use case stays suspect until a person stamps it. Report the ids written, the
-   use cases refreshed and any problem. Do not commit. If the user wants a commit, use vbench-commit.
+   use cases refreshed and any problem. If a criterion about sign in, tokens, sessions, accounts, roles or audit
+   changed, also start `vbench-security-reviewer` on the use cases that list it and show what it finds. Do not commit. If the user wants a commit, use vbench-commit.
 
 ## Next step: the chain
 

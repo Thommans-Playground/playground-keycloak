@@ -102,7 +102,13 @@ criterion yet. Lines starting "Open:" are exempt.
 ## Next step: the chain
 
 The three skills hand work on in a line: vbench-req, then **vbench-uc**, then **vbench-at**. When a use case is
-written and `validate` is clean, say what comes next and offer it:
+written or changed and `validate` is clean, **run the reviews first**, then say what comes next and offer it:
+
+- **Reviews (run them, do not wait to be asked).** Start `vbench-spec-challenger`, `vbench-security-reviewer` and
+  `vbench-design-reviewer` together on the use case id (they are read-only and independent). Show their findings
+  as they come back, in plain words: what is wrong, why it matters, the options. Do not fix anything from them
+  unasked. A person decides. Skip the reviews only for a change that touches no flow, criterion, diagram or
+  decision (a typo, a rewording), and say that you skipped them.
 
 - A criterion the use case lists has no acceptance test (`python3 .claude/skills/vbench-at/scripts/at_tool.py
   report`): offer **vbench-at**. The test is the outer loop, so it comes before the code of the first slice.
