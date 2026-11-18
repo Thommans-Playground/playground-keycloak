@@ -1,0 +1,56 @@
+@startuml order-of-execution
+!include _usecase-style.puml
+title Use cases: how they depend on each other, and the order to build the rest
+
+' Shows what each use case needs before it can run, and the order in which the unbuilt ones should be built.
+' Not drawn: the criteria and slices of each use case (see the use case files), and the screens.
+' Green = built. Grey = still to build, with its build number. Update the colour when a use case is built.
+' The arrows are a reading of the specs: confirm them when a use case changes.
+skinparam linetype polyline
+skinparam nodesep 25
+skinparam ranksep 40
+top to bottom direction
+
+rectangle "Access (BC-ACCESS)" #F2F6FC {
+  usecase "UC-A1\nSign in" as A1 COLOR_BUILT
+  usecase "UC-A3\nRegister and wait\nfor approval" as A3 COLOR_BUILT
+  usecase "UC-A4\nApprove, deactivate\nand reinstate" as A4 COLOR_BUILT
+  usecase "UC-A5\nView my name\nand role" as A5 COLOR_BUILT
+  usecase "UC-A2\nSign out" as A2 COLOR_BUILT
+  usecase "UC-A6\nKeep the session\nalive" as A6 COLOR_BUILT
+  usecase "UC-A7\nCompany single sign-on\n(release 2, build 5)" as A7 COLOR_TODO
+}
+
+rectangle "Projects (BC-PROJECTS)" #FFFDE7 {
+  usecase "UC-P1\nCreate a project\n(build 1)" as P1 COLOR_TODO
+  usecase "UC-P3\nList and open a project\n(write it, then build 2)" as P3 COLOR_TODO
+  usecase "UC-P2\nManage project members\n(build 3)" as P2 COLOR_TODO
+}
+
+' what a use case needs (solid arrow: "needs"). The chain reads top to bottom.
+A1 --> A3 : a token
+A3 --> A4 : pending accounts
+A1 --> A5 : a session
+A1 --> A2 : a session to end
+A4 --> P1 : an active administrator\nor manager
+P1 --> P3 : a project and\nits members
+P3 --> P2 : the membership check
+
+' variants and includes (dashed)
+A7 .> A1 : another way in
+A6 .> A1 : renews the token\nin every use case
+
+' where two use cases touch each other's data (dashed, labelled), covered by the build 4 tests
+A4 .. P3 : reinstating an account\nbrings its memberships back
+A4 .. P2 : deactivating a manager leaves none active.\nRestoring one repairs it
+
+note bottom of P2
+  Build 4: write the tests that cross two use cases
+  (A4 with P2, A4 with P3) once all three exist.
+end note
+
+legend bottom right
+  Solid arrow: needs.  Dashed: include, variant, or two use cases touching each other's data (labelled).
+  Green: built.  Grey: still to build, with its build number.
+endlegend
+@enduml
