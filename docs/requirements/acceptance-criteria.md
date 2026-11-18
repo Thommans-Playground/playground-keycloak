@@ -8,9 +8,9 @@
 | AC-2 | FR-2 | a signed-in person | they sign out | their session stops working and they must sign in again | acceptance | draft |  |
 | AC-3 | FR-3 | a person the system does not know | they make a request, then another | one pending account exists for them | acceptance | draft |  |
 | AC-4 | FR-3 | a pending account | its owner asks for their status, then for anything else | the status says it is waiting, and everything else is refused | acceptance | draft |  |
-| AC-5 | FR-4 | a pending account | an administrator approves it | the person can sign in and use the product | acceptance | draft |  |
-| AC-6 | FR-4 | an active account | an administrator deactivates it, with a reason | the person's next request is refused, even with a valid token | acceptance | draft |  |
-| AC-7 | FR-4 | a deactivated account | an administrator reinstates it | the person can use the product again, with their data and memberships | acceptance | draft |  |
+| AC-5 | FR-4 | a pending account | an administrator approves it | the person can use the product, with no change made in Keycloak | acceptance | draft |  |
+| AC-6 | FR-4 | an active account | an administrator deactivates it, with a reason | the person cannot sign in at Keycloak, and their next request is refused even with a valid token | acceptance | draft |  |
+| AC-7 | FR-4 | a deactivated account | an administrator reinstates it | the person can use the product again, with their data and memberships, and is enabled in Keycloak | acceptance | draft |  |
 | AC-8 | FR-5 | a signed-in person | they open their profile | it shows their name and role | acceptance | draft |  |
 | AC-9 | FR-7 | an administrator and an active account | they create a project naming that account as manager | the project exists and that person is its manager | acceptance | draft |  |
 | AC-10 | FR-7 | a person who manages a project | they create a project | it exists and they are its manager | acceptance | draft |  |

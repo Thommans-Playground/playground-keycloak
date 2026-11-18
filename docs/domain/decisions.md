@@ -241,3 +241,27 @@ the account request queue, shares and evaluations of the earlier model were take
 RULE-A4 and the build spec, so there are no links to files that do not exist.
 
 **Still open.** UC-P3 is not written. UC-A6 serves no requirement yet. The review hashes are still unstamped.
+
+## 8. The API decides, Keycloak authenticates, and deactivation disables both (18 Nov 2026)
+
+**Decided.** By the owner, while challenging UC-A1 (sign in). It confirms decision 2 and settles the rest.
+- **The API decides what a person may do, and Keycloak only proves who they are.** A pending person can sign in and
+  holds a token, and the API refuses everything except their own status. Approval changes our account only and does not
+  call Keycloak.
+- **Deactivation disables the account in both places.** Playground sets the account to deactivated, and the backend
+  disables the person in Keycloak and ends their sessions. Reinstating enables both again. The API still refuses a
+  deactivated person on every request, so a token that has not yet expired, or a Keycloak that was changed by hand,
+  cannot open the door.
+
+**Why.** Two layers that agree keep a deactivated person out even when one of them is wrong (deny by default,
+enforced on the server). Keeping pending in our API needs no Keycloak extension.
+
+**Changes.** UC-A4 (step 5, effects, postconditions, TSK-A4.2) and the criteria AC-5, AC-6 and AC-7 now say this.
+
+**Still open.**
+- Which change comes first, and what happens when the Keycloak call fails (UC-A4, open question 1).
+- UC-A1 does not yet say what a deactivated person sees: Keycloak's own refusal page, or a refusal from our API for a
+  person whose Keycloak account was re-enabled by hand. The criteria of UC-A1 (AC-1 is untestable as written), the
+  audience check in decision 1, where the pending account is created, identity by `sub` and not by email, and
+  replacing the old session on a second sign in are the other findings still to settle.
+
