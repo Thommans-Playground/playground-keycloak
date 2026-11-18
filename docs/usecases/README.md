@@ -1,6 +1,6 @@
-# Access use cases (study copies from MK3)
+# Use cases
 
-- [Use case diagram](diagrams/usecases-access.puml): who starts what, and where Keycloak takes part.
+- [Access use case diagram](diagrams/usecases-access.puml): who starts what, and where Keycloak takes part.
 - [Design diagram](../domain/diagrams/access-design.puml): the ports and adapters the use cases share.
 - Each use case file has a short **Mermaid overview**, and links to a **PlantUML sequence** (in `diagrams/`) with the
   detail: every step numbered as in the main flow, and the failure paths.

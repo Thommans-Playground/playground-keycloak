@@ -1,5 +1,5 @@
 ```yaml
-id: UC-A12
+id: UC-A3
 type: use-case
 name: Register and wait for approval
 status: draft
@@ -60,11 +60,11 @@ Each criterion is run by a test tagged `Verifies AC-<n>`.
 
 ## Description
 
-This is MK3's sign-up, split in two. **Registering** (a name, an email, a password) is Keycloak's. **Becoming known to Playground** is ours, and it is not a sign-up form at all: the account is made quietly the first time the API sees a new person's token. The person lands as **pending** and can do one thing, ask for their own status. An administrator approves them in UC-A2.
+This is MK3's sign-up, split in two. **Registering** (a name, an email, a password) is Keycloak's. **Becoming known to Playground** is ours, and it is not a sign-up form at all: the account is made quietly the first time the API sees a new person's token. The person lands as **pending** and can do one thing, ask for their own status. An administrator approves them in UC-A4.
 
 ## What changed from MK3
 
-| MK3 UC-A5 | Playground UC-A12 |
+| MK3 UC-A5 | Playground UC-A3 |
 |---|---|
 | Our signup form, password rules, bcrypt, duplicate email check | Keycloak's registration page, its password policy and its duplicate check |
 | Signup creates the user and signs the person in at once | Registration creates a Keycloak user. Signing in is separate |
@@ -83,7 +83,7 @@ New in the design language: **lazy provisioning**. The person exists in two plac
 
 1. The person asks to create an account. The system sends them to Keycloak's registration page. (FR-3)
 2. The person gives a name, an email and a password to Keycloak. Keycloak creates the user and signs them in. (FR-3)
-3. The person comes back and the system makes a session, as in UC-A10. (FR-3)
+3. The person comes back and the system makes a session, as in UC-A1. (FR-3)
 4. The person's first request reaches the API with a valid token. (FR-3)
 5. The API looks for an account with the token's Keycloak id and finds none. (AC-3)
 6. The API creates an account with role user and status pending, with the name and email from the token. (FR-3, AC-3)
@@ -113,7 +113,7 @@ For the product owner to decide.
 
 ## Overview
 
-The high level picture. The detailed sequence, with step numbers that match the main flow, is in [UC-A12-register-and-wait-for-approval-sequence.puml](diagrams/UC-A12-register-and-wait-for-approval-sequence.puml).
+The high level picture. The detailed sequence, with step numbers that match the main flow, is in [UC-A3-register-and-wait-for-approval-sequence.puml](diagrams/UC-A3-register-and-wait-for-approval-sequence.puml).
 
 ```mermaid
 sequenceDiagram
@@ -128,5 +128,5 @@ sequenceDiagram
 
 ## Slices
 
-1. TSK-A12.1: Create the account on first sight, rules RULE-A1 (AC-3)
-2. TSK-A12.2: Refuse everything but the person's own status while pending (AC-4)
+1. TSK-A3.1: Create the account on first sight, rules RULE-A1 (AC-3)
+2. TSK-A3.2: Refuse everything but the person's own status while pending (AC-4)

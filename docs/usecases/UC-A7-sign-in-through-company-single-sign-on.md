@@ -1,5 +1,5 @@
 ```yaml
-id: UC-A15
+id: UC-A7
 type: use-case
 name: Sign in through company single sign-on
 status: draft
@@ -13,7 +13,7 @@ objects: [OBJ-A1]
 rules: []
 effects:
   - the person is linked to a Keycloak user from the company login
-  - the first time, a pending account is made (UC-A12)
+  - the first time, a pending account is made (UC-A3)
 evolved_from: [MK3 UC-A6]
 ```
 
@@ -47,11 +47,11 @@ Each criterion is run by a test tagged `Verifies AC-<n>`.
 
 ## Description
 
-The person signs in with their company login, not a password kept in Keycloak. Keycloak does the work: it is set up to trust the company's identity provider (an identity brokering setting). Playground's code does not change. From the web server's side it is still the same flow as UC-A10, and Keycloak still hands back its own token.
+The person signs in with their company login, not a password kept in Keycloak. Keycloak does the work: it is set up to trust the company's identity provider (an identity brokering setting). Playground's code does not change. From the web server's side it is still the same flow as UC-A1, and Keycloak still hands back its own token.
 
 ## What changed from MK3
 
-| MK3 UC-A6 | Playground UC-A15 |
+| MK3 UC-A6 | Playground UC-A7 |
 |---|---|
 | Planned, not built. Would have needed our own OIDC client code and a way to link external users to our user table | Keycloak configuration: add an identity provider to the realm, and map its claims |
 | Each provider means more code | Each provider is a setting, and the realm export carries it |
@@ -65,12 +65,12 @@ This is the clearest example of why a realm file belongs in its own repo (phase 
 
 ## Main flow
 
-1. The person asks to sign in. The system sends them to Keycloak, as in UC-A10. (FR-6)
+1. The person asks to sign in. The system sends them to Keycloak, as in UC-A1. (FR-6)
 2. Keycloak's login page offers the company login. The person chooses it. (FR-6)
 3. Keycloak sends the person to the company's login. They sign in there. (FR-6)
 4. The company login sends the person back to Keycloak. Keycloak creates or finds a Keycloak user for them. (FR-6)
-5. Keycloak sends the person back to Playground with a code, and the flow goes on as in UC-A10, steps 5 to 9. (FR-6)
-6. On the first request, the API makes a pending account if there is none (UC-A12). (FR-6)
+5. Keycloak sends the person back to Playground with a code, and the flow goes on as in UC-A1, steps 5 to 9. (FR-6)
+6. On the first request, the API makes a pending account if there is none (UC-A3). (FR-6)
 
 ## Other flows
 
@@ -80,7 +80,7 @@ This is the clearest example of why a realm file belongs in its own repo (phase 
 
 ## Postconditions
 
-- As UC-A10, and a Keycloak user exists that is linked to the company login.
+- As UC-A1, and a Keycloak user exists that is linked to the company login.
 
 ## Open questions
 
@@ -90,7 +90,7 @@ For the product owner to decide.
 
 ## Overview
 
-The high level picture. The detailed sequence, with step numbers that match the main flow, is in [UC-A15-sign-in-through-company-single-sign-on-sequence.puml](diagrams/UC-A15-sign-in-through-company-single-sign-on-sequence.puml).
+The high level picture. The detailed sequence, with step numbers that match the main flow, is in [UC-A7-sign-in-through-company-single-sign-on-sequence.puml](diagrams/UC-A7-sign-in-through-company-single-sign-on-sequence.puml).
 
 ```mermaid
 sequenceDiagram
@@ -100,10 +100,10 @@ sequenceDiagram
     P->>K: choose company login
     K->>C: send the person there
     C-->>K: signed answer
-    K-->>P: back to Playground, as UC-A10
+    K-->>P: back to Playground, as UC-A1
 ```
 
 ## Slices
 
-1. TSK-A15.1: Configure the identity provider in the realm (no code)
-2. TSK-A15.2: Check the account and linking rules on the first request
+1. TSK-A7.1: Configure the identity provider in the realm (no code)
+2. TSK-A7.2: Check the account and linking rules on the first request

@@ -1,5 +1,5 @@
 ```yaml
-id: SET-8
+id: SET-3
 type: set
 name: Project roles
 status: draft
@@ -26,7 +26,7 @@ satisfies:
 ## What it is
 
 Two roles that a person holds **inside one project**. They are not account roles: a person can be a manager of
-one project and an engineer in another. The account role (user or administrator, [SET-5](SET-5-account-roles.md))
+one project and an engineer in another. The account role (user or administrator, [SET-1](SET-1-account-roles.md))
 belongs to Access and says nothing about projects.
 
 ## Why it is fixed

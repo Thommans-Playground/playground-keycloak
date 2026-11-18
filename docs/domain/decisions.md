@@ -1,4 +1,4 @@
-## 23. Keycloak is the identity provider (12 Nov 2026)
+## 1. Keycloak is the identity provider (12 Nov 2026)
 
 **Decided.** Playground does not write sign-in. **Keycloak** proves who a person is, through OpenID Connect. Sign in,
 sign out, refreshing the session, the profile, sign up and single sign-on are Keycloak's, so they are not use cases of
@@ -28,7 +28,7 @@ context page `docs/domain/contexts/BC-ACCESS.md`, the three Access use cases (UC
 retired use case ids in `docs/usecases/retired-ids.csv`.
 
 **Still open.**
-- How a new person arrives as pending: decided in decision 24.
+- How a new person arrives as pending: decided in decision 2.
 - How acceptance tests sign in: a Keycloak container with an imported realm, or tokens signed with a test key.
 - Where Keycloak runs, and its database (it can share the Postgres server). The realm configuration belongs in the repo.
 - Whether the sign-in page is Keycloak's own login theme (one can be built from React parts) or something else.
@@ -37,9 +37,9 @@ retired use case ids in `docs/usecases/retired-ids.csv`.
   account on first sign in.
 - UC-A1 and UC-A5 to UC-A9 were MK3's sign-in items. They are retired (see `docs/usecases/retired-ids.csv`) and never reused.
 
-## 24. Pending accounts, membership and time-limited access (16 Nov 2026)
+## 2. Pending accounts, membership and time-limited access (16 Nov 2026)
 
-**Decided.** Three answers by the owner, which refine decision 23.
+**Decided.** Three answers by the owner, which refine decision 1.
 - **A new person arrives pending, and our API holds them.** The person registers in Keycloak and can sign in there.
   Playground creates a pending account the first time it sees them (FR-123). It refuses every request except one that
   shows the person's own status (FR-2), until an administrator approves. So **approving is a status change in
@@ -69,7 +69,7 @@ reworded. FR-6, FR-7, FR-10, FR-11, FR-12 and FR-13 move to area P. The notes of
   have no context).
 
 
-## 25. Projects and who may see inside them (16 Nov 2026)
+## 3. Projects and who may see inside them (16 Nov 2026)
 
 **Decided.** A first cut of projects, by the owner.
 - **A project holds files, endpoints and evaluations, and only its members see inside it.** Access follows
@@ -85,13 +85,13 @@ reworded. FR-6, FR-7, FR-10, FR-11, FR-12 and FR-13 move to area P. The notes of
 - Only an **active** account can be added to a project. A member whose account is deactivated stays on the
   project and is refused at the account check.
 
-**Why.** Membership is an invariant of the project, so Projects owns it (decision 24). Keeping administrators out
+**Why.** Membership is an invariant of the project, so Projects owns it (decision 2). Keeping administrators out
 of the contents keeps the governance boundary real: the person who keeps accounts cannot read the work. The one
 administrator power is the smallest that stops a project being locked.
 
 **Changes.** New context BC-PROJECTS, objects OBJ-P1 and OBJ-P2, value set SET-8, rules RULE-P1 to RULE-P4,
 requirements FR-129 to FR-143 and criteria AC-87 to AC-110, use cases UC-P1 and UC-P4. SET-6 and OBJ-A1 now
-include the pending status that decision 24 introduced. BC-ACCESS no longer describes membership or the account
+include the pending status that decision 2 introduced. BC-ACCESS no longer describes membership or the account
 request queue.
 
 **Still open.**
@@ -103,13 +103,13 @@ request queue.
 - UC-A4 (time-limited access) is still undecided.
 - OBJ-A2, OBJ-A3, SET-7, RULE-A4 and RULE-A5 are linked from the Access pages but have no files here.
 
-## 26. AWS is the target, and the code follows DDD, TDD and hexagonal (17 Nov 2026)
+## 4. AWS is the target, and the code follows DDD, TDD and hexagonal (17 Nov 2026)
 
 **Decided.** Two standing constraints, by the owner.
 - **The final application always runs on AWS.** The organisation is AWS native. The playground may use open source
   engines locally, but each has an AWS equivalent, and the move is configuration, not a rewrite: PostgreSQL becomes
   Amazon RDS (or Aurora) for PostgreSQL, for Playground's own database and for Keycloak's. **Keycloak stays the identity
-  provider and runs on ECS Fargate with RDS**, as in the prototype, so decision 23 is unchanged. Other pieces map as
+  provider and runs on ECS Fargate with RDS**, as in the prototype, so decision 1 is unchanged. Other pieces map as
   follows: the web session store (in memory today) to ElastiCache, secrets to Secrets Manager, project files to S3 and
   logs to CloudWatch.
 - **The application, frontend and backend, follows domain driven design, test driven development and hexagonal
@@ -127,12 +127,12 @@ PostgreSQL when `TEST_DATABASE_URL` is set. `CLAUDE.md` records both constraints
 - Schema changes: the API creates its tables at start-up. On AWS they need migrations (for example Alembic), run as a
   deploy step.
 - Whether Playground's database is RDS PostgreSQL or Aurora PostgreSQL.
-- How the web side applies hexagonal: decided in decision 27.
+- How the web side applies hexagonal: decided in decision 5.
 - Keycloak on ECS needs a production setup (not `start-dev`), its own sizing, and a decision on high availability.
 
-## 27. The frontend follows ports and adapters where they pay (18 Nov 2026)
+## 5. The frontend follows ports and adapters where they pay (18 Nov 2026)
 
-**Decided.** This narrows decision 26 for the frontend, by the owner after discussion.
+**Decided.** This narrows decision 4 for the frontend, by the owner after discussion.
 - **The frontend's server side (the BFF) follows ports and adapters, test first.** It has a pure `domain/`
   (`safeReturnTo`, when a login attempt expires, when a token needs a refresh), `application/` use cases (sign in,
   sign out, the access token with a one-at-a-time refresh, calling the API) and four ports: `IdentityProvider`,
@@ -163,17 +163,17 @@ an API call, a failed callback, sign out and a replayed cookie were checked end 
 - Tagging the web and API tests with the acceptance criteria they prove (`Verifies AC-n`), then the criteria that
   have no test yet.
 
-## 28. The requirements are cut to a core and renumbered (18 Nov 2026)
+## 6. The requirements are cut to a core and renumbered (18 Nov 2026)
 
 **Decided.** By the owner. The requirements had sprawled to 43 requirements and 72 criteria, most of them added
 in two days. They are cut to a **core of 17 requirements (13 functional, 4 non-functional) and 37 criteria**, and
 renumbered from 1 so the numbers mean something.
 
 **One-time exception to "ids are append only".** Nothing had been released, and the old numbers were full of gaps
-and merged items. Ids are append only again from now on: the next are FR-14, NFR-5 and AC-57. Decisions 23 to 27
-and the git history use the old numbers, and the lists below translate them.
+and merged items. Ids are append only again from now on: the next are FR-14, NFR-5 and AC-38. Older decision texts and
+the git history cite the old requirement numbers, and the lists below translate them.
 
-**Settled with the cut**, after an independent review of UC-P1 and UC-P4 (the eight decisions):
+**Settled with the cut**, after an independent review of the two project use cases (the eight decisions):
 - An administrator cannot name themselves as a project's manager at creation, and a person who manages a project
   creates as a manager even if they are also an administrator (FR-7, FR-8).
 - An administrator restoring a manager needs a reason, and cannot name an administrator or an inactive account
@@ -213,5 +213,31 @@ and the git history use the old numbers, and the lists below translate them.
 lessons and the test comments that cite ids were remapped. Tests tagged `Verifies AC-n` kept their meaning. The
 Access requirements are marked built.
 
-**Still open.** UC-P2 (list and open a project) is not written, so FR-12 is only partly covered by UC-P4. The use
-case ids (UC-A2, UC-A10 to UC-A15, UC-P1, UC-P4) still have gaps. The review hashes are still unstamped.
+**Still open.** The use case for listing and opening a project is not written, so FR-12 is only partly covered by UC-P2. The review hashes are still unstamped.
+
+## 7. Use cases, ontology items and decisions are renumbered (18 Nov 2026)
+
+**Decided.** By the owner: "clean up everything, including renumbering", for the same reasons as decision 6 (gaps,
+reading fatigue). Ids are append only again from now on. The next are UC-A8, UC-P3, SET-4, RULE-A5 and decision 8.
+
+**Use cases**, numbered in the order of the requirements they serve. Tasks follow (TSK-A10.1 is now TSK-A1.1).
+- UC-A10 is now **UC-A1** (sign in), UC-A11 is **UC-A2** (sign out), UC-A12 is **UC-A3** (register and wait for
+  approval), UC-A2 is **UC-A4** (approve, deactivate and reinstate), UC-A13 is **UC-A5** (view my name and role),
+  UC-A14 is **UC-A6** (keep the session alive) and UC-A15 is **UC-A7** (company single sign-on).
+- UC-P1 keeps its number (create a project). UC-P4 is now **UC-P2** (manage project members). **UC-P3** is kept for
+  the use case that lists and opens a project, which is not written yet.
+- "MK3 UC-A1" and the like are the earlier prototype's own ids and are unchanged.
+
+**Ontology.** SET-5 is now **SET-1** (account roles), SET-6 is **SET-2** (account statuses), SET-8 is **SET-3**
+(project roles) and RULE-A6 is **RULE-A4** (deactivation removes nothing). OBJ-A1, OBJ-P1, OBJ-P2, RULE-A1 to RULE-A3
+and RULE-P1 to RULE-P4 keep their numbers.
+
+**Decisions.** Decision 23 is now **1**, 24 is **2**, 25 is **3**, 26 is **4**, 27 is **5** and 28 is **6**. Their
+texts above keep the use case, ontology and requirement ids of the time, and the lists here and in decision 6
+translate them.
+
+**Cleanup.** File names carry their ids and were renamed. BC-ACCESS was rewritten to describe only what exists, and
+the account request queue, shares and evaluations of the earlier model were taken out of it and out of OBJ-A1, SET-1,
+RULE-A4 and the build spec, so there are no links to files that do not exist.
+
+**Still open.** UC-P3 is not written. UC-A6 serves no requirement yet. The review hashes are still unstamped.

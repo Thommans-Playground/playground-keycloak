@@ -1,5 +1,5 @@
 ```yaml
-id: UC-A14
+id: UC-A6
 type: use-case
 name: Keep the session alive
 status: draft
@@ -47,7 +47,7 @@ Access tokens are short, a few minutes. So that the person is not asked to sign 
 
 ## What changed from MK3
 
-| MK3 UC-A3 | Playground UC-A14 |
+| MK3 UC-A3 | Playground UC-A6 |
 |---|---|
 | `POST /auth/session/refresh`, called by the browser, with a refresh cookie | No endpoint. The web server does it inside a request, before calling the API |
 | We check the old refresh token against the Redis whitelist, rotate it, and whitelist the new one | Keycloak checks it and rotates it. We hold the latest one in the session |
@@ -75,7 +75,7 @@ This is the one with the clearest lesson. Refresh tokens rotate, so using the ol
 - Keycloak refuses the refresh token, because the session ended, the person was disabled or the token was already used: the system drops the session, and the person is asked to sign in again.
 - Keycloak cannot be reached: the same as a refusal. Open: should the session be kept for a retry?
 - The access token is still good for more than 30 seconds: nothing is refreshed.
-- A deactivated person (UC-A2) has their sessions ended in Keycloak: the next refresh is refused, so the web session ends within one access token's life at most. The API also refuses them at once, on every request.
+- A deactivated person (UC-A4) has their sessions ended in Keycloak: the next refresh is refused, so the web session ends within one access token's life at most. The API also refuses them at once, on every request.
 
 ## Postconditions
 
@@ -89,7 +89,7 @@ For the product owner to decide.
 
 ## Overview
 
-The high level picture. The detailed sequence, with step numbers that match the main flow, is in [UC-A14-keep-the-session-alive-sequence.puml](diagrams/UC-A14-keep-the-session-alive-sequence.puml).
+The high level picture. The detailed sequence, with step numbers that match the main flow, is in [UC-A6-keep-the-session-alive-sequence.puml](diagrams/UC-A6-keep-the-session-alive-sequence.puml).
 
 ```mermaid
 sequenceDiagram

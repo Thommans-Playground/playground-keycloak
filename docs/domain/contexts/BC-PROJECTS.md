@@ -7,7 +7,7 @@ kind: supporting
 owns:
   - OBJ-P1
   - OBJ-P2
-  - SET-8
+  - SET-3
 refers_to:
   - context: BC-ACCESS
     how: by account id, for who a member is
@@ -25,7 +25,7 @@ ports_needed:
     answers: Record who created a project or changed its members.
     status: planned
 must_not:
-  - Hold an account, a role of an account, a password or a token. That is Access (decision 23).
+  - Hold an account, a role of an account, a password or a token. That is Access (decision 1).
   - Let an administrator into a project's contents because they are an administrator (RULE-P2).
   - Import another context. It asks through a port, and the others ask it who is a member.
 questions:
@@ -51,13 +51,13 @@ It decides **who is in a project, and so who may see inside it**. Access says wh
 account is active. Projects says which projects they belong to and as what. Files, endpoints and evaluations live
 in other contexts. They carry a project id, and they are shown only to the project's members.
 
-Decision 24 moved membership here from Access: it is an invariant of the project (a project always has a manager),
+Decision 2 moved membership here from Access: it is an invariant of the project (a project always has a manager),
 so it belongs with the project.
 
 ## Its boundary
 
 It owns the [project](../ontology/OBJ-P1-project.md) and the [membership](../ontology/OBJ-P2-membership.md), with the
-value set [project roles](../ontology/SET-8-project-roles.md).
+value set [project roles](../ontology/SET-3-project-roles.md).
 
 It refers to an account **by id**. It asks Access one question through the `AccountStatus` port: *is this account
 active?* It never reads an account role, and it never looks at what Keycloak holds.
@@ -101,7 +101,7 @@ effect at their very next request.
 ## The use cases
 
 [UC-P1](../../usecases/UC-P1-create-a-project.md) creates a project.
-[UC-P4](../../usecases/UC-P4-manage-project-members.md) manages its members.
+[UC-P2](../../usecases/UC-P2-manage-project-members.md) manages its members.
 
 ## Questions this context leaves open
 

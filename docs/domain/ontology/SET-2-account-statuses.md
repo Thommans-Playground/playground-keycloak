@@ -1,5 +1,5 @@
 ```yaml
-id: SET-6
+id: SET-2
 type: set
 name: Account statuses
 status: draft
@@ -41,9 +41,9 @@ first request, if Keycloak says the email is verified.
 
 Deactivating also disables the person in Keycloak and ends their sessions, so a token they already hold stops
 working at their very next request. What deactivation leaves alone is in
-[RULE-A6](RULE-A6-deactivation-removes-nothing.md).
+[RULE-A4](RULE-A4-deactivation-removes-nothing.md).
 
-Approving only changes the status in Playground. Keycloak is not called (decision 24). A pending person can sign in
+Approving only changes the status in Playground. Keycloak is not called (decision 2). A pending person can sign in
 at Keycloak and holds a token, but the API refuses every request except their own status.
 
 Used by the [account](OBJ-A1-account.md).

@@ -45,7 +45,7 @@ def test_name_and_email_follow_the_token_but_identity_is_the_link(client):
     assert new["id"] == old["id"] and new["email"] == "renamed@x.test" and new["name"] == "New"
 
 
-# FR-4, AC-5, decision 24: approving does not call Keycloak
+# FR-4, AC-5, decision 2: approving does not call Keycloak
 def test_administrator_approves_and_member_cannot(client, admin, idp):
     maya, maya_id = register(client, "sub-maya", "maya@x.test")
     bob, bob_id = register(client, "sub-bob", "bob@x.test")

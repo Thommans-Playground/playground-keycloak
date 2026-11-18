@@ -1,8 +1,8 @@
-@startuml UC-A11-sign-out-sequence
+@startuml UC-A2-sign-out-sequence
 !include ../../domain/diagrams/_style.puml
 hide footbox
-title UC-A11 Sign out (detailed sequence, built)
-' Step ids are the main flow numbers of UC-A11.
+title UC-A2 Sign out (detailed sequence, built)
+' Step ids are the main flow numbers of UC-A2.
 ' Evolved from MK3 UC-A2: no refresh token to revoke, but two sessions to end.
 
 actor "Person" as P

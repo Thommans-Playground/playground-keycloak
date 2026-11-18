@@ -78,7 +78,7 @@ flowchart LR
 - An **administrator** creates a project by naming its manager. They do not join it, so they see its name and
   members and never its contents.
 - A **project manager** who creates a project becomes its manager.
-- Members are added and removed by a manager ([UC-P4](../../usecases/UC-P4-manage-project-members.md)).
+- Members are added and removed by a manager ([UC-P2](../../usecases/UC-P2-manage-project-members.md)).
 
 ## Good to know
 

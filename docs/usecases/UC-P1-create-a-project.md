@@ -105,12 +105,12 @@ Each criterion is run by a test tagged `Verifies AC-<n>`.
 
 <!-- vbench-uc:end mirror -->
 
-> Draft for the first cut of projects. It serves FR-7, FR-8 and FR-13 (for creation), and runs the criteria listed above (decisions 25 and 28).
+> Draft for the first cut of projects. It serves FR-7, FR-8 and FR-13 (for creation), and runs the criteria listed above (decisions 3 and 6).
 > Roles are names only for now: a project manager and an engineer do the same things, except that only a manager adds people.
 
 ## Description
 
-A project is where files, endpoints and evaluations live. Only the members of a project can see inside it. An administrator or a project manager can create one. An administrator **does not join** the project they create, so they never see inside it unless a manager later adds them (an administrator may only restore a manager to a project that has no active manager, never another administrator, and never themselves: see UC-P4). Because of that, an administrator must name the person who will manage it.
+A project is where files, endpoints and evaluations live. Only the members of a project can see inside it. An administrator or a project manager can create one. An administrator **does not join** the project they create, so they never see inside it unless a manager later adds them (an administrator may only restore a manager to a project that has no active manager, never another administrator, and never themselves: see UC-P2). Because of that, an administrator must name the person who will manage it.
 
 ## Preconditions
 

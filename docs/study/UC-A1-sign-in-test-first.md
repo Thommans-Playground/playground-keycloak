@@ -1,12 +1,12 @@
-# UC-A10 Sign in, test first (build lesson)
+# UC-A1 Sign in, test first (build lesson)
 
 > **This is a lesson plan, not a description of the current code.** It was written for the earlier "aiaas" project (13 Nov 2026) and has not been run against this repo. The names are adapted (Playground, `apps/web`, `playground_session`) and the ids are mapped, but **check each step against the code before you trust it**.
 
 ## What this lesson is for
 
-[Decision 26](../domain/decisions.md) says the frontend, like the backend, follows domain driven design, test driven development and hexagonal architecture (NFR-3, NFR-4, NFR-3). The API already does. **The web side does not yet:** `apps/web` signs people in correctly, with the same flow, but the code is in `src/lib/auth/`, calls `openid-client` directly and has one unit test (`safeReturnTo`).
+[Decision 4](../domain/decisions.md) says the frontend, like the backend, follows domain driven design, test driven development and hexagonal architecture (NFR-3, NFR-4, NFR-3). The API already does. **The web side does not yet:** `apps/web` signs people in correctly, with the same flow, but the code is in `src/lib/auth/`, calls `openid-client` directly and has one unit test (`safeReturnTo`).
 
-**Update (decision 27): the lean version of this is now built.** `apps/web` has `domain/`, `application/`, `adapters/` and `composition.ts`, with 36 tests, and the sign-in flow was checked end to end against Keycloak. Read the real files next to this lesson: it is the longer, fuller walk-through. Two differences from the code samples below: the repo tests with Node's built-in runner (`node:test` and `node:assert`, which run TypeScript directly on Node 26), so translate `expect(x).toBe(y)` to `assert.equal(x, y)` and skip installing vitest; and the stores are asynchronous, with `take` for read-and-forget. The lesson stays useful for **why each piece is shaped as it is**, and for the sign-out and refresh slices.
+**Update (decision 5): the lean version of this is now built.** `apps/web` has `domain/`, `application/`, `adapters/` and `composition.ts`, with 36 tests, and the sign-in flow was checked end to end against Keycloak. Read the real files next to this lesson: it is the longer, fuller walk-through. Two differences from the code samples below: the repo tests with Node's built-in runner (`node:test` and `node:assert`, which run TypeScript directly on Node 26), so translate `expect(x).toBe(y)` to `assert.equal(x, y)` and skip installing vitest; and the stores are asynchronous, with `take` for read-and-forget. The lesson stays useful for **why each piece is shaped as it is**, and for the sign-out and refresh slices.
 
 This lesson is how to rebuild sign in the other way: a pure `domain/`, a `application/` with ports, `adapters/` for Keycloak and memory, and a strict fake Keycloak for fast tests. A workable path:
 
@@ -33,12 +33,12 @@ The requirement is **FR-1** (sign in through the identity provider). SI-3 to SI-
 ## Differences from the old project to expect
 
 - The route groups here are `(public)` and `(app)`, not `(shell)`. The pages are `/dashboard` and `/admin/accounts`. There is no `/dashboard/reports` page: use `/dashboard`.
-- This repo's use case for the next lessons is [UC-A13](../usecases/UC-A13-view-my-name-and-role.md) (view my name and role), [UC-A14](../usecases/UC-A14-keep-the-session-alive.md) (refresh) and [UC-A11](UC-A11-sign-out-test-first.md) (sign out).
+- This repo's use case for the next lessons is [UC-A5](../usecases/UC-A5-view-my-name-and-role.md) (view my name and role), [UC-A6](../usecases/UC-A6-keep-the-session-alive.md) (refresh) and [UC-A2](UC-A2-sign-out-test-first.md) (sign out).
 - The API already exists, so "Signed in as ..." can come from `getMe()` in `src/lib/api.ts`.
 - Check whether `next.config.ts` enables Cache Components before you rely on the `<Suspense>` advice in section 13.
 
 > **Outcome.**
-> Open `/dashboard` as a guest, get sent to Keycloak, sign in as Maya, and land back on `/dashboard` with "Signed in as Maya" on screen. The tokens stay on the Next.js server. The browser holds one opaque cookie. Built test first: the domain and use cases are tested with fakes in milliseconds, without Keycloak. Only the frontend changes in this use case. The backend joins in [UC-A13 view my name and role](../usecases/UC-A13-view-my-name-and-role.md).
+> Open `/dashboard` as a guest, get sent to Keycloak, sign in as Maya, and land back on `/dashboard` with "Signed in as Maya" on screen. The tokens stay on the Next.js server. The browser holds one opaque cookie. Built test first: the domain and use cases are tested with fakes in milliseconds, without Keycloak. Only the frontend changes in this use case. The backend joins in [UC-A5 view my name and role](../usecases/UC-A5-view-my-name-and-role.md).
 
 ---
 
@@ -464,7 +464,7 @@ beforeEach(() => {
   };
 });
 
-describe("UC-A10 sign in", () => {
+describe("UC-A1 sign in", () => {
   it("SI-2: comes back to the page the person asked for, signed in", async () => {
     const { attemptId, redirectTo } = await startLogin(deps, "/dashboard/reports", NOW);
     expect(redirectTo).toContain("keycloak.test");
@@ -956,7 +956,7 @@ export default function Dashboard() {
   return (
     <>
       <h1 className="text-2xl font-semibold">Dashboard</h1>
-      <p className="mt-2 text-muted-foreground">You are in. Your Playground profile arrives in UC-A13.</p>
+      <p className="mt-2 text-muted-foreground">You are in. Your Playground profile arrives in UC-A5.</p>
     </>
   );
 }
@@ -965,7 +965,7 @@ export default function Dashboard() {
 `(shell)` in brackets is a **route group**: it shares the layout without adding `/shell` to the address. The page is still `/dashboard`.
 
 > **The page content is not protected by itself.**
-> The dashboard text above is static and public-safe, so it does not matter that it renders before the check finishes. From UC-A13 on, any page that shows **private data** reads it through a use case that checks the session itself. Never rely on the proxy or the header's redirect alone.
+> The dashboard text above is static and public-safe, so it does not matter that it renders before the check finishes. From UC-A5 on, any page that shows **private data** reads it through a use case that checks the session itself. Never rely on the proxy or the header's redirect alone.
 
 Finally, a Sign in button on the home page `apps/web/src/app/page.tsx` (Base UI has no `asChild`: render the button as a link with `render`):
 
@@ -1038,8 +1038,8 @@ Explain aloud, then compare with section 2:
 - [ ] `npm run lint` and `npm run build` pass.
 - [ ] `application/` imports only `domain/` and itself. `composition.ts` is the only file that names an adapter.
 - [ ] `.env.local` is not in `git status`. `.env.example` is.
-- [ ] Commit with `vbench-commit` on a `feat/UC-A10-sign-in` branch: a `test(UC-A10)` commit for the failing tests, then `feat(UC-A10)` for the code that passes them.
+- [ ] Commit with `vbench-commit` on a `feat/UC-A1-sign-in` branch: a `test(UC-A1)` commit for the failing tests, then `feat(UC-A1)` for the code that passes them.
 
-**Known gaps:** the in-memory stores forget everything on restart, and sessions never end (UC-A11 and UC-A14 fix that). The session's lifetime is not tied to Keycloak's yet.
+**Known gaps:** the in-memory stores forget everything on restart, and sessions never end (UC-A2 and UC-A6 fix that). The session's lifetime is not tied to Keycloak's yet.
 
-Next: [UC-A13 view my name and role](../usecases/UC-A13-view-my-name-and-role.md).
+Next: [UC-A5 view my name and role](../usecases/UC-A5-view-my-name-and-role.md).

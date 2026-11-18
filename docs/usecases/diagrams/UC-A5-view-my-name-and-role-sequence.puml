@@ -1,8 +1,8 @@
-@startuml UC-A13-view-my-name-and-role-sequence
+@startuml UC-A5-view-my-name-and-role-sequence
 !include ../../domain/diagrams/_style.puml
 hide footbox
-title UC-A13 View my name and role (detailed sequence, built)
-' Step ids are the main flow numbers of UC-A13. The token refresh (UC-A14) is not drawn.
+title UC-A5 View my name and role (detailed sequence, built)
+' Step ids are the main flow numbers of UC-A5. The token refresh (UC-A6) is not drawn.
 ' Evolved from MK3 UC-A4: /me now joins Keycloak's facts and our own in one answer.
 
 actor "Person" as P

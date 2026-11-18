@@ -1,5 +1,5 @@
 ```yaml
-id: UC-A10
+id: UC-A1
 type: use-case
 name: Sign in
 status: draft
@@ -69,11 +69,11 @@ Each criterion is run by a test tagged `Verifies AC-<n>`.
 
 ## Description
 
-A person proves who they are to Keycloak, and Playground trusts the signed answer. Playground never sees the password. It sends the person to Keycloak's login page, gets a one-time code back, and exchanges it for tokens on the web server. The tokens stay on the web server. The browser gets a random session cookie and nothing else. Signing in proves who the person is, not that they may use the product: that is decided by the account, on every request (see UC-A12).
+A person proves who they are to Keycloak, and Playground trusts the signed answer. Playground never sees the password. It sends the person to Keycloak's login page, gets a one-time code back, and exchanges it for tokens on the web server. The tokens stay on the web server. The browser gets a random session cookie and nothing else. Signing in proves who the person is, not that they may use the product: that is decided by the account, on every request (see UC-A3).
 
 ## What changed from MK3
 
-| MK3 UC-A1 | Playground UC-A10 |
+| MK3 UC-A1 | Playground UC-A1 |
 |---|---|
 | Our login form posts email and password to our API | Keycloak's login page. We never receive the password |
 | `AuthService` checks the password with bcrypt | Keycloak checks it |
@@ -113,7 +113,7 @@ What is new in the design language: **a login attempt is a short-lived, single-u
 ## Postconditions
 
 - A session exists on the web server. The browser holds its id and no token.
-- Nothing is created in the API database yet. The account appears on the first API request (UC-A12).
+- Nothing is created in the API database yet. The account appears on the first API request (UC-A3).
 
 ## Open questions
 
@@ -123,7 +123,7 @@ For the product owner to decide.
 
 ## Overview
 
-The high level picture. The detailed sequence, with step numbers that match the main flow, is in [UC-A10-sign-in-sequence.puml](diagrams/UC-A10-sign-in-sequence.puml).
+The high level picture. The detailed sequence, with step numbers that match the main flow, is in [UC-A1-sign-in-sequence.puml](diagrams/UC-A1-sign-in-sequence.puml).
 
 ```mermaid
 sequenceDiagram
@@ -142,5 +142,5 @@ sequenceDiagram
 
 ## Slices
 
-1. TSK-A10.1: Send the person to Keycloak and handle the callback (AC-1)
-2. TSK-A10.2: The API checks the token on every protected route (AC-32, AC-33)
+1. TSK-A1.1: Send the person to Keycloak and handle the callback (AC-1)
+2. TSK-A1.2: The API checks the token on every protected route (AC-32, AC-33)

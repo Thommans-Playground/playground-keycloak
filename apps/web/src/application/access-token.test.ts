@@ -1,4 +1,4 @@
-// Verifies UC-A14: keep the session alive. The refresh is one at a time for each session.
+// Verifies UC-A6: keep the session alive. The refresh is one at a time for each session.
 import assert from "node:assert/strict";
 import { beforeEach, test } from "node:test";
 import { makeAccessToken } from "./access-token.ts";

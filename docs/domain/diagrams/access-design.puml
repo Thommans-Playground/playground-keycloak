@@ -3,7 +3,7 @@
 title Playground Access: ports and adapters (built)
 ' palette: boundary=blue · service=green · domain=amber · port=lavender · adapter/infra=gray
 ' Shows the Access hexagon as built in apps/api: the Account, the use case service, the ports and the adapters.
-' It is the design shared by UC-A2 and UC-A10 to UC-A15.
+' It is the design shared by UC-A4 and UC-A1 to UC-A7.
 ' MK3 drew one class diagram for each use case. One serves them all here, because Keycloak removed the token,
 ' whitelist, credential and session classes.
 ' Not drawn: the web server (Next.js) and its session store, which hold the tokens and are not part of the API.

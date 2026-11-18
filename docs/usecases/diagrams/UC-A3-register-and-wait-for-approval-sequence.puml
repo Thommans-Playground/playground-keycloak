@@ -1,8 +1,8 @@
-@startuml UC-A12-register-and-wait-for-approval-sequence
+@startuml UC-A3-register-and-wait-for-approval-sequence
 !include ../../domain/diagrams/_style.puml
 hide footbox
-title UC-A12 Register and wait for approval (detailed sequence, built)
-' Step ids are the main flow numbers of UC-A12.
+title UC-A3 Register and wait for approval (detailed sequence, built)
+' Step ids are the main flow numbers of UC-A3.
 ' Evolved from MK3 UC-A5: registration is Keycloak's. The account is made on the first request.
 
 actor "Person" as P
@@ -18,7 +18,7 @@ W --> P : 1 redirect, prompt=create
 P -> K : 2 name, email, password
 K -> K : 2 create the user
 K --> P : 2 signed in, back with code
-P -> W : 3 callback, session made (UC-A10)
+P -> W : 3 callback, session made (UC-A1)
 
 == First request ==
 P -> W : 4 first request

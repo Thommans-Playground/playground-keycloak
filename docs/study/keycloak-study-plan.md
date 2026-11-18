@@ -9,7 +9,7 @@ A hands-on, follow-along plan for this playground. Work through it in order: eac
 | This plan | the order to learn Keycloak in |
 | [Auth study guide](../AUTH-STUDY-GUIDE.md) | how sign in works in this app: theory, the code flow by flow, ten experiments, the pre-deploy checklist. Read it during Stage 2 |
 | [Getting started](../GETTING-STARTED.md) | running the stack and a tour of the code |
-| [Web hexagon concepts](web-hexagon-concepts.md) and the build lessons ([sign in](UC-A10-sign-in-test-first.md), [sign out](UC-A11-sign-out-test-first.md)) | after Stage 2: rebuild the web side with ports and adapters, test first (decision 26) |
+| [Web hexagon concepts](web-hexagon-concepts.md) and the build lessons ([sign in](UC-A1-sign-in-test-first.md), [sign out](UC-A2-sign-out-test-first.md)) | after Stage 2: rebuild the web side with ports and adapters, test first (decision 4) |
 
 ## Stage 0: Prerequisites
 
@@ -31,7 +31,7 @@ A hands-on, follow-along plan for this playground. Work through it in order: eac
   - [ ] A **group**, add the user to it
 - [ ] Understand the difference between realm roles, client roles, and groups before moving on
 
-**Worth knowing for this app:** it uses **none** of roles or groups for what a person may do. Roles and status live in the API's database (decision 23, amended). The only client roles in the realm are the three `realm-management` rights on the backend's service account.
+**Worth knowing for this app:** it uses **none** of roles or groups for what a person may do. Roles and status live in the API's database (decision 1, amended). The only client roles in the realm are the three `realm-management` rights on the backend's service account.
 
 ## Stage 2: OIDC login flow end to end
 
@@ -41,7 +41,7 @@ A hands-on, follow-along plan for this playground. Work through it in order: eac
 - [ ] Configure your test client's valid redirect URIs (compare with the `playground-web` client in the realm file)
 - [ ] Walk the flow manually with curl and a browser: hit the authorization endpoint, capture the code, exchange it at the token endpoint (the guide, Part 3 Flow A and the experiments)
 - [ ] Decode the resulting access token and ID token. Identify `iss`, `aud`, `exp`, `sub`. Tokens can carry role claims (`realm_access`, `resource_access`; the service account token in experiment 3 has `resource_access`), which this app deliberately ignores
-- [ ] Wire a real app to log a user in and read the decoded token: do it by reading `apps/web/src/adapters/keycloak-identity-provider.ts` and `application/sign-in.ts`, then compare with the [sign in lesson](UC-A10-sign-in-test-first.md)
+- [ ] Wire a real app to log a user in and read the decoded token: do it by reading `apps/web/src/adapters/keycloak-identity-provider.ts` and `application/sign-in.ts`, then compare with the [sign in lesson](UC-A1-sign-in-test-first.md)
 - [ ] Try a refresh token exchange (`accessTokenFor` in `application/access-token.ts`, and the guide's Flow B)
 - [ ] Try token introspection and the logout endpoint (the logout route is in the guide's Flow D)
 
@@ -78,7 +78,7 @@ This is the "ship it to other company projects" phase. Only start once Stage 3 (
 
 ## Stage 7: Running it on AWS
 
-The final application always runs on AWS ([decision 26](../domain/decisions.md)). Keycloak stays the identity provider and runs on ECS Fargate with RDS. The [auth study guide](../AUTH-STUDY-GUIDE.md), Part 8, is the checklist.
+The final application always runs on AWS ([decision 4](../domain/decisions.md)). Keycloak stays the identity provider and runs on ECS Fargate with RDS. The [auth study guide](../AUTH-STUDY-GUIDE.md), Part 8, is the checklist.
 
 - [ ] Run Keycloak in production mode (`start`, not `start-dev`) behind a load balancer, with the right hostname and proxy settings
 - [ ] Point Keycloak at Amazon RDS for PostgreSQL, and the API's own database too (a `DATABASE_URL` change: it is already PostgreSQL)

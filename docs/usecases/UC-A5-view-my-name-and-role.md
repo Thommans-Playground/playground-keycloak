@@ -1,5 +1,5 @@
 ```yaml
-id: UC-A13
+id: UC-A5
 type: use-case
 name: View my name and role
 status: draft
@@ -55,7 +55,7 @@ The person sees who the product thinks they are. The name comes from the Keycloa
 
 ## What changed from MK3
 
-| MK3 UC-A4 | Playground UC-A13 |
+| MK3 UC-A4 | Playground UC-A5 |
 |---|---|
 | `GET /auth/me` returns the id and email from our user table | `GET /me` returns the account: name, email, role, status |
 | Our code could change the profile later | Not ours: Keycloak's account page |
@@ -73,7 +73,7 @@ This use case is a good one to learn from because it shows the **split in one re
 2. The web server asks the API for `/me` with the access token. (FR-5)
 3. The API checks the token. (NFR-1)
 4. The API finds the account by the Keycloak id, and refreshes the name and email if they changed. (FR-5)
-5. The API refuses a deactivated account. (RULE-A6)
+5. The API refuses a deactivated account. (RULE-A4)
 6. The API answers with name, email, role and status. (FR-5)
 7. The page shows the name and the role. (FR-5, AC-8)
 
@@ -81,8 +81,8 @@ This use case is a good one to learn from because it shows the **split in one re
 
 - No valid token: 401, and the person is asked to sign in. (NFR-1)
 - The account is pending: the answer is the same, with status pending, and the page shows "Waiting for approval". (AC-4)
-- The account is deactivated: 403 "Your account is deactivated." (RULE-A6)
-- The access token has expired: the web server refreshes it first (UC-A14). If Keycloak refuses, the session ends and the person signs in again.
+- The account is deactivated: 403 "Your account is deactivated." (RULE-A4)
+- The access token has expired: the web server refreshes it first (UC-A6). If Keycloak refuses, the session ends and the person signs in again.
 - The person wants to change their password or email: the page links to Keycloak's account page. Nothing here changes them.
 
 ## Postconditions
@@ -91,7 +91,7 @@ This use case is a good one to learn from because it shows the **split in one re
 
 ## Overview
 
-The high level picture. The detailed sequence, with step numbers that match the main flow, is in [UC-A13-view-my-name-and-role-sequence.puml](diagrams/UC-A13-view-my-name-and-role-sequence.puml).
+The high level picture. The detailed sequence, with step numbers that match the main flow, is in [UC-A5-view-my-name-and-role-sequence.puml](diagrams/UC-A5-view-my-name-and-role-sequence.puml).
 
 ```mermaid
 sequenceDiagram
@@ -105,5 +105,5 @@ sequenceDiagram
 
 ## Slices
 
-1. TSK-A13.1: Return the account for /me (AC-8)
-2. TSK-A13.2: Show it on the page (AC-8)
+1. TSK-A5.1: Return the account for /me (AC-8)
+2. TSK-A5.2: Show it on the page (AC-8)

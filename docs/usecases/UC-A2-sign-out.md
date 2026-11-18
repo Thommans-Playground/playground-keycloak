@@ -1,5 +1,5 @@
 ```yaml
-id: UC-A11
+id: UC-A2
 type: use-case
 name: Sign out
 status: draft
@@ -57,7 +57,7 @@ Signing out has to end two sessions, not one: the product's own session and Keyc
 
 ## What changed from MK3
 
-| MK3 UC-A2 | Playground UC-A11 |
+| MK3 UC-A2 | Playground UC-A2 |
 |---|---|
 | Revoke the refresh token's `jti` in the Redis whitelist | Nothing to revoke: we keep no whitelist |
 | Clear two cookies | Clear one session cookie, and drop the session on the server |
@@ -94,7 +94,7 @@ New in the design language: **the ID token is kept so it can be handed back to K
 
 ## Overview
 
-The high level picture. The detailed sequence, with step numbers that match the main flow, is in [UC-A11-sign-out-sequence.puml](diagrams/UC-A11-sign-out-sequence.puml).
+The high level picture. The detailed sequence, with step numbers that match the main flow, is in [UC-A2-sign-out-sequence.puml](diagrams/UC-A2-sign-out-sequence.puml).
 
 ```mermaid
 sequenceDiagram
@@ -109,5 +109,5 @@ sequenceDiagram
 
 ## Slices
 
-1. TSK-A11.1: Drop the session and clear the cookie (AC-2)
-2. TSK-A11.2: End the Keycloak session too (AC-2)
+1. TSK-A2.1: Drop the session and clear the cookie (AC-2)
+2. TSK-A2.2: End the Keycloak session too (AC-2)

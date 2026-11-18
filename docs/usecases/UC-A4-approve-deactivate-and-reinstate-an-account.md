@@ -1,5 +1,5 @@
 ```yaml
-id: UC-A2
+id: UC-A4
 type: use-case
 name: Approve, deactivate and reinstate an account
 status: draft
@@ -119,13 +119,13 @@ For the product owner to decide.
 
 ## Slices
 
-- TSK-A2.1: Approve a pending account (AC-5)
-- TSK-A2.2: A pending person cannot sign in (AC-4)
-- TSK-A2.3: Deactivate an account with a reason (AC-6)
-- TSK-A2.4: Reinstate a deactivated account (AC-7)
+- TSK-A4.1: Approve a pending account (AC-5)
+- TSK-A4.2: A pending person cannot sign in (AC-4)
+- TSK-A4.3: Deactivate an account with a reason (AC-6)
+- TSK-A4.4: Reinstate a deactivated account (AC-7)
 
 ## Not in this use case
 
-- Signing in, signing out, refreshing the session and resetting a password. Those are Keycloak's (decision 23).
+- Signing in, signing out, refreshing the session and resetting a password. Those are Keycloak's (decision 1).
 - Giving or taking away the administrator or auditor role. That is done in Keycloak, never from the browser.
-- Adding a person to a project (UC-A3).
+- Adding a person to a project (UC-P2).

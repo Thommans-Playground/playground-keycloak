@@ -1,4 +1,4 @@
-// Verifies UC-A11 (AC-2): signing out forgets our session and points at Keycloak's end session address.
+// Verifies UC-A2 (AC-2): signing out forgets our session and points at Keycloak's end session address.
 // SO-1 is AC-2. SO-2 is proposed.
 import assert from "node:assert/strict";
 import { beforeEach, test } from "node:test";

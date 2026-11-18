@@ -1,10 +1,10 @@
 # The web hexagon: concepts for sign in
 
-> **Adapted from an earlier note.** The ideas of that note about sign in itself (who is who, the code flow, `state` and PKCE, tokens and cookies, the BFF, open redirect) are now in the [auth study guide](../AUTH-STUDY-GUIDE.md), Part 1 (open redirect is [1.13](../AUTH-STUDY-GUIDE.md#113-open-redirect-where-we-send-people-after-sign-in)). This note keeps what is about **how to structure the frontend**: the **ports and adapters shape** (decision 26) and **where code lives in Next.js**.
+> **Adapted from an earlier note.** The ideas of that note about sign in itself (who is who, the code flow, `state` and PKCE, tokens and cookies, the BFF, open redirect) are now in the [auth study guide](../AUTH-STUDY-GUIDE.md), Part 1 (open redirect is [1.13](../AUTH-STUDY-GUIDE.md#113-open-redirect-where-we-send-people-after-sign-in)). This note keeps what is about **how to structure the frontend**: the **ports and adapters shape** (decision 4) and **where code lives in Next.js**.
 >
-> The `SI-n` labels are the criteria of the [sign in build lesson](UC-A10-sign-in-test-first.md). Paths such as `application/` and `adapters/` are the lesson's target layout, which `apps/web` does not have yet: today the auth code is in `src/lib/auth/`.
+> The `SI-n` labels are the criteria of the [sign in build lesson](UC-A1-sign-in-test-first.md). Paths such as `application/` and `adapters/` are the lesson's target layout, which `apps/web` does not have yet: today the auth code is in `src/lib/auth/`.
 
-**Read before:** the [auth study guide](../AUTH-STUDY-GUIDE.md). **Read after:** the [sign in build lesson](UC-A10-sign-in-test-first.md).
+**Read before:** the [auth study guide](../AUTH-STUDY-GUIDE.md). **Read after:** the [sign in build lesson](UC-A1-sign-in-test-first.md).
 
 | # | Idea | The question it answers |
 |---|---|---|
@@ -51,7 +51,7 @@ flowchart TB
 
 How to read it: arrows point **inward**. The use cases know the ports, never the adapters. `composition.ts` is the only file that says "use Keycloak and memory". The tests say "use the fake and memory" instead, and nothing else changes.
 
-| Layer | In UC-A10 | Knows about |
+| Layer | In UC-A1 | Knows about |
 |---|---|---|
 | Domain | `safeReturnTo`, `isExpired`, `signedInUser`, the `Session` and `LoginAttempt` types | nothing outside itself |
 | Application | `startLogin`, `finishLogin`, `currentUser`, and the three **ports** | the domain |
@@ -86,7 +86,7 @@ flowchart LR
 
 ## 7. Where the code lives in Next.js
 
-Next.js gives three places for code to run on the server. UC-A10 uses all three, for different jobs.
+Next.js gives three places for code to run on the server. UC-A1 uses all three, for different jobs.
 
 ```mermaid
 flowchart TB
@@ -121,7 +121,7 @@ With **Cache Components** on, Next.js splits each page into a **static shell**, 
 A folder in brackets groups pages under one layout **without** adding to the address. `app/(shell)/dashboard/page.tsx` is `/dashboard`, and it gets the shell's header and session check.
 
 > **The proxy is not a lock.**
-> Never rely on `proxy.ts` alone to protect data. It only checks that a cookie exists. Any page that shows **private data** must read it through a use case that checks the session itself (UC-A13 does this for the profile).
+> Never rely on `proxy.ts` alone to protect data. It only checks that a cookie exists. Any page that shows **private data** must read it through a use case that checks the session itself (UC-A5 does this for the profile).
 
 > **Your turn.**
 > Maya signs in, then the Next.js dev server restarts. She reloads `/dashboard`. Walk through the diagram above: which check lets her through, which one stops her, and where does she end up?
@@ -151,4 +151,4 @@ Because it is a **rule of the product** ("we only ever send people to our own pa
 
 </details>
 
-When you can answer all four without looking, you are ready for the [sign in build lesson](UC-A10-sign-in-test-first.md).
+When you can answer all four without looking, you are ready for the [sign in build lesson](UC-A1-sign-in-test-first.md).

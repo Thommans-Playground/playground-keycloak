@@ -10,7 +10,7 @@ comment: >-
   role and a history of its own.
 properties:
   - name: project role
-    type: SET-8
+    type: SET-3
     required: true
     comment: Project manager or engineer.
   - name: added

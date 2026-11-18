@@ -1,15 +1,15 @@
-# UC-A11 Sign out, test first (build lesson)
+# UC-A2 Sign out, test first (build lesson)
 
-> **A lesson plan, not a description of the current code.** Adapted from an earlier note for the "aiaas" project. Playground already signs people out: [auth/logout/route.ts](../../apps/web/src/app/auth/logout/route.ts) does it in a few lines. This lesson shows the ports and adapters version, test first, to build **after** the [sign in lesson](UC-A10-sign-in-test-first.md) (it adds `take` and `endSessionUrl` to the ports that lesson creates).
+> **A lesson plan, not a description of the current code.** Adapted from an earlier note for the "aiaas" project. Playground already signs people out: [auth/logout/route.ts](../../apps/web/src/app/auth/logout/route.ts) does it in a few lines. This lesson shows the ports and adapters version, test first, to build **after** the [sign in lesson](UC-A1-sign-in-test-first.md) (it adds `take` and `endSessionUrl` to the ports that lesson creates).
 
-**Requirement:** FR-2 (sign out). **Use case:** [UC-A11](../usecases/UC-A11-sign-out.md). **Prerequisite:** the [sign in lesson](UC-A10-sign-in-test-first.md), and [UC-A13](../usecases/UC-A13-view-my-name-and-role.md) for the profile.
+**Requirement:** FR-2 (sign out). **Use case:** [UC-A2](../usecases/UC-A2-sign-out.md). **Prerequisite:** the [sign in lesson](UC-A1-sign-in-test-first.md), and [UC-A5](../usecases/UC-A5-view-my-name-and-role.md) for the profile.
 
 | Lesson label | What it checks | In this repo |
 |---|---|---|
 | SO-1 | after sign out, the session is gone and the answer is Keycloak's end session address with the ID token as a hint | **AC-2** (FR-2) |
 | SO-2 | signing out twice with the same id is harmless, and the old id opens nothing | *proposed*: no criterion yet |
 
-> **Status: built (decision 27).** `application/sign-out.ts` and `application/sign-out.test.ts` do this, and `auth/logout/route.ts` is the thin edge. The tests are `node:test`, not vitest. The lesson stays as the walk-through of why.
+> **Status: built (decision 5).** `application/sign-out.ts` and `application/sign-out.test.ts` do this, and `auth/logout/route.ts` is the thin edge. The tests are `node:test`, not vitest. The lesson stays as the walk-through of why.
 
 ## 1. Specification
 
@@ -81,7 +81,7 @@ The fake identity provider gets `endSessionUrl` returning a fake URL that contai
 ## 5. Steps
 
 1. RED: the three tests. GREEN: `take` in `InMemorySessionStore`, `application/sign-out.ts`.
-2. `KeycloakIdentityProvider.endSessionUrl`: `oidc.buildEndSessionUrl(config, { id_token_hint, post_logout_redirect_uri })`. The post logout address must be on `playground-web`'s list (already set in the realm file, see section 3 of the [sign in lesson](UC-A10-sign-in-test-first.md)).
+2. `KeycloakIdentityProvider.endSessionUrl`: `oidc.buildEndSessionUrl(config, { id_token_hint, post_logout_redirect_uri })`. The post logout address must be on `playground-web`'s list (already set in the realm file, see section 3 of the [sign in lesson](UC-A1-sign-in-test-first.md)).
 3. `app/auth/logout/route.ts` with a `POST` handler: clears the cookie, redirects with status 303 (so the browser follows with a GET).
 4. A Sign out form in the shell header, next to "Signed in as".
 5. Acceptance: sign out, press Back, reload `/dashboard`: sent to Keycloak, which asks for the password (SO-1). Copy the cookie before signing out, put it back in the developer tools, reload: still signed out (SO-2).

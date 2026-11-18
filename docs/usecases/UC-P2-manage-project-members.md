@@ -1,5 +1,5 @@
 ```yaml
-id: UC-P4
+id: UC-P2
 type: use-case
 name: Manage project members
 status: draft
@@ -37,7 +37,7 @@ rules: [RULE-P1, RULE-P2, RULE-P3, RULE-P4]
 effects:
   - the person is, or is no longer, a member of the project, with the given role
   - an audit entry records who changed what
-evolved_from: [MK3 UC-A3 (retired, was UC-A3 in Access)]
+evolved_from: [MK3 UC-A3]
 ```
 
 # Manage project members
@@ -154,8 +154,8 @@ Each criterion is run by a test tagged `Verifies AC-<n>`.
 
 <!-- vbench-uc:end mirror -->
 
-> Draft for the first cut. It serves FR-9 to FR-13, and FR-8 and FR-4 where they touch members, and runs the criteria listed above (decisions 25 and 28).
-> Replaces the retired UC-A3. Projects owns membership (decision 24). Access is asked for the person's account status.
+> Draft for the first cut. It serves FR-9 to FR-13, and FR-8 and FR-4 where they touch members, and runs the criteria listed above (decisions 3 and 6).
+> Replaces an earlier membership use case that lived in Access. Projects owns membership (decision 2). Access is asked for the person's account status.
 
 ## Description
 
@@ -209,7 +209,7 @@ For the product owner to decide.
 
 ## Overview
 
-The high level picture. The detailed sequence is in [UC-P4-manage-project-members-sequence.puml](diagrams/UC-P4-manage-project-members-sequence.puml).
+The high level picture. The detailed sequence is in [UC-P2-manage-project-members-sequence.puml](diagrams/UC-P2-manage-project-members-sequence.puml).
 
 ```mermaid
 sequenceDiagram
@@ -226,8 +226,8 @@ sequenceDiagram
 
 ## Slices
 
-1. TSK-P4.1: A manager adds an engineer, only with an active account (AC-17, AC-18)
-2. TSK-P4.2: A manager changes a role or removes a member, rules RULE-P1 (AC-19, AC-20, AC-21, AC-22)
-3. TSK-P4.3: An administrator restores a manager and does nothing else, rules RULE-P2, RULE-P3 (AC-15, AC-23, AC-24, AC-25)
-4. TSK-P4.4: Changes to members are audited (AC-30, AC-31)
-5. TSK-P4.5: A non-member gets the same answer as for a missing project, and memberships survive deactivation, rules RULE-P4 (AC-27)
+1. TSK-P2.1: A manager adds an engineer, only with an active account (AC-17, AC-18)
+2. TSK-P2.2: A manager changes a role or removes a member, rules RULE-P1 (AC-19, AC-20, AC-21, AC-22)
+3. TSK-P2.3: An administrator restores a manager and does nothing else, rules RULE-P2, RULE-P3 (AC-15, AC-23, AC-24, AC-25)
+4. TSK-P2.4: Changes to members are audited (AC-30, AC-31)
+5. TSK-P2.5: A non-member gets the same answer as for a missing project, and memberships survive deactivation, rules RULE-P4 (AC-27)

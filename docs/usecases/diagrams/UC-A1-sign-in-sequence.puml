@@ -1,8 +1,8 @@
-@startuml UC-A10-sign-in-sequence
+@startuml UC-A1-sign-in-sequence
 !include ../../domain/diagrams/_style.puml
 hide footbox
-title UC-A10 Sign in (detailed sequence, built)
-' Step ids are the main flow numbers of UC-A10. Not drawn: the Keycloak login page itself.
+title UC-A1 Sign in (detailed sequence, built)
+' Step ids are the main flow numbers of UC-A1. Not drawn: the Keycloak login page itself.
 ' Evolved from MK3 UC-A1: no password check, no token minting, no Redis whitelist on our side.
 
 actor "Person" as P

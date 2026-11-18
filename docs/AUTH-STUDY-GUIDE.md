@@ -361,7 +361,7 @@ stateDiagram-v2
     Guest --> Attempting: /auth/login sets playground_login (10 min)
     Attempting --> SignedIn: /auth/callback sets playground_session, deletes playground_login
     Attempting --> Guest: attempt expired, used, or failed
-    SignedIn --> Guest: sign out (UC-A11) or refresh refused (UC-A14)
+    SignedIn --> Guest: sign out (UC-A2) or refresh refused (UC-A6)
 ```
 
 How to read it: the browser carries at most one small cookie at each moment. `playground_login` holds the id of the sign in attempt, for the trip to Keycloak and back. `playground_session` holds the id of the session afterwards. Both are random strings that mean nothing outside our server.
@@ -523,7 +523,7 @@ Four things to keep open while you read:
 
 First, where things live:
 
-**The web side** (`apps/web/src`) is built as ports and adapters (decision 27). Read it from the inside out:
+**The web side** (`apps/web/src`) is built as ports and adapters (decision 5). Read it from the inside out:
 
 | Layer | File | Job |
 |---|---|---|
@@ -870,7 +870,7 @@ self.audit.record(actor.id, action.value, target.id, cleaned, self._now())
 ```
 
 - `decide` ([access/domain/account.py](../apps/api/app/access/domain/account.py)) is **pure**: no database, no HTTP (not even a status code: the web layer maps a rule to one). It enforces the rules (a reason of at least three letters, nobody deactivates themselves, there is always an administrator).
-- **Keycloak is called first.** Two systems cannot change in one transaction. If Keycloak succeeds and our database then fails, a person is disabled but our record still says active. If we did it the other way and Keycloak failed, we would say deactivated while they could still sign in. Calling Keycloak first means a failure leaves *nothing* changed. (Open: a failure between the two steps. Decision 26 lists it.)
+- **Keycloak is called first.** Two systems cannot change in one transaction. If Keycloak succeeds and our database then fails, a person is disabled but our record still says active. If we did it the other way and Keycloak failed, we would say deactivated while they could still sign in. Calling Keycloak first means a failure leaves *nothing* changed. (Open: a failure between the two steps. Decision 4 lists it.)
 - **Approve does not call Keycloak.** A pending person already has a Keycloak login. Approving is only a status change in our database.
 - The API proves itself to Keycloak in [access/adapters/keycloak_admin.py](../apps/api/app/access/adapters/keycloak_admin.py) with the **client credentials** grant (Part 1.12), caching the token until 10 seconds before it expires:
 
@@ -940,7 +940,7 @@ sequenceDiagram
 
 The tokens go from Keycloak **straight to the BFF** (step 5) and into the store (step 6). The browser only gets the ticket (step 7).
 
-#### Journey b: Opening a page that needs Playground data (from UC-A13)
+#### Journey b: Opening a page that needs Playground data (from UC-A5)
 
 ```mermaid
 sequenceDiagram
@@ -960,7 +960,7 @@ sequenceDiagram
 
 The browser sent a **ticket** and got back a **page**. The access token moved only between the BFF and the API (step 4).
 
-#### Journey c: Five minutes later: the access token has expired (UC-A14)
+#### Journey c: Five minutes later: the access token has expired (UC-A6)
 
 ```mermaid
 sequenceDiagram
