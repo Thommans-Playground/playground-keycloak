@@ -124,15 +124,25 @@ slice proves, and a rule no slice carries. A slice may not prove a criterion the
 After the flow, a use case is analysed and then designed, and the change between the two is recorded so that
 nothing in the analysis is lost. The format is in `_vbench/standards/usecases.md`.
 
-1. **Analysis**: add `## Analysis`, `### Revision 1`, a Mermaid sequence diagram of the flow (the actor, the use
-   case, the domain objects and the ports it calls) and one line for each element: `A1 (object): ...`,
-   `A2 (step): ...`, `A3 (rule): ...`, `A4 (port): ...`. Ask the person to accept it, then `freeze` it.
+1. **Analysis**: add `## Analysis`, `### Revision 1`, the **analysis sequence diagram** and one line for each
+   element: `A1 (object): ...`, `A2 (step): ...`, `A3 (rule): ...`, `A4 (port): ...`. The diagram is a system
+   sequence diagram, a file `docs/usecases/diagrams/UC-<id>-<slug>-analysis-sequence.puml`: the person, Playground as
+   one box and any outside system (for example Keycloak), the messages between them and the failure branches. No
+   route, store, port, adapter, token, cookie or algorithm: those words belong to the design. Its steps carry the
+   main flow numbers. Ask the person to accept it, then `freeze` it. A use case with one system and no security
+   flow keeps a single `UC-<id>-<slug>-sequence.puml` and says in its Design section that the analysis and the
+   design are the same (decision 9).
 2. **Ontology** (a later step, not built): the objects and rules the analysis revealed go to vbench-ontology.
-3. **Design**: add `## Design`, a class diagram and one line for each element: `D1 (aggregate): ...`,
+3. **Design**: add `## Design`, the **design sequence diagram** (`UC-<id>-<slug>-design-sequence.puml`: routes, use
+   cases, ports and adapters, same step numbers), the context **class diagram** (`docs/domain/diagrams/<context>-design.puml`,
+   and one for the web server (BFF) where the use case runs there) and one line for each element: `D1 (aggregate): ...`,
    `D2 (value object)`, `D3 (port)`, `D4 (adapter)`, `D5 (domain event)`.
 4. **Changes from analysis to design**: one line for each analysis element (`A1 kept -> D1`, `A2 became -> D2:
    reason`, `A7 dropped: reason`), and `+ D8 added: reason` for a design element with no source.
-5. Run `validate` and `trace`. A lost analysis element is a problem to fix, not to hide.
+5. Run `validate` and `trace`. `validate` notes an Analysis section with no analysis (or single) sequence file, and a
+   linked `UC-*.puml` that does not exist. The link between the two levels is the change log, not the diagrams; in
+   the design, every step of the sequence lands on a class and every port and adapter carries a step. A lost
+   analysis element is a problem to fix, not to hide.
 
 Never edit a frozen analysis revision. If the analysis was wrong, add `### Revision 2` and say what changed. Do not
 drop an analysis element to make the log pass: drop it only with a reason a reader can judge.

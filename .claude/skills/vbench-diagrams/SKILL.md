@@ -26,7 +26,8 @@ in order:
 | -------------- | ------ | ----- |
 | Small, explains the words around it (a flow, a sequence, a state machine, a short ER sketch) | Mermaid, inline in the markdown | `vbench-mermaid` |
 | Too big or too precise for Mermaid, or a reference opened on its own (context map, domain model, object map, hexagon, **use case diagram**) | PlantUML, in a `diagrams/` folder | `vbench-puml` |
-| The flow of one use case (who does what, in order) | Mermaid sequence diagram, inline in the use case file | `vbench-mermaid` |
+| The sequence diagrams of one use case: **analysis** (system sequence: person, Playground as one box, outside systems; `UC-<id>-<slug>-analysis-sequence.puml`) and **design** (routes, use cases, ports, adapters; `UC-<id>-<slug>-design-sequence.puml`), or one `UC-<id>-<slug>-sequence.puml` when there is one system and no security flow | PlantUML, in `docs/usecases/diagrams/` (decision 9) | `vbench-puml` |
+| The class diagram of a context (aggregates, ports, adapters), and one for the web server (BFF) where relevant | PlantUML, `docs/domain/diagrams/<context>-design.puml` | `vbench-puml` |
 
 If both answers say "Mermaid is fine, nobody opens it alone", do not make a `.puml` file.
 

@@ -69,6 +69,12 @@ Example:
 | `vbench-diagrams`, `vbench-mermaid`, `vbench-puml` | Diagrams |
 | `vbench-tdd` | Build a slice test first: red, green, refactor, with a pause for review after each step. Drives the three TDD agents below |
 
+A use case has an **analysis** sequence diagram (a system sequence: the person, the product as one box, outside systems,
+no design words; `UC-<id>-<slug>-analysis-sequence.puml`, frozen with the Analysis section) and a **design** sequence
+diagram (routes, use cases, ports, adapters; `UC-<id>-<slug>-design-sequence.puml`) beside the context class diagram. One
+system and no security flow: one `UC-<id>-<slug>-sequence.puml`. The link between the levels is the change log.
+`vbench-uc` teaches it, `vbench-puml` draws it and `vbench-spec-challenger` checks it.
+
 The standards the skills apply are in `_vbench/standards/`. Edit them to change a rule for your repo.
 Starter PlantUML style files for the diagram skills are in `_vbench/templates/`. Copy them next to your diagrams
 (`vbench-puml` says when).

@@ -9,6 +9,17 @@ Standalone, reference-quality diagrams: a context map, a domain model, an object
 hexagon, an ER. They are too big or too precise for Mermaid, or someone will open, print or
 quote them on their own. Small inline diagrams are Mermaid: use `vbench-mermaid`.
 
+**The sequence diagrams of a use case are `.puml` too** (decision 9), in `docs/usecases/diagrams/`:
+- `UC-<id>-<slug>-analysis-sequence.puml`, a system sequence diagram: the person, Playground as one box, any outside
+  system, the messages and failure branches. No route, store, port, adapter, token, cookie or algorithm. Frozen with
+  the Analysis section; its steps carry the main flow numbers.
+- `UC-<id>-<slug>-design-sequence.puml`: routes, use cases, ports and adapters, with the same step numbers. Every
+  step lands on a class in the context class diagram (`docs/domain/diagrams/<context>-design.puml`, and one for the web
+  server (BFF) where the use case runs there), and every port and adapter on that diagram carries a step.
+- One system and no security flow: a single `UC-<id>-<slug>-sequence.puml`.
+Check before finishing: no design word in the analysis file; every port and adapter named in the design file exists
+in the class diagram.
+
 The standard is in `_vbench/standards/diagrams.md` and the look is in the repo's `_style.puml` (usually
 `docs/domain/diagrams/_style.puml`). If the repo has none yet, copy `_vbench/templates/_style.puml` and
 `_legend.puml` next to the first diagram. If a rule changes, change those, not this file.
