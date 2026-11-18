@@ -332,8 +332,11 @@ and decision 1 amended, the flows, both diagrams, the postcondition and the open
 of steps, the spec and BC-ACCESS, and a note in OBJ-A1 (identity).
 
 **Still open.**
-- Email verification is deferred to UC-A7 (single sign-on). The owner of the question is the product owner, and it
-  stays in one place, here.
+- Email verification is not required for now, and sign in stays simple authentication, by the owner: the product is
+  deployed inside the corporate network. A person's name and email are therefore as Keycloak holds them, unverified,
+  and an administrator approving a pending account relies on the network boundary and their own knowledge of the
+  person. Revisit it with UC-A7 (single sign-on), or before the product is reachable from outside the corporate
+  network. It stays one question, held here.
 - The web server (BFF) class diagram is not drawn yet (decision 9).
 - Lifetimes of a login attempt (10 minutes) and of a session (30 minutes idle, 8 hours) are in the code and the spec,
   and BC-ACCESS still calls them a proposal.
