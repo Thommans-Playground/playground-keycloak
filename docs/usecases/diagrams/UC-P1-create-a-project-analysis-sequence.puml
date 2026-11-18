@@ -1,0 +1,33 @@
+@startuml UC-P1-create-a-project-analysis-sequence
+!include ../../domain/diagrams/_style.puml
+hide footbox
+title UC-P1 Create a project (analysis: system sequence)
+' Analysis level (decision 9): the person and Playground as one box. No outside system takes part.
+' It is split from the design because a security rule shapes the steps (an administrator is not a member of
+' the project they create, RULE-P2). No route, store, port, adapter, token or cookie.
+' Step numbers are the main flow numbers of UC-P1.
+' Not drawn: the order of the refusals, and whether a refused creation is audited (open questions 3 and 4),
+' and a manager who names a manager (open question 1).
+
+actor "Administrator\nor manager" as U
+participant "Playground" as PG #E6F0FB
+
+U -> PG : 1 create a project\n(name, manager)
+alt not an administrator,\nmanages no project
+  PG --> U : 2 refused
+else
+  alt name empty or over 100
+    PG --> U : 3 refused
+  else an administrator who manages no project
+    alt no manager, not active,\nor the administrator
+      PG --> U : 4 refused
+    else
+      PG -> PG : 5 create it,\nnamed person is manager,\nadministrator is no member
+    end
+  else a person who manages a project
+    PG -> PG : 5 create it,\nthe person is manager
+  end
+end
+PG -> PG : 6 record who and\nwho the manager is
+PG --> U : 7 the new project
+@enduml

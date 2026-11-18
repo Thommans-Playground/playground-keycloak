@@ -1,7 +1,8 @@
-@startuml UC-A5-view-my-name-and-role-sequence
+@startuml UC-A5-view-my-name-and-role-design-sequence
 !include ../../domain/diagrams/_style.puml
 hide footbox
-title UC-A5 View my name and role (detailed sequence, built)
+title UC-A5 View my name and role (design sequence, built)
+' Design level (decision 9): the routes, use cases, ports and adapters that do the work. The analysis level is UC-A5-view-my-name-and-role-analysis-sequence.puml.
 ' Step ids are the main flow numbers of UC-A5. The token refresh (UC-A6) is not drawn.
 ' Evolved from MK3 UC-A4: /me now joins Keycloak's facts and our own in one answer.
 

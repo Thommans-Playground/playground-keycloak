@@ -1,7 +1,8 @@
-@startuml UC-A7-sign-in-through-company-single-sign-on-sequence
+@startuml UC-A7-sign-in-through-company-single-sign-on-design-sequence
 !include ../../domain/diagrams/_style.puml
 hide footbox
-title UC-A7 Sign in through company SSO (detailed sequence, planned)
+title UC-A7 Sign in through company SSO (design sequence, planned)
+' Design level (decision 9). The analysis level is UC-A7-sign-in-through-company-single-sign-on-analysis-sequence.puml.
 ' Step ids are the main flow numbers of UC-A7. Release 2: not built. Steps 1 and 5 are UC-A1.
 ' Evolved from MK3 UC-A6: a realm setting, with no change to our code.
 

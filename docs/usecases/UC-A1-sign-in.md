@@ -123,7 +123,7 @@ For the product owner to decide.
 
 ## Overview
 
-The high level picture. The detailed sequence, with step numbers that match the main flow, is in [UC-A1-sign-in-sequence.puml](diagrams/UC-A1-sign-in-sequence.puml).
+The high level picture. The analysis sequence is in [UC-A1-sign-in-analysis-sequence.puml](diagrams/UC-A1-sign-in-analysis-sequence.puml) and the design sequence, with the routes, ports and adapters, in [UC-A1-sign-in-design-sequence.puml](diagrams/UC-A1-sign-in-design-sequence.puml). Both use the step numbers of the main flow.
 
 ```mermaid
 sequenceDiagram
@@ -138,6 +138,67 @@ sequenceDiagram
     W-->>P: session cookie
     P->>W: later requests
     W->>A: with the access token
+```
+
+## Analysis
+
+### Revision 1
+
+What the person and Playground say to each other, with no route, store, port or token. The diagram is
+[UC-A1-sign-in-analysis-sequence.puml](diagrams/UC-A1-sign-in-analysis-sequence.puml). Not frozen yet: freeze it after the open gaps of this use case are settled.
+
+- A1 (step): The person asks to sign in
+- A2 (step): Playground sends the person to Keycloak
+- A3 (step): The person proves who they are to Keycloak
+- A4 (step): Keycloak sends the person back with proof
+- A5 (step): Playground checks that the proof is genuine and belongs to this sign in
+- A6 (step): Playground signs the person in and sends them to the page they asked for
+- A7 (step): On each later request, Playground checks the proof and then the account
+- A8 (rule): A sign in is single use and short lived
+- A9 (rule): Signing in proves who the person is, not what they may do
+- A10 (rule): The person is sent only to a page of our own
+- A11 (refusal): The sign in is missing, used already or expired
+- A12 (refusal): The person cancels, or Keycloak refuses
+- A13 (refusal): The proof fails a check
+- A14 (refusal): A request with no valid proof is refused
+- A15 (outside system): Keycloak
+- A16 (object): Account
+
+## Design
+
+The parts that do the work, drawn in [UC-A1-sign-in-design-sequence.puml](diagrams/UC-A1-sign-in-design-sequence.puml). The class diagram of the API side is [access-design.puml](../domain/diagrams/access-design.puml). The web server side (decision 5) has no class diagram yet (decision 9, still open).
+
+- D1 (route): The login and callback routes, kept thin
+- D2 (use case): The sign in use case of the web server
+- D3 (port): IdentityProvider
+- D4 (port): LoginAttemptStore
+- D5 (port): SessionStore
+- D6 (port): BackendApi
+- D7 (adapter): Keycloak through openid-client, behind IdentityProvider
+- D8 (adapter): In-memory login attempt and session stores, ElastiCache on AWS
+- D9 (domain rule): safeReturnTo, and when a login attempt expires
+- D10 (service): The API TokenVerifier
+- D11 (aggregate): Account, read by the API on every request
+
+## Changes from analysis to design
+
+```
+A1 became -> D1
+A2 became -> D2, D3, D4
+A3 dropped: Keycloak's own login page, nothing of ours is built for it
+A4 became -> D1, D3
+A5 became -> D2, D3, D4
+A6 became -> D2, D5, D8
+A7 became -> D6, D10, D11
+A8 became -> D4, D8, D9
+A9 became -> D10, D11
+A10 became -> D9
+A11 became -> D2, D4
+A12 became -> D2
+A13 became -> D2, D3
+A14 became -> D10
+A15 became -> D3, D7
+A16 became -> D11
 ```
 
 ## Slices

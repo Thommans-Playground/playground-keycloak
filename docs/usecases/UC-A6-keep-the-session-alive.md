@@ -89,7 +89,7 @@ For the product owner to decide.
 
 ## Overview
 
-The high level picture. The detailed sequence, with step numbers that match the main flow, is in [UC-A6-keep-the-session-alive-sequence.puml](diagrams/UC-A6-keep-the-session-alive-sequence.puml).
+The high level picture. The analysis sequence is in [UC-A6-keep-the-session-alive-analysis-sequence.puml](diagrams/UC-A6-keep-the-session-alive-analysis-sequence.puml) and the design sequence, with the routes, ports and adapters, in [UC-A6-keep-the-session-alive-design-sequence.puml](diagrams/UC-A6-keep-the-session-alive-design-sequence.puml). Both use the step numbers of the main flow.
 
 ```mermaid
 sequenceDiagram
@@ -98,4 +98,47 @@ sequenceDiagram
     W->>W: access token nearly expired?
     W->>K: refresh token (one at a time)
     K-->>W: new tokens
+```
+
+## Analysis
+
+### Revision 1
+
+What the person and Playground say to each other, with no route, store, port or token. The diagram is
+[UC-A6-keep-the-session-alive-analysis-sequence.puml](diagrams/UC-A6-keep-the-session-alive-analysis-sequence.puml). Not frozen yet.
+
+- A1 (step): A signed-in person asks for something
+- A2 (step): Playground sees that the person's sign in is about to run out
+- A3 (step): If a renewal is already running for this person, Playground waits for it and uses its result
+- A4 (step): Otherwise Playground asks Keycloak to renew the sign in
+- A5 (step): Keycloak renews it
+- A6 (step): Playground keeps the renewed sign in and goes on with the request
+- A7 (rule): Only one renewal runs at a time for a person, so two requests at once do not log the person out
+- A8 (refusal): Keycloak refuses the renewal, so the person is asked to sign in again
+- A9 (outside system): Keycloak
+
+## Design
+
+The parts that do the work, drawn in [UC-A6-keep-the-session-alive-design-sequence.puml](diagrams/UC-A6-keep-the-session-alive-design-sequence.puml). The web server side has no class diagram yet (decision 9, still open).
+
+- D1 (domain rule): the access token ends in less than 30 seconds
+- D2 (use case): The web server's accessToken(), which finds the session and refreshes when needed
+- D3 (port): SessionStore, with the one-at-a-time refresh lock
+- D4 (port): IdentityProvider, the refresh token grant
+- D5 (port): BackendApi, called with the access token
+- D6 (adapter): Keycloak through openid-client, behind IdentityProvider
+- D7 (adapter): In-memory session store and lock, ElastiCache on AWS
+
+## Changes from analysis to design
+
+```
+A1 became -> D2, D3
+A2 became -> D1, D2
+A3 became -> D2, D3, D7
+A4 became -> D2, D4
+A5 became -> D4, D6
+A6 became -> D2, D3, D5
+A7 became -> D3, D7
+A8 became -> D2, D3, D4
+A9 became -> D4, D6
 ```

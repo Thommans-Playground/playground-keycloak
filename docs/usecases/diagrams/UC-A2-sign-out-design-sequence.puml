@@ -1,7 +1,8 @@
-@startuml UC-A2-sign-out-sequence
+@startuml UC-A2-sign-out-design-sequence
 !include ../../domain/diagrams/_style.puml
 hide footbox
-title UC-A2 Sign out (detailed sequence, built)
+title UC-A2 Sign out (design sequence, built)
+' Design level (decision 9). The analysis level is UC-A2-sign-out-analysis-sequence.puml.
 ' Step ids are the main flow numbers of UC-A2.
 ' Evolved from MK3 UC-A2: no refresh token to revoke, but two sessions to end.
 

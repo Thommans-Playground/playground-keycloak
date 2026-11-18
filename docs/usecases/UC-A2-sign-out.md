@@ -94,7 +94,7 @@ New in the design language: **the ID token is kept so it can be handed back to K
 
 ## Overview
 
-The high level picture. The detailed sequence, with step numbers that match the main flow, is in [UC-A2-sign-out-sequence.puml](diagrams/UC-A2-sign-out-sequence.puml).
+The high level picture. The analysis sequence is in [UC-A2-sign-out-analysis-sequence.puml](diagrams/UC-A2-sign-out-analysis-sequence.puml) and the design sequence, with the route, ports and adapters, in [UC-A2-sign-out-design-sequence.puml](diagrams/UC-A2-sign-out-design-sequence.puml). Both use the step numbers of the main flow.
 
 ```mermaid
 sequenceDiagram
@@ -105,6 +105,56 @@ sequenceDiagram
     W->>W: drop our session
     W-->>P: go to Keycloak
     P->>K: end its session
+```
+
+## Analysis
+
+### Revision 1
+
+Split into two diagrams (decision 9) because two systems take part (Playground and Keycloak) and a security rule
+shapes the steps (only a post signs out). What the person and Playground say to each other, with no route, store,
+port or token. The diagram is [UC-A2-sign-out-analysis-sequence.puml](diagrams/UC-A2-sign-out-analysis-sequence.puml).
+Not frozen.
+
+- A1 (step): The person asks to sign out
+- A2 (step): Playground ends the person's sign in with Playground
+- A3 (step): Playground sends the person to Keycloak to end the sign in there
+- A4 (step): Keycloak ends its own sign in and sends the person back to the home page
+- A5 (step): The person is left signed out of Playground
+- A6 (step): The next request asks the person to sign in again
+- A7 (rule): Signing out ends two sign ins, ours and Keycloak's
+- A8 (rule): A request from a link or an image on another site does nothing
+- A9 (refusal): The person has no sign in, or it has already gone: they still land on the home page
+- A10 (refusal): Keycloak cannot be reached: our sign in still ends, the person lands on the home page
+- A11 (outside system): Keycloak
+
+## Design
+
+The parts that do the work, drawn in [UC-A2-sign-out-design-sequence.puml](diagrams/UC-A2-sign-out-design-sequence.puml).
+The web server side has no class diagram yet (decision 9, still open).
+
+- D1 (route): The logout route, which answers a post only
+- D2 (use case): The sign out use case of the web server
+- D3 (port): SessionStore
+- D4 (port): IdentityProvider, which gives the end-session address
+- D5 (adapter): In-memory session store, ElastiCache on AWS
+- D6 (adapter): Keycloak through openid-client, behind IdentityProvider
+- D7 (domain rule): The ID token is kept in the session so it can be given back as a hint
+
+## Changes from analysis to design
+
+```
+A1 became -> D1
+A2 became -> D2, D3, D5
+A3 became -> D2, D4, D6
+A4 dropped: Keycloak's own end-session page, nothing of ours is built for it
+A5 became -> D1
+A6 became -> D1, D3
+A7 became -> D2, D7
+A8 became -> D1
+A9 became -> D1, D2, D3
+A10 became -> D2, D4
+A11 became -> D4, D6
 ```
 
 ## Slices

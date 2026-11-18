@@ -1,0 +1,33 @@
+@startuml UC-A6-keep-the-session-alive-analysis-sequence
+!include ../../domain/diagrams/_style.puml
+hide footbox
+title UC-A6 Keep the session alive (analysis: system sequence)
+' Analysis level (decision 9): the person, Playground as one box, and Keycloak as an outside system.
+' No route, store, port, adapter, token or cookie. Step numbers are the main flow numbers of UC-A6.
+' Refusal reasons (session ended, person disabled, already used) are in the main text of UC-A6.
+' Not decided yet, so not drawn: Keycloak being unreachable (open in UC-A6, "should the session be kept for a retry?").
+
+actor "Person" as P
+participant "Playground" as PG #E6F0FB
+participant "Keycloak\n(outside system)" as K #ECECEC
+
+P -> PG : 1 ask for something\n(signed in)
+PG -> PG : 2 sign in about\nto run out?
+alt still good (> 30 s)
+  PG --> P : the answer
+else about to run out
+  alt a renewal is running
+    PG -> PG : 3 wait for it,\nuse its result
+  else none running
+    PG -> K : 4 renew this sign in
+    alt Keycloak refuses
+      K --> PG : refused
+      PG --> P : sign in again
+    else
+      K --> PG : 5 a renewed sign in
+      PG -> PG : 6 keep it
+    end
+  end
+  PG --> P : 6 the answer
+end
+@enduml

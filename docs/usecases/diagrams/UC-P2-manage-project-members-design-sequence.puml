@@ -1,7 +1,8 @@
-@startuml UC-P2-manage-project-members-sequence
+@startuml UC-P2-manage-project-members-design-sequence
 !include ../../domain/diagrams/_style.puml
 hide footbox
-title UC-P2 Manage project members (detailed sequence, planned)
+title UC-P2 Manage project members (design sequence, planned)
+' Design level (decision 9). The analysis level is UC-P2-manage-project-members-analysis-sequence.puml.
 ' Step ids are the main flow numbers of UC-P2. Not built yet.
 ' An administrator may only add a manager to a project with no active manager, and never themselves.
 

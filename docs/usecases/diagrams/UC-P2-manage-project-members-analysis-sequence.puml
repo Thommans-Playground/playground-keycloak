@@ -1,0 +1,43 @@
+@startuml UC-P2-manage-project-members-analysis-sequence
+!include ../../domain/diagrams/_style.puml
+hide footbox
+title UC-P2 Manage project members (analysis: system sequence)
+' Analysis level (decision 9): the person and Playground as one box. No outside system takes part.
+' Split from the design because security rules shape the steps (who may change members, an administrator's
+' one narrow power, the same answer for a project that is not yours).
+' No route, store, port, adapter, token or cookie. Step numbers are the main flow numbers of UC-P2.
+' Not drawn: the reason an administrator gives when restoring a manager (the use case keeps it in the audit
+' entry, but no step asks for it), and the affected person's next request (step 9).
+
+actor "Caller" as U
+participant "Playground" as PG #E6F0FB
+
+U -> PG : 1 open a project\nand its members
+U -> PG : 2 add, change a role,\nor remove\n3 (add) the person, the role
+alt caller is not in the project
+  PG --> U : 4 same answer as\na missing project
+else caller is an engineer
+  PG --> U : 4 refused
+else administrator, not a manager here
+  alt adds a manager, none active,\nan active person, not themselves
+    PG -> PG : 7 add the manager
+    PG -> PG : 8 record, with the reason
+    PG --> U : updated members
+  else anything else
+    PG -> PG : 8 record the attempt
+    PG --> U : 4 refused
+  end
+else caller manages this project
+  alt person to add not active
+    PG --> U : 5 refused, one answer
+  else no active manager would remain
+    PG --> U : 6 refused
+  else person to change or\nremove is not a member
+    PG --> U : refused
+  else
+    PG -> PG : 7 apply the change
+    PG -> PG : 8 record who, what, whom
+    PG --> U : updated members
+  end
+end
+@enduml

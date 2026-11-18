@@ -1,7 +1,8 @@
-@startuml UC-P1-create-a-project-sequence
+@startuml UC-P1-create-a-project-design-sequence
 !include ../../domain/diagrams/_style.puml
 hide footbox
-title UC-P1 Create a project (detailed sequence, planned)
+title UC-P1 Create a project (design sequence, planned)
+' Design level (decision 9). The analysis level is UC-P1-create-a-project-analysis-sequence.puml.
 ' Step ids are the main flow numbers of UC-P1. Not built yet.
 
 actor "Administrator\nor manager" as U

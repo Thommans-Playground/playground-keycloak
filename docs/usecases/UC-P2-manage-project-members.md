@@ -209,7 +209,7 @@ For the product owner to decide.
 
 ## Overview
 
-The high level picture. The detailed sequence is in [UC-P2-manage-project-members-sequence.puml](diagrams/UC-P2-manage-project-members-sequence.puml).
+The high level picture. The analysis sequence is in [UC-P2-manage-project-members-analysis-sequence.puml](diagrams/UC-P2-manage-project-members-analysis-sequence.puml) and the design sequence, with the contexts and ports, in [UC-P2-manage-project-members-design-sequence.puml](diagrams/UC-P2-manage-project-members-design-sequence.puml). Both use the step numbers of the main flow.
 
 ```mermaid
 sequenceDiagram
@@ -222,6 +222,75 @@ sequenceDiagram
     A->>C: is the person's account active?
     A->>P: add the member (last manager kept)
     A-->>M: updated member list
+```
+
+## Analysis
+
+### Revision 1
+
+Split into two diagrams (decision 9). Only Playground takes part, but security rules shape the steps: who may change
+members, an administrator's one narrow power, and the same answer for a project that is not yours. What the person
+and Playground say to each other, with no route, store, port or token. The diagram is
+[UC-P2-manage-project-members-analysis-sequence.puml](diagrams/UC-P2-manage-project-members-analysis-sequence.puml).
+Not frozen.
+
+- A1 (step): The person opens a project and its member list
+- A2 (step): The person chooses to add, change a role or remove
+- A3 (step): For an addition, the person gives the person to add and the project role
+- A4 (step): Playground checks the person asking manages this project
+- A5 (step): Playground checks the person to add has an active account
+- A6 (step): Playground checks the project keeps an active manager
+- A7 (step): Playground applies the change
+- A8 (step): Playground records who, what and who it affected
+- A9 (step): The change takes effect at the affected person's next request
+- A10 (rule): Only a manager of the project changes its members
+- A11 (rule): An administrator may only add a manager to a project with no active manager, never themselves, never another administrator
+- A12 (rule): A project always keeps an active manager
+- A13 (refusal): A person not in the project gets the same answer as for a project that does not exist
+- A14 (refusal): An engineer, or an administrator who is not a manager, tries to change members, and the administrator's attempt is recorded
+- A15 (refusal): The person to add is not an active account, with one answer
+- A16 (refusal): The change would remove or demote the last active manager
+- A17 (refusal): The person to change or remove is not a member
+- A18 (object): Project
+- A19 (object): Membership
+
+## Design
+
+A plan, not built yet: the diagram is [UC-P2-manage-project-members-design-sequence.puml](diagrams/UC-P2-manage-project-members-design-sequence.puml),
+marked planned. It keeps to the ports of decision 3 and BC-PROJECTS (`AccountStatus`, `AuditLog`). There is no
+class diagram of the Projects context yet.
+
+- D1 (route): The member routes (add, change a role, remove), kept thin
+- D2 (use case): The manage members use case of the API
+- D3 (aggregate): Project with its memberships, which keeps the last manager rule
+- D4 (domain rule): Who may change members, the administrator's one case, the last manager (RULE-P1, RULE-P2, RULE-P3, RULE-P4)
+- D5 (port): AccountStatus, answered by Access
+- D6 (port): AuditLog
+- D7 (port): A project repository for Projects (name to be settled when it is built)
+- D8 (domain rule): Membership is read on every request, so a change takes effect at once
+
+## Changes from analysis to design
+
+```
+A1 became -> D1, D2, D7
+A2 became -> D1
+A3 became -> D1
+A4 became -> D2, D3, D4, D7
+A5 became -> D2, D5
+A6 became -> D3, D4
+A7 became -> D2, D3, D7
+A8 became -> D2, D6
+A9 became -> D8
+A10 became -> D4
+A11 became -> D4
+A12 became -> D3, D4
+A13 became -> D2, D4
+A14 became -> D2, D4, D6
+A15 became -> D2, D5
+A16 became -> D3, D4
+A17 became -> D3, D4
+A18 became -> D3
+A19 became -> D3
 ```
 
 ## Slices

@@ -91,7 +91,7 @@ This use case is a good one to learn from because it shows the **split in one re
 
 ## Overview
 
-The high level picture. The detailed sequence, with step numbers that match the main flow, is in [UC-A5-view-my-name-and-role-sequence.puml](diagrams/UC-A5-view-my-name-and-role-sequence.puml).
+The high level picture. The analysis sequence is in [UC-A5-view-my-name-and-role-analysis-sequence.puml](diagrams/UC-A5-view-my-name-and-role-analysis-sequence.puml) and the design sequence, with the routes, use cases, ports and adapters, in [UC-A5-view-my-name-and-role-design-sequence.puml](diagrams/UC-A5-view-my-name-and-role-design-sequence.puml). Both use the step numbers of the main flow.
 
 ```mermaid
 sequenceDiagram
@@ -101,6 +101,53 @@ sequenceDiagram
     A->>A: name from the token
     A->>A: role and status from the account
     A-->>P: name and role
+```
+
+## Analysis
+
+### Revision 1
+
+What the person and Playground say to each other, with no route, store, port or token. The diagram is
+[UC-A5-view-my-name-and-role-analysis-sequence.puml](diagrams/UC-A5-view-my-name-and-role-analysis-sequence.puml). Not frozen yet.
+
+- A1 (step): The person opens their profile
+- A2 (step): Playground checks who the person is
+- A3 (step): Playground finds the person's account and refreshes the name and email
+- A4 (step): Playground refuses a deactivated account
+- A5 (step): Playground shows the name and the role, and the status
+- A6 (rule): The name and email are Keycloak's, copied in. The role and status are Playground's
+- A7 (rule): A person waiting for approval may see their own profile
+- A8 (refusal): A request with no valid proof is refused
+- A9 (refusal): A deactivated account is refused
+- A10 (object): Account
+
+## Design
+
+The parts that do the work, drawn in [UC-A5-view-my-name-and-role-design-sequence.puml](diagrams/UC-A5-view-my-name-and-role-design-sequence.puml). The class diagram of the API side is [access-design.puml](../domain/diagrams/access-design.puml). The web server side has no class diagram yet (decision 9, still open).
+
+- D1 (route): The web profile page, which asks the API for /me
+- D2 (route): The API /me route
+- D3 (service): The API TokenVerifier
+- D4 (use case): AccessService.account_for
+- D5 (port): AccountRepository
+- D6 (adapter): SQLAlchemy over PostgreSQL, behind AccountRepository
+- D7 (port): BackendApi, on the web server
+- D8 (domain rule): A deactivated account is refused (RULE-A4)
+- D9 (aggregate): Account
+
+## Changes from analysis to design
+
+```
+A1 became -> D1, D7
+A2 became -> D2, D3
+A3 became -> D4, D5, D6
+A4 became -> D4, D8
+A5 became -> D1, D2
+A6 became -> D4, D9
+A7 became -> D2
+A8 became -> D3
+A9 became -> D8
+A10 became -> D9
 ```
 
 ## Slices

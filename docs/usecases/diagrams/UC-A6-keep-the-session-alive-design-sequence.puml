@@ -1,7 +1,8 @@
-@startuml UC-A6-keep-the-session-alive-sequence
+@startuml UC-A6-keep-the-session-alive-design-sequence
 !include ../../domain/diagrams/_style.puml
 hide footbox
-title UC-A6 Keep the session alive (detailed sequence, built)
+title UC-A6 Keep the session alive (design sequence, built)
+' Design level (decision 9). The analysis level is UC-A6-keep-the-session-alive-analysis-sequence.puml.
 ' Step ids are the main flow numbers of UC-A6.
 ' Evolved from MK3 UC-A3: no refresh endpoint or whitelist. One refresh at a time for each session.
 

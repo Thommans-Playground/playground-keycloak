@@ -152,7 +152,7 @@ For the product owner to decide.
 
 ## Overview
 
-The high level picture. The detailed sequence is in [UC-P1-create-a-project-sequence.puml](diagrams/UC-P1-create-a-project-sequence.puml).
+The high level picture. The analysis sequence is in [UC-P1-create-a-project-analysis-sequence.puml](diagrams/UC-P1-create-a-project-analysis-sequence.puml) and the design sequence, with the contexts and ports, in [UC-P1-create-a-project-design-sequence.puml](diagrams/UC-P1-create-a-project-design-sequence.puml). Both use the step numbers of the main flow.
 
 ```mermaid
 sequenceDiagram
@@ -164,6 +164,66 @@ sequenceDiagram
     A->>P: create the project and its manager
     P-->>A: project
     A-->>U: the new project
+```
+
+## Analysis
+
+### Revision 1
+
+Split into two diagrams (decision 9). Only Playground takes part, but a security rule shapes the steps: an
+administrator who creates a project is not a member of it (RULE-P2). What the person and Playground say to each
+other, with no route, store, port or token. The diagram is
+[UC-P1-create-a-project-analysis-sequence.puml](diagrams/UC-P1-create-a-project-analysis-sequence.puml). Not frozen.
+
+- A1 (step): The person asks to create a project, with a name, and a manager if they are an administrator
+- A2 (step): Playground checks the person may create a project
+- A3 (step): Playground trims the name and checks its length
+- A4 (step): For an administrator who manages no project, Playground checks the named manager
+- A5 (step): Playground creates the project and its manager
+- A6 (step): Playground records who created it and who the manager is
+- A7 (step): The person sees the new project
+- A8 (rule): A project has a manager from the start
+- A9 (rule): An administrator is not a member of the project they create
+- A10 (refusal): The person is neither an administrator nor a manager of any project
+- A11 (refusal): The name is empty, only spaces, or too long
+- A12 (refusal): No manager named, or the named person is not an active account, with one answer
+- A13 (refusal): An administrator names themselves as the manager
+- A14 (object): Project
+- A15 (object): Membership
+
+## Design
+
+A plan, not built yet: the diagram is [UC-P1-create-a-project-design-sequence.puml](diagrams/UC-P1-create-a-project-design-sequence.puml),
+marked planned. It keeps to the ports of decision 3 and BC-PROJECTS (`AccountStatus`, `AuditLog`). There is no
+class diagram of the Projects context yet.
+
+- D1 (route): The create project route, kept thin
+- D2 (use case): The create project use case of the API
+- D3 (aggregate): Project, which holds its memberships
+- D4 (domain rule): Project name trimmed and 1 to 100 characters, a project always has a manager (RULE-P1, RULE-P4)
+- D5 (domain rule): An administrator is not made a member (RULE-P2)
+- D6 (port): AccountStatus, answered by Access
+- D7 (port): AuditLog
+- D8 (port): A project repository for Projects (name to be settled when it is built)
+
+## Changes from analysis to design
+
+```
+A1 became -> D1, D2
+A2 became -> D2, D6
+A3 became -> D4
+A4 became -> D2, D6
+A5 became -> D2, D3, D8
+A6 became -> D2, D7
+A7 became -> D1
+A8 became -> D3, D4
+A9 became -> D5
+A10 became -> D2
+A11 became -> D4
+A12 became -> D2, D6
+A13 became -> D2
+A14 became -> D3
+A15 became -> D3
 ```
 
 ## Slices

@@ -113,7 +113,7 @@ For the product owner to decide.
 
 ## Overview
 
-The high level picture. The detailed sequence, with step numbers that match the main flow, is in [UC-A3-register-and-wait-for-approval-sequence.puml](diagrams/UC-A3-register-and-wait-for-approval-sequence.puml).
+The high level picture. The analysis sequence is in [UC-A3-register-and-wait-for-approval-analysis-sequence.puml](diagrams/UC-A3-register-and-wait-for-approval-analysis-sequence.puml) and the design sequence, with the routes, use cases, ports and adapters, in [UC-A3-register-and-wait-for-approval-design-sequence.puml](diagrams/UC-A3-register-and-wait-for-approval-design-sequence.puml). Both use the step numbers of the main flow.
 
 ```mermaid
 sequenceDiagram
@@ -124,6 +124,64 @@ sequenceDiagram
     P->>A: first request (token)
     A->>A: no account yet: make a pending one
     A-->>P: waiting for approval
+```
+
+## Analysis
+
+### Revision 1
+
+What the person and Playground say to each other, with no route, store, port or token. The diagram is
+[UC-A3-register-and-wait-for-approval-analysis-sequence.puml](diagrams/UC-A3-register-and-wait-for-approval-analysis-sequence.puml). Not frozen yet.
+
+- A1 (step): The person asks to create an account and is sent to Keycloak to register
+- A2 (step): The person gives a name, an email and a password to Keycloak, which registers and signs them in
+- A3 (step): The person comes back and Playground signs them in, as in UC-A1
+- A4 (step): The person's first request reaches Playground
+- A5 (step): Playground looks for the person's account
+- A6 (step): Playground makes an account that is waiting for approval
+- A7 (step): Playground records the registration in the audit
+- A8 (step): Playground refuses everything except the person's own status
+- A9 (step): The person sees "Waiting for approval"
+- A10 (rule): Playground never holds the password
+- A11 (rule): The person is known to Playground by the Keycloak id, never by email
+- A12 (rule): An email on the setup list that Keycloak says is verified gets an active administrator account
+- A13 (refusal): A person waiting for approval asks for anything but their own status
+- A14 (outside system): Keycloak
+- A15 (object): Account
+
+## Design
+
+The parts that do the work, drawn in [UC-A3-register-and-wait-for-approval-design-sequence.puml](diagrams/UC-A3-register-and-wait-for-approval-design-sequence.puml). The class diagram of the API side is [access-design.puml](../domain/diagrams/access-design.puml). The web server side has no class diagram yet (decision 9, still open).
+
+- D1 (route): The web login route with prompt=create, and the callback, kept thin
+- D2 (route): The API route that verifies the token and refuses a pending account anything but /me
+- D3 (use case): AccessService.account_for, which finds or makes the account
+- D4 (port): AccountRepository
+- D5 (port): AuditLog
+- D6 (port): IdentityProvider, on the web server, towards Keycloak
+- D7 (adapter): Keycloak through openid-client, behind IdentityProvider
+- D8 (adapter): SQLAlchemy over PostgreSQL, behind AccountRepository and AuditLog
+- D9 (domain rule): Account starts as user and pending, and RULE-A1 for the setup administrator
+- D10 (aggregate): Account
+
+## Changes from analysis to design
+
+```
+A1 became -> D1, D6
+A2 dropped: Keycloak's own registration page, nothing of ours is built for it
+A3 became -> D1, D6
+A4 became -> D2
+A5 became -> D3, D4, D8
+A6 became -> D3, D9, D10
+A7 became -> D3, D5, D8
+A8 became -> D2
+A9 became -> D2
+A10 became -> D10
+A11 became -> D4, D10
+A12 became -> D3, D9
+A13 became -> D2
+A14 became -> D6, D7
+A15 became -> D10
 ```
 
 ## Slices

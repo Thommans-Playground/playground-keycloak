@@ -1,7 +1,8 @@
-@startuml UC-A3-register-and-wait-for-approval-sequence
+@startuml UC-A3-register-and-wait-for-approval-design-sequence
 !include ../../domain/diagrams/_style.puml
 hide footbox
-title UC-A3 Register and wait for approval (detailed sequence, built)
+title UC-A3 Register and wait for approval (design sequence, built)
+' Design level (decision 9): the routes, use cases, ports and adapters that do the work. The analysis level is UC-A3-register-and-wait-for-approval-analysis-sequence.puml.
 ' Step ids are the main flow numbers of UC-A3.
 ' Evolved from MK3 UC-A5: registration is Keycloak's. The account is made on the first request.
 
