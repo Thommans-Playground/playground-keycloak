@@ -54,6 +54,7 @@
 | ID | Kind | Name | Statement | Quality attribute | Stimulus | Environment | Response | Measure | Verified by | Release | Built | Status | Sources |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | NFR-1 | quality | Access is checked on the server | The system shall check access on the server for every command and read. | Security | A person asks for something their role does not allow. | Normal operation, with the browser's role switch off. | The server refuses the request. | An acceptance test for each role shows a refusal on every command and every read. | inspection | R1 | no | draft | release plan R1; risk register R-08; north star |
+| NFR-5 | quality | Security events are logged | The system shall write a log line for every refused sign in, every refused request and every session that starts or ends. | Security | A sign in is refused, a request is refused, or a session starts or ends. | Normal operation. | One log line is written with the event, the result, the person's id when it is known and a hash of the session id, and with no token or code in it. | An acceptance test for each event finds its log line, and none holds a token or a code. | acceptance test | R1 | no | draft | decision 12; vbench-security-reviewer on UC-A1 |
 
 **Notes**
 

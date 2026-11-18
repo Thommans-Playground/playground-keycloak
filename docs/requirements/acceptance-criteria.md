@@ -46,6 +46,9 @@
 | AC-40 | FR-1 | a sign in whose return address points to another site | the person signs in | they land on a page of ours, never on the other site | acceptance | draft |  |
 | AC-41 | FR-1 | a signed-in person | the browser's cookies and storage are inspected | they hold the session id and no token | acceptance | draft |  |
 | AC-42 | FR-1 | a sign in finished in a browser that did not start it | it reaches the system | it is refused and no session is made | acceptance | draft |  |
-| AC-43 | FR-1 | a person who is already signed in | they sign in again | the earlier session no longer works | acceptance | draft |  |
+| AC-43 | FR-1 | a browser that already holds a session | they sign in again | the earlier session of this browser no longer works | acceptance | draft |  |
 | AC-44 | FR-1 | an identity provider that cannot be reached | a person asks to sign in | they are told sign in is not available, and no session is made | acceptance | draft |  |
-| AC-45 | FR-4 | a deactivated account whose person still signs in, for example re-enabled in Keycloak by hand | they sign in | they see that the account is deactivated, and their session ends | acceptance | draft |  |
+| AC-45 | FR-4 | a deactivated account whose person still signs in, for example re-enabled in Keycloak by hand | they sign in | they see that the account is deactivated, and both their session and Keycloak's end | acceptance | draft |  |
+| AC-46 | FR-1 | a sign in started in two tabs of one browser | the older one finishes | it is refused, and the newer one can still finish | acceptance | draft |  |
+| AC-47 | FR-3 | a pending account | its person signs in | they land on the waiting page | acceptance | draft |  |
+| AC-48 | NFR-5 | a refused sign in, a refused request, and a session that starts and ends | each happens | each writes one log line, and none holds a token or a code | acceptance | draft |  |
