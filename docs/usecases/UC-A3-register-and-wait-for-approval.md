@@ -109,7 +109,7 @@ New in the design language: **lazy provisioning**. The person exists in two plac
 
 For the product owner to decide.
 
-1. Keycloak's registration page does not check the email by default. Whether to require it, and whether to limit how fast registrations can come from one place, is still undecided.
+1. Decided (decision 10): email verification is off for now, because the product is deployed inside the corporate network. A role is never given from an unverified email. Whether to limit how fast registrations can come from one place is still undecided.
 
 ## Overview
 

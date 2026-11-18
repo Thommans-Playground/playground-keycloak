@@ -27,6 +27,7 @@ criteria:
   - id: AC-27
   - id: AC-30
   - id: AC-31
+  - id: AC-32
 parameters:
   - project
   - person (an active account)
@@ -45,7 +46,7 @@ evolved_from: [MK3 UC-A3]
 <!-- vbench-uc:begin mirror (generated from the requirements files, do not edit here: change the row, then run sync) -->
 
 <details>
-<summary>The requirements and criteria it runs, copied from docs/requirements (7 requirements, 13 criteria). Do not edit.</summary>
+<summary>The requirements and criteria it runs, copied from docs/requirements (7 requirements, 14 criteria). Do not edit.</summary>
 
 ## What this serves
 
@@ -143,9 +144,15 @@ evolved_from: [MK3 UC-A3]
 - When their attempt to change a project's members is refused
 - Then an audit entry records the attempt
 
+**AC-32** (acceptance, proves NFR-1)
+
+- Given any role, and a person who is not a member
+- When each makes a command or read it may not, even if the screen hides it
+- Then the server refuses it
+
 ## How it is verified
 
-- acceptance: AC-15, AC-17, AC-18, AC-19, AC-20, AC-23, AC-24, AC-25, AC-27, AC-30, AC-31
+- acceptance: AC-15, AC-17, AC-18, AC-19, AC-20, AC-23, AC-24, AC-25, AC-27, AC-30, AC-31, AC-32
 - unit: AC-21, AC-22
 
 Each criterion is run by a test tagged `Verifies AC-<n>`.
@@ -180,6 +187,7 @@ A project manager decides who is in their project, and whether each person is a 
 ## Other flows
 
 - An engineer tries to change members: refused.
+- Any role, and a person who is not a member, makes a command or read it may not, even if the screen hides it: the server refuses it. (AC-32) AC-32 moved here from UC-A1 (decision 10). UC-P1 proves it for creating a project and UC-P2 for managing members. The rest of "every command and read" is proven by later use cases.
 - A person who is not in the project tries to change members: the same answer as for a project that does not exist. (FR-12, AC-27)
 - An administrator who is not a manager of the project tries to add an engineer, change a role or remove anyone: refused, and the attempt is recorded. (FR-8, FR-13, AC-31)
 - An administrator tries to add themselves to a project: refused, whatever the role, and the attempt is recorded. (FR-8, FR-13, AC-15, AC-31)

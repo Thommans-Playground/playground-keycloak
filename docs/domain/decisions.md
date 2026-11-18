@@ -14,7 +14,7 @@ Two choices, made by the owner:
   Playground's own database, and not in Keycloak or the token. The token carries who the person is. Roles are managed
   from our application and are changed only with our rules and an audit entry.
 
-The server checks the token on every request (signature, expiry, issuer) and then checks project membership (NFR-1).
+The server checks the token on every request (signature, expiry, issuer) and then checks project membership (NFR-1). **Amended 18 Nov 2026:** the check also requires the audience, so a token issued for another client is refused (decision 10). A token with a missing, expired, wrong issuer or wrong audience gets 401.
 Access gets one port, `IdentityProvider`, with a stub adapter (a fixed set of people) for the early slices and a
 Keycloak adapter later.
 
@@ -259,7 +259,7 @@ enforced on the server). Keeping pending in our API needs no Keycloak extension.
 **Changes.** UC-A4 (step 5, effects, postconditions, TSK-A4.2) and the criteria AC-5, AC-6 and AC-7 now say this.
 
 **Still open.**
-- Which change comes first, and what happens when the Keycloak call fails (UC-A4, open question 1).
+- Which change comes first, and what happens when the Keycloak call fails: decided in decision 10.
 - UC-A1 does not yet say what a deactivated person sees: Keycloak's own refusal page, or a refusal from our API for a
   person whose Keycloak account was re-enabled by hand. The criteria of UC-A1 (AC-1 is untestable as written), the
   audience check in decision 1, where the pending account is created, identity by `sub` and not by email, and

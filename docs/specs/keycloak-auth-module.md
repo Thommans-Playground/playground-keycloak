@@ -98,5 +98,5 @@ Time-limited access (undecided), project membership (moved to Projects), the acc
 ## Open questions carried over
 
 - Open: can `manage-users` assign roles? In Keycloak, yes, it can map roles. The backend account is therefore limited by realm design (no sensitive realm roles exist) and not by Keycloak rights alone.
-- Account created in Keycloak and ours together: if one side fails (BC-ACCESS Q6). Here Keycloak is called first, and our account changes only after it succeeds.
+- Account created in Keycloak and ours together: if one side fails (BC-ACCESS Q6). For a deactivation our database changes first and Keycloak is disabled after it (decision 10): if Keycloak fails, the deactivation stands, the administrator is told and the call is retried. A reinstatement is the reverse, Keycloak first, so a failure locks the person out.
 - Rate limiting on registration is not done.

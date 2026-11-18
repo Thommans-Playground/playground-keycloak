@@ -11,11 +11,11 @@ properties:
   - name: name
     type: text
     required: true
-    comment: How the person is shown to others, for example in a project's member list. Copied from Keycloak at each sign-in.
+    comment: How the person is shown to others, for example in a project's member list. Copied from the token at each request.
   - name: email
     type: text
     required: true
-    comment: Also the person's sign-in name in Keycloak. Copied from Keycloak at each sign-in. One account for each email.
+    comment: Also the person's sign-in name in Keycloak. Copied from the token at each request. The email is an attribute and not the identity: a new `sub` with a known email becomes a second pending account, which administrators can see.
   - name: identity
     type: text
     required: true
@@ -74,7 +74,7 @@ Keycloak does not know our rules. It cannot say who administers this product, or
 | Fact | Kept by |
 | ---- | ------- |
 | Password, sign-in, second factor, sessions | Keycloak. We never hold them. |
-| Name and email | Keycloak first. Our account keeps a copy, refreshed at each sign-in. |
+| Name and email | Keycloak first. Our account keeps a copy, refreshed from the token at each request. |
 | The link between the two | The Keycloak id, never the email |
 | Role, status, who created the account, when | Playground, in this account |
 | Which projects they are in, and as what | Playground, in Projects, by account id |

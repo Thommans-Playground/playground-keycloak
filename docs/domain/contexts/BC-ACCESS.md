@@ -120,10 +120,11 @@ so a deactivation does not wait for a token to expire. How the tokens, cookies a
 For the product owner to decide.
 
 1. Should an administrator need a second factor, set up in Keycloak?
-2. How long does a session last? The proposal is 30 minutes idle and 8 hours at most.
+2. Decided: a session lasts 30 minutes idle and 8 hours at most (as the build spec states).
 3. How is an account matched to a person who signs in through a company login: by email, then the Keycloak id is
-   stored? And if an administrator's action changes Keycloak but not our database, what happens (Keycloak is called first,
-   so nothing changes on a Keycloak failure)?
+   stored? And if an administrator's action changes Keycloak but not our database, what happens (decided in decision 10:
+   for a deactivation our database changes first and the deactivation stands if Keycloak fails, for a reinstatement
+   Keycloak is first, so a failure locks the person out)?
 
 ## Built, and not yet built
 
