@@ -38,7 +38,7 @@ Sign in as `admin@example.test` / `Admin123!` (first administrator) or `maya@exa
 
 ```bash
 cd apps/api && uv run pytest     # domain rules, token checks, account flows (fake Keycloak admin), on SQLite in memory
-cd apps/api && TEST_DATABASE_URL=postgresql+psycopg://playground:playground@localhost:5433/playground uv run pytest   # the same tests on PostgreSQL (docker compose up -d api-db)
+cd apps/api && TEST_DATABASE_URL=postgresql+psycopg://playground:playground@localhost:5433/playground_test uv run pytest   # the same tests on PostgreSQL (docker compose up -d api-db). Use the *_test database: the tests drop every table, and refuse any other name
 cd apps/web && npm test          # safeReturnTo
 ```
 

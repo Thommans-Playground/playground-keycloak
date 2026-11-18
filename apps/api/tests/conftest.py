@@ -12,6 +12,7 @@ from app.access.adapters.sql import Base
 from app.auth import TokenVerifier
 from app.config import Settings
 from tests.fakes import FakeIdp
+from tests.safety import check_test_database
 from app.main import create_app
 
 ISSUER = "http://kc.test/realms/playground"
@@ -37,7 +38,7 @@ def make_engine():
     Set TEST_DATABASE_URL to run the same tests on PostgreSQL, the engine of Amazon RDS."""
     url = os.environ.get("TEST_DATABASE_URL")
     if url:
-        engine = create_engine(url)
+        engine = create_engine(check_test_database(url))  # refuses a database that is not named *_test
         Base.metadata.drop_all(engine)  # a clean slate for each test: create_app makes the tables
         return engine
     return create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)

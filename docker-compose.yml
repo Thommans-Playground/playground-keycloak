@@ -13,6 +13,7 @@ services:
       POSTGRES_PASSWORD: playground
     volumes:
       - api-db:/var/lib/postgresql/data
+      - ./apps/api/db/create-test-database.sql:/docker-entrypoint-initdb.d/create-test-database.sql:ro
     ports:
       - "5433:5432"   # for running the API or its tests outside Docker. Keycloak's own database stays private.
     healthcheck:
