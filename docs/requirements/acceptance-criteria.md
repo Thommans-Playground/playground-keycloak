@@ -4,7 +4,7 @@
 
 | ID | Proves | Given | When | Then | Level | Status | Notes |
 |---|---|---|---|---|---|---|---|
-| AC-1 | FR-1 | an approved person | they sign in through the identity provider | they can use the product | acceptance | draft |  |
+| AC-1 | FR-1 | an active account | its person signs in through the identity provider, then asks for their own account | they have a session, and the answer shows their account | acceptance | draft |  |
 | AC-2 | FR-2 | a signed-in person | they sign out | their session stops working and they must sign in again | acceptance | draft |  |
 | AC-3 | FR-3 | a person the system does not know | they make a request, then another | one pending account exists for them | acceptance | draft |  |
 | AC-4 | FR-3 | a pending account | its owner asks for their status, then for anything else | the status says it is waiting, and everything else is refused | acceptance | draft |  |
@@ -36,8 +36,16 @@
 | AC-30 | FR-13; FR-11 | a project | a member is added, changed or removed, or a manager is restored with a reason | each has an entry saying who, what and whom, and the reason for a restore | acceptance | draft |  |
 | AC-31 | FR-13 | an administrator | their attempt to change a project's members is refused | an audit entry records the attempt | acceptance | draft |  |
 | AC-32 | NFR-1 | any role, and a person who is not a member | each makes a command or read it may not, even if the screen hides it | the server refuses it | acceptance | draft |  |
-| AC-33 | NFR-1 | a request with no token, an expired one, or one not from our identity provider | it reaches a protected route | it is refused | acceptance | draft |  |
+| AC-33 | NFR-1 | a request with no token, an expired one, one from another issuer, or one made for another audience | it reaches a protected route | it is answered 401, and no account or audit entry is made | acceptance | draft |  |
 | AC-34 | NFR-2 | the final deployment design | its data stores and hosting are listed | each is an AWS service | inspection | draft |  |
 | AC-35 | NFR-2 | the API | it runs, and its tests are run on PostgreSQL | it uses PostgreSQL and they pass | integration | draft |  |
 | AC-36 | NFR-3 | the domain code | its imports are checked, and its tests run with fake adapters | it imports nothing outside itself and the tests pass unchanged | unit | draft | Tests: test_architecture.py, architecture.test.ts, test_service.py. |
 | AC-37 | NFR-4 | a rule or a use case, and its code | the history is read | its test came before, or with, the code | inspection | draft |  |
+| AC-38 | FR-1 | a sign in that was never started, was already used, or has expired | the identity provider sends the person back for it | no session is made, and the person is asked to sign in again | acceptance | draft |  |
+| AC-39 | FR-1 | a person who cancels at the identity provider, or a sign in whose proof does not check out | they are sent back | no session is made, and they are told the sign in did not work | acceptance | draft |  |
+| AC-40 | FR-1 | a sign in whose return address points to another site | the person signs in | they land on a page of ours, never on the other site | acceptance | draft |  |
+| AC-41 | FR-1 | a signed-in person | the browser's cookies and storage are inspected | they hold the session id and no token | acceptance | draft |  |
+| AC-42 | FR-1 | a sign in finished in a browser that did not start it | it reaches the system | it is refused and no session is made | acceptance | draft |  |
+| AC-43 | FR-1 | a person who is already signed in | they sign in again | the earlier session no longer works | acceptance | draft |  |
+| AC-44 | FR-1 | an identity provider that cannot be reached | a person asks to sign in | they are told sign in is not available, and no session is made | acceptance | draft |  |
+| AC-45 | FR-4 | a deactivated account whose person still signs in, for example re-enabled in Keycloak by hand | they sign in | they see that the account is deactivated, and their session ends | acceptance | draft |  |
