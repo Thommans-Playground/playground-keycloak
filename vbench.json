@@ -1,0 +1,21 @@
+{
+  "id_prefix": "UC",
+  "system_name": "Playground",
+  "areas": { "A": "BC-ACCESS", "P": "BC-PROJECTS" },
+  "providers": ["keycloak"],
+  "tests_dirs": ["apps/api/tests", "apps/web/src"],
+
+  "git": {
+    "remote": "origin",
+    "repo": "Thommans-Playground/playground-keycloak",
+    "base_branch": "main",
+    "pr": { "draft": false, "labels": [], "reviewers": [] }
+  },
+  "stacks": {
+    "api": { "path": "apps/api", "language": "python", "framework": "fastapi",
+             "tests": "uv run pytest", "database": "postgresql" },
+    "web": { "path": "apps/web", "language": "typescript", "framework": "nextjs",
+             "tests": "npm test", "typecheck": "npm run typecheck",
+             "lint": "npm run lint", "build": "npm run build" }
+  }
+}

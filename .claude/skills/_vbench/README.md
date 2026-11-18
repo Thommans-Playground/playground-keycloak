@@ -41,6 +41,8 @@ Put it at the repo root or in `.claude/`. Leave out any key to keep its default.
 | `commit_types`, `branch_types` | Conventional Commits | Allowed types |
 | `max_branch`, `max_summary`, `max_title` | 60, 72, 72 | Length limits |
 | `paths` | `docs/...` | Where the requirements files, use cases and ontology live |
+| `git` | `origin`, no repo, PR defaults off | Where work is pushed and where pull requests go: `remote`, `repo` (`owner/name`), `base_branch`, and `pr` defaults (`draft`, `labels`, `reviewers`). `git.base_branch` is used when the top level `base_branch` is not set |
+| `stacks` | none | The code stacks, one entry for each app: `path` and `language` (required), `framework`, `tests`, `typecheck`, `lint`, `build` (commands, from the repo root) and `database` |
 | `diagram` | `{}` | Optional colours and names for generated use case diagrams |
 
 Example:

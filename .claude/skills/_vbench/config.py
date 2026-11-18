@@ -23,6 +23,14 @@ Keys:
   branch_types     allowed non use case branch types (the use case type is always `feat`).
   max_branch, max_summary, max_title   length limits.
   paths            where the requirement, criteria, use case and domain files live, relative to the root.
+  git              where work is pushed and where pull requests go:
+                     remote       the git remote to push to (default "origin")
+                     repo         "<owner>/<name>" on the host, for links when `gh` is not available
+                     base_branch  the branch pull requests target. Used when the top level base_branch is not set
+                     pr           defaults for a new pull request: draft (true or false), labels, reviewers (lists)
+  stacks           the code stacks of the repo, one entry for each app, by name:
+                     path (required), language (required), framework, tests, typecheck, lint, build, database
+                   `tests`, `typecheck`, `lint` and `build` are the commands to run, from the repo root.
 """
 import copy
 import json
@@ -45,6 +53,9 @@ DEFAULTS = {
     "max_branch": 60,
     "max_summary": 72,
     "max_title": 72,
+    "git": {"remote": "origin", "repo": None, "base_branch": None,
+            "pr": {"draft": False, "labels": [], "reviewers": []}},
+    "stacks": {},
     "paths": {
         "req": "docs/requirements/requirements.md",
         "ac": "docs/requirements/acceptance-criteria.md",
@@ -78,6 +89,50 @@ def find_root(start=None):
     return git_root(here) or here
 
 
+GIT_KEYS = {"remote", "repo", "base_branch", "pr"}
+PR_KEYS = {"draft", "labels", "reviewers"}
+STACK_KEYS = {"path", "language", "framework", "tests", "typecheck", "lint", "build", "database"}
+
+
+def _unknown(where, given, allowed, f):
+    extra = sorted(set(given) - allowed)
+    if extra:
+        raise SystemExit(f"{f}: unknown key '{extra[0]}' in {where}. Known keys: {', '.join(sorted(allowed))}")
+
+
+def check_git(v, f):
+    if not isinstance(v, dict):
+        raise SystemExit(f"{f}: 'git' must be an object")
+    _unknown("git", v, GIT_KEYS, f)
+    for k in ("remote", "repo", "base_branch"):
+        if k in v and v[k] is not None and not isinstance(v[k], str):
+            raise SystemExit(f"{f}: git.{k} must be text")
+    pr = v.get("pr", {})
+    if not isinstance(pr, dict):
+        raise SystemExit(f"{f}: git.pr must be an object")
+    _unknown("git.pr", pr, PR_KEYS, f)
+    if "draft" in pr and not isinstance(pr["draft"], bool):
+        raise SystemExit(f"{f}: git.pr.draft must be true or false")
+    for k in ("labels", "reviewers"):
+        if k in pr and not (isinstance(pr[k], list) and all(isinstance(x, str) for x in pr[k])):
+            raise SystemExit(f"{f}: git.pr.{k} must be a list of text")
+
+
+def check_stacks(v, f):
+    if not isinstance(v, dict):
+        raise SystemExit(f"{f}: 'stacks' must be an object with one entry for each app")
+    for name, stack in v.items():
+        if not isinstance(stack, dict):
+            raise SystemExit(f"{f}: stacks.{name} must be an object")
+        _unknown(f"stacks.{name}", stack, STACK_KEYS, f)
+        for need in ("path", "language"):
+            if not stack.get(need):
+                raise SystemExit(f"{f}: stacks.{name} needs '{need}'")
+        for k, val in stack.items():
+            if not isinstance(val, str):
+                raise SystemExit(f"{f}: stacks.{name}.{k} must be text")
+
+
 def load(root=None):
     """The settings for this root: DEFAULTS with the repo's vbench.json laid over them."""
     root = Path(root) if root else find_root()
@@ -92,11 +147,20 @@ def load(root=None):
             for k, v in user.items():
                 if k in ("paths", "diagram"):
                     cfg[k].update(v)
+                elif k == "git":
+                    check_git(v, f)
+                    pr = {**cfg["git"]["pr"], **v.get("pr", {})}
+                    cfg["git"] = {**cfg["git"], **v, "pr": pr}
+                elif k == "stacks":
+                    check_stacks(v, f)
+                    cfg["stacks"] = v
                 elif k in cfg:
                     cfg[k] = v
                 else:
                     raise SystemExit(f"{f}: unknown key '{k}'. Known keys: {', '.join(sorted(cfg))}")
             break
+    if not cfg["base_branch"] and cfg["git"]["base_branch"]:
+        cfg["base_branch"] = cfg["git"]["base_branch"]   # one place to say it is enough
     return cfg
 
 
