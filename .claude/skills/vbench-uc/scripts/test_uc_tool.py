@@ -296,6 +296,20 @@ class Tests(unittest.TestCase):
     D = "- D1 (aggregate): Evaluation\n- D2 (value object): TargetSnapshot\n- D3 (port): EndpointReader"
     LOG = "- A1 kept -> D1\n- A2 became -> D2: matches the target snapshot\n- A3 renamed -> D3"
 
+    def test_analysis_needs_a_sequence_diagram_and_links_must_exist(self):
+        root, p = self._with_sections(analysis=self.A)
+        _, out = run(root, "validate")
+        self.assertIn("Analysis section but no UC-E1-<slug>-analysis-sequence.puml", out)
+        p.write_text(p.read_text() + "\nSee diagrams/UC-E1-move-design-sequence.puml\n")
+        _, out = run(root, "validate")
+        self.assertIn("UC-E1-move-design-sequence.puml, which does not exist", out)
+        d = root / "docs/usecases/diagrams"
+        d.mkdir()
+        (d / "UC-E1-move-analysis-sequence.puml").write_text("@startuml\n@enduml\n")
+        (d / "UC-E1-move-design-sequence.puml").write_text("@startuml\n@enduml\n")
+        _, out = run(root, "validate")
+        self.assertNotIn("sequence.puml", out)
+
     def test_no_analysis_is_only_a_note(self):
         root, _ = self._with_sections()
         code, out = run(root, "validate")
