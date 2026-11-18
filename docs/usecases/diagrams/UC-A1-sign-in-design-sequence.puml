@@ -1,56 +1,80 @@
 @startuml UC-A1-sign-in-design-sequence
 !include ../../domain/diagrams/_style.puml
 hide footbox
-title UC-A1 Sign in (design sequence, built)
-' Design level (decision 9): the routes, session store and API that do the work. The analysis level is UC-A1-sign-in-analysis-sequence.puml.
-' Step ids are the main flow numbers of UC-A1. Not drawn: the Keycloak login page itself.
-' Evolved from MK3 UC-A1: no password check, no token minting, no Redis whitelist on our side.
+skinparam sequenceMessageAlign left
+skinparam maxMessageSize 120
+skinparam ParticipantPadding 8
+skinparam BoxPadding 4
+title UC-A1 Sign in (design sequence), steps 1 to 8
+' Design level (decision 9), drawn against docs/domain/diagrams/bff-design.puml (decisions 5 and 12).
+' Step numbers are the main flow numbers of UC-A1 (1 to 10). Steps 9 and 10 (first API call, landing, later requests)
+' are in UC-A1-sign-in-design-sequence-later-requests.puml, because one page cannot hold them. Analysis level: UC-A1-sign-in-analysis-sequence.puml.
+' BUILT: everything not marked PLANNED. PLANNED (decision 12, not built): marked "PLANNED" in the text and the
+' notes: the state check in the use case before the exchange, attempts found by state, ending this browser's
+' earlier session, the deactivated page and ending both sessions, the log lines (SecurityLog, NFR-5).
+' Not drawn: Keycloak's login page, the log line of every branch (one note says they all log), pages and components.
+' "IdentityProvider" is the BFF port (sign in, refresh, end session), not the API port of the same name.
 
 actor "Person" as P
-participant "Web routes\n/auth/login\n/auth/callback" as W #E6F0FB
-participant "Session store\n(server memory)" as S #EEE7F7
+participant "Routes" as R #E6F0FB
+participant "SignIn" as SI #E7F4EA
+participant "IdentityProvider\n(Keycloak)" as IDP #EEE7F7
+participant "LoginAttempt-\nStore" as LAS #EEE7F7
+participant "Session-\nStore" as SS #EEE7F7
 participant "Keycloak" as K #ECECEC
-participant "API\nTokenVerifier" as A #E7F4EA
 
-P -> W : 1 ask to sign in
-W -> W : 2 make state, nonce, PKCE verifier
-W -> S : 2 keep the login attempt
-W --> P : 2 redirect to Keycloak
-P -> K : 3 email and password
-K --> P : 4 redirect back with code
-P -> W : 5 callback (code, state)
-W -> S : 5 take the attempt (once)
-alt attempt missing, used or expired
-  W --> P : /?error=login_expired
+P -> R : 1 ask to sign in, /auth/login
+R -> SI : startLogin(returnTo)
+SI -> SI : 2 safeReturnTo(returnTo)
+SI -> IDP : 2 beginLogin()
+IDP -> K : discovery
+alt Keycloak unreachable (AC-44)
+  K --> IDP : no answer
+  IDP --> R : error
+  R --> P : /login?error=\nidentity_provider_unavailable
 else
-  W -> K : 6 exchange code + PKCE verifier
-  alt exchange, state or nonce check fails
-    W --> P : /?error=login_failed
+  IDP --> SI : redirectTo, state, nonce, verifier
+  SI -> LAS : 2 save(attemptId, attempt)
+  SI --> R : attemptId, redirectTo
+  R --> P : 2 login cookie, redirect to Keycloak
+end
+P -> K : 3 email and password
+K --> P : 4 redirect back with code, state
+P -> R : 5 /auth/callback + login cookie
+R -> SI : finishLogin(cookie, URL)
+SI -> LAS : 5 take(attemptId), once only
+note right of LAS
+  PLANNED: find it by state
+end note
+alt no valid attempt (AC-38, AC-42)
+  R --> P : redirect /?error=login_expired
+else
+  SI -> SI : 5 isExpired, state\n(state: PLANNED)
+  alt Keycloak sent an error (AC-39)
+    R --> P : redirect /?error=login_refused
   else
-    K --> W : 6 access, refresh, ID tokens
-    W -> S : 7 store tokens under a new session id
-    W --> P : 7 session cookie (httpOnly)
-    W --> P : 8 redirect to returnTo
+    SI -> IDP : 6 completeLogin()
+    IDP -> K : 6 exchange code + PKCE verifier
+    K --> IDP : access, refresh, ID tokens
+    IDP -> IDP : 6 check nonce
+    alt exchange or nonce fails (AC-39)
+      IDP --> R : error, login_failed
+      R --> P : redirect /?error=login_failed
+    else
+      IDP --> SI : Session (the tokens)
+      SI -> SS : 7 put(newSessionId, session)
+      note right of SS
+        PLANNED: end the earlier session
+      end note
+      SI --> R : sessionId, returnTo
+      R --> P : 7 session cookie, 8 redirect to returnTo
+    end
   end
 end
-
-== Every later request ==
-P -> W : 9 any request (session cookie)
-W -> S : 9 find the session
-W -> A : 9 request + access token
-A -> A : 9 check signature, expiry, issuer, audience
-alt no token or not valid
-  A --> W : 401
-  W --> P : sign in again
-else
-  A --> W : answer
-  W --> P : answer
-end
-
-note over W, S
-  Planned by decision 10, not built yet:
-  - step 7: also end the person's earlier session in the store (D13)
-  - step 9 and after: show the waiting page or the deactivated page, from the account status (D12)
-  - step 2: Keycloak unreachable shows "sign in is not available" (built, but not in this diagram)
+note over R, K
+  Built: all, but the state check is inside completeLogin.
+  PLANNED: what is marked, and a SecurityLog line for
+  each refusal and session start or end (NFR-5).
+  Steps 9 and 10: the later-requests diagram.
 end note
 @enduml

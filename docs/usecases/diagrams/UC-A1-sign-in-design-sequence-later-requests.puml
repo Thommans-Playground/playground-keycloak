@@ -1,0 +1,50 @@
+@startuml UC-A1-sign-in-design-sequence-later-requests
+!include ../../domain/diagrams/_style.puml
+hide footbox
+skinparam sequenceMessageAlign left
+skinparam maxMessageSize 120
+skinparam ParticipantPadding 8
+title UC-A1 Sign in (design sequence), steps 9 and 10 and every later request
+' Second page of UC-A1-sign-in-design-sequence.puml, split off because one portrait page cannot hold both.
+' Drawn against docs/domain/diagrams/bff-design.puml and access-design.puml (the API side).
+' BUILT: the call with the access token, the API's 401, and the active and pending pages (the dashboard page reads
+' the status from /me). PLANNED (decision 12): SessionVisibility, the deactivated page that ends both sessions by
+' reusing SignOut, and the log lines. Today a deactivated person gets a notice from a 403 and the session stays.
+' Not drawn: the access token refresh (AccessToken use case, one at a time), the pages themselves.
+
+actor "Person" as P
+participant "Routes" as R #E6F0FB
+participant "Session-\nStore" as SS #EEE7F7
+participant "BackendApi\n(fetch)" as BA #EEE7F7
+participant "API\nTokenVerifier" as TV #E7F4EA
+participant "SessionVisibility\n(PLANNED)" as SV #FFFFFF
+participant "SignOut" as SO #E7F4EA
+
+P -> R : 9 a page loads (session cookie)
+R -> SS : find the session (refresh the token if due)
+R -> BA : 9 GET /me, access token
+BA -> TV : bearer access token
+TV -> TV : 9 signature, expiry, issuer, audience (AC-33)
+alt no token, or not valid
+  TV --> R : 401
+  R --> P : sign in again
+else valid
+  TV --> R : the account (new person: a pending account, UC-A3)
+  alt 10 active
+    R --> P : their own page (AC-1)
+  else 10 pending
+    R --> P : the waiting page (UC-A3, AC-47)
+  else 10 deactivated (AC-45)
+    R --> P : the deactivated page (built as a notice)
+    R -> SV : PLANNED: decide(status)
+    SV -> SO : PLANNED: signOut (reused)
+    SO -> SS : PLANNED: take(session), ours ends
+    SO --> R : PLANNED: Keycloak end session address
+    R --> P : PLANNED: redirect, Keycloak's ends too
+  end
+end
+note over P, SO
+  Every later request runs steps 9 and 10 again. Built: steps 9 and the pages for active and pending.
+  PLANNED: SessionVisibility, ending both sessions, a SecurityLog line (NFR-5).
+end note
+@enduml

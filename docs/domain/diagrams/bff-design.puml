@@ -1,0 +1,139 @@
+@startuml bff-design
+!include _style.puml
+title Playground web server (BFF): ports and adapters (built; planned parts in white)
+' palette: edge=blue · use case=green · domain=amber · port=lavender · adapter=lavender · infrastructure=gray
+' Shows the web server of apps/web/src as built (decision 5): the Next.js edge, the use cases, the pure domain,
+' the four ports and their adapters, and composition.ts, the only place that picks adapters.
+' PLANNED, NOT BUILT (decision 12), drawn as white boxes with a "planned" stereotype:
+'   - a new session ends this browser's earlier session
+'   - a use case that decides what a session may see (active, pending, deactivated, signed out) and ends both
+'     sessions for a deactivated person by reusing sign out
+'   - attempts looked up by state, so a refused older callback does not use up the newer attempt
+'   - a security log port (NFR-5)
+' WARNING: the IdentityProvider port here (sign in, refresh, end session) is a DIFFERENT port with the same
+' name as the API's IdentityProvider in access-design.puml (which enables and disables people in Keycloak).
+' Not drawn: pages and components (thin, no ports of their own), lib/utils.ts, the Keycloak login page.
+
+skinparam classAttributeIconSize 0
+skinparam linetype polyline
+top to bottom direction
+
+class "proxy.ts\ncookie gate" as PRX #E6F0FB
+class "Routes\nlogin, callback,\nlogout, backend" as RT #E6F0FB
+class "lib/auth, lib/api\ncookies, getMe" as LIB #E6F0FB
+class "composition.ts\nonly place that\npicks adapters" as COMP #ECECEC
+
+class "«use case»\nSignIn" as SI #E7F4EA {
+  +startLogin()
+  +finishLogin()
+}
+class "«use case»\nSignOut" as SO #E7F4EA {
+  +signOut()
+}
+class "«use case»\nAccessToken" as AT #E7F4EA {
+  +accessTokenFor()
+  one refresh at a time
+}
+class "«use case»\nCallBackend" as CB #E7F4EA {
+  +callBackend()
+}
+class "«planned»\nSessionVisibility" as SV #FFFFFF {
+  +decide(status)
+}
+
+class "«rule»\nsafeReturnTo" as SR #FFE6CC
+class "«value object»\nLoginAttempt" as LA #FFE6CC {
+  state, nonce, pkceVerifier
+  returnTo, startedAt
+  +isExpired()
+}
+class "«value object»\nSession" as SE #FFE6CC {
+  idToken, accessToken
+  refreshToken, accessExpiresAt
+  +needsRefresh()
+}
+
+class "«port»\nIdentityProvider" as PIDP #EEE7F7
+class "«port»\nLoginAttemptStore" as PLAS #EEE7F7 {
+  +save()
+  +take(id)
+  «planned» +takeByState()
+}
+class "«port»\nSessionStore" as PSS #EEE7F7
+class "«port»\nBackendApi" as PBA #EEE7F7
+class "«planned»\nSecurityLog" as PLOG #FFFFFF {
+  +record(event)
+}
+
+class "«adapter»\nKeycloakIdentity-\nProvider" as KIDP #EEE7F7
+class "«adapter»\nInMemoryLogin-\nAttemptStore" as MLAS #EEE7F7
+class "«adapter»\nInMemory-\nSessionStore" as MSS #EEE7F7
+class "«adapter»\nFetchBackendApi" as FBA #EEE7F7
+class "«planned»\nConsoleSecurity-\nLog" as CLOG #FFFFFF
+
+class "Keycloak" as KC #ECECEC
+class "Playground API" as API #ECECEC
+
+RT --> COMP
+LIB --> COMP
+PRX -[hidden]right- RT
+RT -[hidden]right- LIB
+COMP ..> SI : builds
+COMP -[hidden]down- SI
+
+SI -[hidden]right- SO
+SO -[hidden]right- AT
+SI -[hidden]down- CB
+CB -[hidden]right- SV
+SI --> SR
+SI --> LA
+AT --> SE
+CB --> AT
+SV ..> SO : reuses
+SR -[hidden]down- SE
+SI -[hidden]right- SR
+SV -[hidden]right- LA
+
+SI --> PLAS
+SI --> PIDP
+SI --> PSS
+AT --> PSS
+SO --> PSS
+SO --> PIDP
+AT --> PIDP
+CB --> PBA
+SV ..> PLOG
+
+PIDP -[hidden]right- PLAS
+PLAS -[hidden]right- PSS
+PIDP -[hidden]down- PBA
+PBA -[hidden]right- PLOG
+PIDP <|.. KIDP
+PLAS <|.. MLAS
+PSS <|.. MSS
+PBA <|.. FBA
+PLOG <|.. CLOG
+KIDP -[hidden]right- MLAS
+MLAS -[hidden]right- MSS
+KIDP -[hidden]down- FBA
+FBA -[hidden]right- CLOG
+KIDP ..> KC : ACL
+FBA ..> API : bearer token
+KC -[hidden]right- API
+
+note as N
+  Layers, top to bottom: Next.js edge,
+  use cases and domain, ports, adapters,
+  outside systems. proxy.ts only checks
+  that a session cookie exists.
+  PLANNED, not built (decision 12), white:
+  - finishLogin takes the attempt by
+    state, compares it, then exchanges
+    the code
+  - a new session ends this browser's
+    earlier one
+  - SignIn, SignOut and SessionVisibility
+    write to SecurityLog
+end note
+CLOG -[hidden]right- N
+@enduml
