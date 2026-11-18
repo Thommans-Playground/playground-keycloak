@@ -34,21 +34,13 @@ questions:
   - May this person see inside this project?
   - Which projects does this person belong to?
 satisfies:
-  - id: FR-129
-  - id: FR-130
-  - id: FR-131
-  - id: FR-132
-  - id: FR-133
-  - id: FR-134
-  - id: FR-135
-  - id: FR-136
-  - id: FR-137
-  - id: FR-138
-  - id: FR-139
-  - id: FR-140
-  - id: FR-141
-  - id: FR-142
-  - id: FR-143
+  - id: FR-7
+  - id: FR-8
+  - id: FR-9
+  - id: FR-10
+  - id: FR-11
+  - id: FR-12
+  - id: FR-13
 ```
 
 # Projects context

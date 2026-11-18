@@ -7,8 +7,8 @@ object: OBJ-P2
 statement: "An administrator may add a project manager to a project that has no active project manager, and may change its members in no other way."
 proved_by: []
 satisfies:
-  - id: FR-137
-  - id: FR-138
+  - id: FR-8
+  - id: FR-11
 ```
 
 # An administrator only restores a manager
@@ -43,10 +43,10 @@ flowchart TB
 ## How a test would prove it
 
 - Given a project whose only manager is deactivated, when an administrator adds another active person as a
-  manager, then that person is a manager (AC-102).
-- Given a project with an active manager, when an administrator tries to add a manager, then it is refused (AC-103).
+  manager, then that person is a manager (AC-23).
+- Given a project with an active manager, when an administrator tries to add a manager, then it is refused (AC-25).
 - Given an administrator and a project, when they try to add an engineer, change a role or remove a member, then it
-  is refused (AC-104).
+  is refused.
 
 ## Related
 

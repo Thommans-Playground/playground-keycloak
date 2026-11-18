@@ -1,5 +1,5 @@
-// Verifies UC-A11 (AC-79): signing out forgets our session and points at Keycloak's end session address.
-// SO-1 is AC-79. SO-2 is proposed.
+// Verifies UC-A11 (AC-2): signing out forgets our session and points at Keycloak's end session address.
+// SO-1 is AC-2. SO-2 is proposed.
 import assert from "node:assert/strict";
 import { beforeEach, test } from "node:test";
 import { signOut } from "./sign-out.ts";
@@ -14,7 +14,7 @@ beforeEach(async () => {
   await sessions.put("s1", { idToken: "the-id-token", accessToken: "a", refreshToken: "r", accessExpiresAt: 1 });
 });
 
-test("SO-1: the session is forgotten and the answer is Keycloak's address with the ID token as a hint (Verifies AC-79)", async () => {
+test("SO-1: the session is forgotten and the answer is Keycloak's address with the ID token as a hint (Verifies AC-2)", async () => {
   const { redirectTo } = await signOut({ idp, sessions }, "s1");
   assert.equal(redirectTo, "https://kc.test/logout?hint=the-id-token");
   assert.equal(await sessions.get("s1"), null);

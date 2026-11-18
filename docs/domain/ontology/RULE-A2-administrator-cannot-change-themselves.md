@@ -18,7 +18,7 @@ An administrator cannot demote or deactivate **their own** account. Another admi
 ## Why it exists
 
 It prevents a slip that locks a person out, and it means the change is always seen by a second person. It
-is the unit-level criterion AC-6 that already exists for deactivation.
+is the same rule, tested for deactivation in the domain tests.
 
 ## Allowed and refused
 

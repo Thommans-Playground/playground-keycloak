@@ -35,10 +35,10 @@ questions:
   - May this person see inside this project?
   - Which projects does this person belong to?
 satisfies:
-  - id: FR-129
-  - id: FR-140
-  - id: FR-141
-  - id: FR-143
+  - id: FR-7
+  - id: FR-8
+  - id: FR-12
+  - id: FR-13
 ```
 
 # Project

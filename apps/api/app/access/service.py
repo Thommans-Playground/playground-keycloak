@@ -21,7 +21,7 @@ class AccessService:
         self._now = now  # a clock that a test can fix
 
     def account_for(self, identity: str, name: str, email: str, email_verified: bool) -> Account:
-        """Find the person's account, or make one the first time they are seen (FR-123).
+        """Find the person's account, or make one the first time they are seen (FR-3).
 
         Name and email are copied from the token each time. The link is the identity, never the email.
         """

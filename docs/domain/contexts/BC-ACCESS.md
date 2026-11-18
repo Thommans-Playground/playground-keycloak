@@ -132,7 +132,7 @@ tokens in Redis. That was most of its sign-in code, and it caused a real fault: 
 windows, because of a race when a refresh token was replaced. A token that carries a role also goes stale until it
 expires. Here the role is read from the account on every request, so a change takes effect at once.
 
-A machine that needs to call the API, for example a script starting an evaluation (FR-107), will need a credential of
+A machine that needs to call the API, for example a script starting an evaluation (a requirement from the earlier prototype, not in the current core), will need a credential of
 its own later. That could be a personal API key kept hashed in our database. It is not part of the first release.
 
 A person who signs in correctly but has **no account** is refused and offered the account request page. Signing in

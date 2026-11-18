@@ -118,7 +118,7 @@ def create_app(settings: Settings | None = None, verifier: TokenVerifier | None 
 
     @app.get("/me", response_model=AccountOut)
     def me(a: Account = Depends(not_deactivated)):
-        # A pending person sees only this (FR-2).
+        # A pending person sees only this (FR-3).
         return AccountOut.of(a)
 
     @app.get("/accounts", response_model=list[AccountOut])

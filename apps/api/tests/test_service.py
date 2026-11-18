@@ -17,14 +17,14 @@ def make(admins=("ada@x.test",)):
     return AccessService(accounts, audit, idp, set(admins), now=lambda: NOW), accounts, audit, idp
 
 
-def test_first_sight_makes_a_pending_account_stamped_by_the_injected_clock():  # Verifies AC-76
+def test_first_sight_makes_a_pending_account_stamped_by_the_injected_clock():  # Verifies AC-3
     svc, accounts, audit, _ = make()
     a = svc.account_for("sub-1", "Maya", "maya@x.test", True)
     assert (a.status, a.role, a.created) == (Status.pending, Role.user, NOW)
     assert audit.rows == [(None, "register", a.id, None, NOW)]
 
 
-def test_the_same_person_again_makes_no_second_account():  # Verifies AC-77
+def test_the_same_person_again_makes_no_second_account():  # Verifies AC-3
     svc, accounts, _, _ = make()
     first = svc.account_for("sub-1", "Maya", "maya@x.test", True)
     again = svc.account_for("sub-1", "Maya R", "maya@x.test", True)

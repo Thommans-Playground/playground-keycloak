@@ -17,8 +17,8 @@ questions:
   - Who keeps the members of this project?
   - Is this person a manager of any project?
 satisfies:
-  - id: FR-133
-  - id: FR-139
+  - id: FR-9
+  - id: FR-12
 ```
 
 # Project roles

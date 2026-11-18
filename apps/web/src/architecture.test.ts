@@ -1,4 +1,4 @@
-// The hexagon holds on the web side too. Verifies AC-114 (NFR-4).
+// The hexagon holds on the web side too. Verifies AC-36 (NFR-3).
 //   domain/       imports only other domain files
 //   application/  imports only the domain and itself: no adapter, no framework, no library
 //   adapters/     are imported only by composition.ts, the one place that picks them

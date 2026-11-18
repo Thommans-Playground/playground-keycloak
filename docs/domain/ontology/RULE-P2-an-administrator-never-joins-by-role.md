@@ -7,8 +7,7 @@ object: OBJ-P2
 statement: "An administrator does not become a member of a project they create, and cannot add themselves to one."
 proved_by: []
 satisfies:
-  - id: FR-131
-  - id: FR-136
+  - id: FR-8
 ```
 
 # An administrator never joins a project by being an administrator
@@ -45,9 +44,9 @@ flowchart TB
 ## How a test would prove it
 
 - Given a project created by an administrator, when that administrator asks for its contents, then it is
-  refused (AC-93).
+  refused (AC-14).
 - Given an administrator and a project with no active manager, when they try to add themselves, then it is
-  refused (AC-101).
+  refused (AC-15).
 
 ## Related
 

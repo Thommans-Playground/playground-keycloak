@@ -6,9 +6,9 @@ status: draft
 actor: signed-in person
 context: BC-ACCESS
 satisfies:
-  - id: FR-125
+  - id: FR-2
 criteria:
-  - id: AC-79
+  - id: AC-2
 parameters: []
 objects: []
 rules: []
@@ -23,23 +23,28 @@ evolved_from: [MK3 UC-A2]
 
 <!-- vbench-uc:begin mirror (generated from the requirements files, do not edit here: change the row, then run sync) -->
 
+<details>
+<summary>The requirements and criteria it runs, copied from docs/requirements (1 requirement, 1 criterion). Do not edit.</summary>
+
 ## What this serves
 
-**FR-125**: The system shall let a person sign out.
+**FR-2**: The system shall let a person sign out.
 
 ## Acceptance criteria it runs
 
-**AC-79** (acceptance, proves FR-125)
+**AC-2** (acceptance, proves FR-2)
 
 - Given a signed-in person
 - When they sign out
-- Then the product no longer accepts their session and asks them to sign in again
+- Then their session stops working and they must sign in again
 
 ## How it is verified
 
-- acceptance: AC-79
+- acceptance: AC-2
 
 Each criterion is run by a test tagged `Verifies AC-<n>`.
+
+</details>
 
 <!-- vbench-uc:end mirror -->
 
@@ -67,16 +72,16 @@ New in the design language: **the ID token is kept so it can be handed back to K
 
 ## Main flow
 
-1. The person asks to sign out, by a button that posts. (FR-125)
-2. The system finds the session from the cookie and removes it, with its tokens, from the server. (FR-125)
-3. The system sends the person to Keycloak's end-session address with the ID token as a hint and the home page as the place to return. (FR-125)
-4. Keycloak ends its session and sends the person to the home page. (FR-125)
-5. The system removes the session cookie. (FR-125)
-6. The product asks the person to sign in again. (FR-125, AC-79)
+1. The person asks to sign out, by a button that posts. (FR-2)
+2. The system finds the session from the cookie and removes it, with its tokens, from the server. (FR-2)
+3. The system sends the person to Keycloak's end-session address with the ID token as a hint and the home page as the place to return. (FR-2)
+4. Keycloak ends its session and sends the person to the home page. (FR-2)
+5. The system removes the session cookie. (FR-2)
+6. The product asks the person to sign in again. (FR-2, AC-2)
 
 ## Other flows
 
-- The person has no session, or the session has already gone: the system still removes the cookie and sends the person to the home page. (AC-79)
+- The person has no session, or the session has already gone: the system still removes the cookie and sends the person to the home page. (AC-2)
 - Keycloak cannot be reached for its end-session address: our session is still removed and the person lands on the home page. Their Keycloak session ends by itself when it times out. Open: say so on screen.
 - The request is a GET, for example from a link or an image on another site: it does nothing.
 - Someone keeps a copy of the access token from before: it still passes the API's checks until it expires, which is short. The API reads the account on every request, but a signed-out person's account is still active. Open: to cut this to zero, the API would need to ask Keycloak whether the token is still live.
@@ -104,5 +109,5 @@ sequenceDiagram
 
 ## Slices
 
-1. TSK-A11.1: Drop the session and clear the cookie (AC-79)
-2. TSK-A11.2: End the Keycloak session too (AC-79)
+1. TSK-A11.1: Drop the session and clear the cookie (AC-2)
+2. TSK-A11.2: End the Keycloak session too (AC-2)

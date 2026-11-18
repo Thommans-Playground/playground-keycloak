@@ -1,4 +1,4 @@
-// The web server calls the API for the person, adding their access token. Verifies AC-81's other half:
+// The web server calls the API for the person, adding their access token. Verifies AC-33's other half:
 // with no session there is no call at all.
 import assert from "node:assert/strict";
 import { beforeEach, test } from "node:test";

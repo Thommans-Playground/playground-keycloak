@@ -6,34 +6,34 @@ status: draft
 actor: project manager (of the project), or administrator for one case
 context: BC-PROJECTS
 satisfies:
-  - id: FR-133
-  - id: FR-134
-  - id: FR-135
-  - id: FR-136
-  - id: FR-137
-  - id: FR-138
-  - id: FR-143
+  - id: FR-4
+  - id: FR-8
+  - id: FR-9
+  - id: FR-10
+  - id: FR-11
+  - id: FR-12
+  - id: FR-13
 criteria:
-  - id: AC-94
-  - id: AC-95
-  - id: AC-96
-  - id: AC-97
-  - id: AC-98
-  - id: AC-99
-  - id: AC-100
-  - id: AC-101
-  - id: AC-102
-  - id: AC-103
-  - id: AC-104
-  - id: AC-109
-  - id: AC-110
+  - id: AC-15
+  - id: AC-17
+  - id: AC-18
+  - id: AC-19
+  - id: AC-20
+  - id: AC-21
+  - id: AC-22
+  - id: AC-23
+  - id: AC-24
+  - id: AC-25
+  - id: AC-27
+  - id: AC-30
+  - id: AC-31
 parameters:
   - project
   - person (an active account)
   - project role (project manager or engineer)
   - action (add, change role or remove)
 objects: [OBJ-P1, OBJ-P2]
-rules: [RULE-P1, RULE-P2, RULE-P3]
+rules: [RULE-P1, RULE-P2, RULE-P3, RULE-P4]
 effects:
   - the person is, or is no longer, a member of the project, with the given role
   - an audit entry records who changed what
@@ -44,148 +44,155 @@ evolved_from: [MK3 UC-A3 (retired, was UC-A3 in Access)]
 
 <!-- vbench-uc:begin mirror (generated from the requirements files, do not edit here: change the row, then run sync) -->
 
+<details>
+<summary>The requirements and criteria it runs, copied from docs/requirements (7 requirements, 13 criteria). Do not edit.</summary>
+
 ## What this serves
 
-**FR-133**: The system shall let a project manager add a person with an active account to their project, as a project manager or an engineer.
+**FR-4**: The system shall let an administrator decide who can use the product: approve a pending account, deactivate an active one with a reason, and reinstate a deactivated one.
 
-**FR-134**: The system shall let a project manager change a member's project role or remove a member from their project.
+**FR-8**: The system shall not give an administrator access to a project's contents by their role.
 
-**FR-135**: The system shall never remove or demote the last project manager of a project.
+**FR-9**: The system shall let a project manager add, change the role of and remove members of their project, adding only people with an active account.
 
-**FR-136**: The system shall not let an administrator add themselves to a project.
+**FR-10**: The system shall refuse a removal or demotion that would leave a project with no active project manager.
 
-**FR-137**: The system shall let an administrator add a project manager to a project that has no active project manager.
+**FR-11**: The system shall let an administrator add a project manager to a project that has no active project manager, with a reason, and only a person with an active account who is not an administrator.
 
-**FR-138**: The system shall not let an administrator change the members of a project in any other way.
+**FR-12**: The system shall show a project's contents and member list only to its members, and answer anyone else as for a project that does not exist.
 
-**FR-143**: The system shall record an audit entry for every project creation and every change to a project's members.
+**FR-13**: The system shall record an audit entry for every project creation, every change to a project's members, and every refused attempt by an administrator to change them.
 
 ## Acceptance criteria it runs
 
-**AC-94** (acceptance, proves FR-133)
+**AC-15** (acceptance, proves FR-8)
 
-- Given a project manager and an account that is active
-- When the manager adds that person as an engineer
-- Then the person is a member of the project with the role engineer
-
-**AC-95** (acceptance, proves FR-133)
-
-- Given a project manager and an account that is pending or deactivated
-- When the manager tries to add that person
-- Then it is refused and the person is not a member
-
-**AC-96** (acceptance, proves FR-133)
-
-- Given an engineer of a project
-- When they try to add a person to it
-- Then it is refused
-
-**AC-97** (acceptance, proves FR-134)
-
-- Given a project with an engineer and a manager
-- When the manager changes the engineer's role to project manager
-- Then the person is a project manager of that project
-
-**AC-98** (acceptance, proves FR-134)
-
-- Given a member of a project
-- When its manager removes the member
-- Then the person is no longer a member and their next request for the project is refused
-
-**AC-99** (unit, proves FR-135)
-
-- Given a project with one manager
-- When anyone tries to remove that manager
-- Then it is refused and the person is still its manager
-
-**AC-100** (unit, proves FR-135)
-
-- Given a project with one manager
-- When anyone tries to change that manager to an engineer
-- Then it is refused and the person is still its manager
-
-**AC-101** (acceptance, proves FR-136)
-
-- Given an administrator and a project that has no active manager
-- When the administrator tries to add themselves to the project
+- Given an administrator
+- When they add themselves to a project, or name themselves its manager
 - Then it is refused and they are not a member
 
-**AC-102** (acceptance, proves FR-137)
+**AC-17** (acceptance, proves FR-9)
 
-- Given a project whose only manager has a deactivated account
-- When an administrator adds another person with an active account as a project manager
-- Then that person is a manager of the project
+- Given a manager and an active account
+- When the manager adds that person as an engineer
+- Then they are a member with that role
 
-**AC-103** (acceptance, proves FR-137)
+**AC-18** (acceptance, proves FR-9)
 
-- Given a project that has an active manager
-- When an administrator tries to add a project manager
+- Given a manager and an account that is pending, deactivated or unknown
+- When the manager adds it
+- Then it is refused, with one answer for all three
+
+**AC-19** (acceptance, proves FR-9)
+
+- Given an engineer in a project
+- When their manager makes them a manager
+- Then they are a manager of the project
+
+**AC-20** (acceptance, proves FR-9)
+
+- Given a member of a project
+- When their manager removes them
+- Then they are out, and their next request gets the same answer as for a missing project
+
+**AC-21** (unit, proves FR-10)
+
+- Given a project with one active manager
+- When anyone removes or demotes that manager
 - Then it is refused
 
-**AC-104** (acceptance, proves FR-138)
+**AC-22** (unit, proves FR-9; FR-10)
 
-- Given an administrator and a project
-- When they try to add an engineer, change a member's role or remove a member
-- Then it is refused and the members are unchanged
+- Given a project with two active managers
+- When one of them removes themselves
+- Then it is allowed and the other remains
 
-**AC-109** (acceptance, proves FR-143)
+**AC-23** (acceptance, proves FR-11)
+
+- Given a project with no active manager, and an active person who is not an administrator
+- When an administrator adds that person as manager, with a reason
+- Then they are a manager
+
+**AC-24** (acceptance, proves FR-11)
+
+- Given a project with no active manager
+- When an administrator adds a manager without a reason
+- Then it is refused
+
+**AC-25** (acceptance, proves FR-11)
 
 - Given a project
-- When it is created and later a member is added
-- Then an audit entry exists for each, saying who did it and what it was
+- When an administrator adds a manager although one is active, or adds an administrator or an inactive person
+- Then it is refused
 
-**AC-110** (acceptance, proves FR-143)
+**AC-27** (acceptance, proves FR-12)
 
-- Given a project with a member
-- When its manager removes the member
-- Then an audit entry exists saying who removed whom
+- Given a project and an id that does not exist
+- When a non-member asks about, or changes the members of, either
+- Then the answer is the same for both
+
+**AC-30** (acceptance, proves FR-13; FR-11)
+
+- Given a project
+- When a member is added, changed or removed, or a manager is restored with a reason
+- Then each has an entry saying who, what and whom, and the reason for a restore
+
+**AC-31** (acceptance, proves FR-13)
+
+- Given an administrator
+- When their attempt to change a project's members is refused
+- Then an audit entry records the attempt
 
 ## How it is verified
 
-- acceptance: AC-94, AC-95, AC-96, AC-97, AC-98, AC-101, AC-102, AC-103, AC-104, AC-109, AC-110
-- unit: AC-99, AC-100
+- acceptance: AC-15, AC-17, AC-18, AC-19, AC-20, AC-23, AC-24, AC-25, AC-27, AC-30, AC-31
+- unit: AC-21, AC-22
 
 Each criterion is run by a test tagged `Verifies AC-<n>`.
 
+</details>
+
 <!-- vbench-uc:end mirror -->
 
-> Draft for the first cut. **No requirement row exists for this yet** (see "Proposed requirements").
+> Draft for the first cut. It serves FR-9 to FR-13, and FR-8 and FR-4 where they touch members, and runs the criteria listed above (decisions 25 and 28).
 > Replaces the retired UC-A3. Projects owns membership (decision 24). Access is asked for the person's account status.
 
 ## Description
 
-A project manager decides who is in their project, and whether each person is a project manager or an engineer. The two roles are names only for now: they do the same things inside the project, except that only a manager changes the members. An administrator is **not** a manager by being an administrator, and cannot add themselves. They have one narrow power: if a project has no active manager, an administrator can add a new manager, and nobody else.
+A project manager decides who is in their project, and whether each person is a project manager or an engineer. The two roles are names only for now: they do the same things inside the project, except that only a manager changes the members. An administrator is **not** a manager by being an administrator, and cannot add themselves. An administrator who a manager has added as the project's manager has full manager powers in that project. They have one narrow power: if a project has no active manager, an administrator can add a new manager, and nobody else.
 
 ## Preconditions
 
 - The person asking is signed in with an active account.
-- The project exists.
 
 ## Main flow
 
-1. A project manager opens a project they manage and its member list.
-2. They choose an action: add a person, change a person's role, or remove a person.
-3. For an addition, they choose a person and a project role.
-4. The system checks that the person asking manages this project.
-5. The system checks that the person being added has an **active** account.
-6. The system checks that the change does not leave the project without a manager.
-7. The system applies the change.
-8. The system records an audit entry with who, what and who it affected.
-9. The change takes effect at the affected person's next request, because membership is read on every request.
+1. A project manager opens a project they manage and its member list. (FR-9)
+2. They choose an action: add a person, change a person's role, or remove a person. (FR-9)
+3. For an addition, they choose a person and a project role. (FR-9)
+4. The system checks that the person asking manages this project. A person who is not in the project gets the same answer as for a project that does not exist. (FR-9, FR-12, AC-27)
+5. The system checks that the person being added has an **active** account, and gives one answer if not. (FR-9, AC-18)
+6. The system checks that the change does not leave the project without an **active** manager. (FR-10, AC-21)
+7. The system applies the change. Adding a person who is already a member changes nothing. (FR-9, AC-17, AC-19, AC-20, AC-22)
+8. The system records an audit entry with who, what and who it affected. (FR-13, AC-30)
+9. The change takes effect at the affected person's next request, because membership is read on every request. (FR-9)
 
 ## Other flows
 
-- An engineer, or a person who is not in the project, tries to change members: refused.
-- An administrator who is not a manager of the project tries to add an engineer, or remove anyone: refused.
-- An administrator tries to add themselves to a project: refused, whatever the role.
-- An administrator adds a manager to a project that has **no active manager** (every manager's account is deactivated, or none is left): allowed, for a manager and for no one else.
-- An administrator adds a manager to a project that already has an active manager: refused.
-- The person to add has a pending, deactivated or unknown account: refused.
-- The person is already a member: nothing is added, and their role is changed only if the manager asked for that.
-- The change would remove or demote the **last manager**: refused.
-- A member's account is deactivated: they stay on the project (nothing is deleted), but every request of theirs is refused at the account check. They count as a manager for the last-manager rule only while they are on the project, so an administrator can add a new manager when none is active.
-- Open: does removing a member need a reason? For now no, only an audit entry.
-- Open: what a removed member's earlier work in the project shows as (their name or "removed member").
+- An engineer tries to change members: refused.
+- A person who is not in the project tries to change members: the same answer as for a project that does not exist. (FR-12, AC-27)
+- An administrator who is not a manager of the project tries to add an engineer, change a role or remove anyone: refused, and the attempt is recorded. (FR-8, FR-13, AC-31)
+- An administrator tries to add themselves to a project: refused, whatever the role, and the attempt is recorded. (FR-8, FR-13, AC-15, AC-31)
+- An administrator adds a project manager to a project that has **no active manager** (every manager's account is deactivated): allowed, with a reason, for a manager and for no one else. The reason is kept in the audit entry. (FR-11, AC-23, AC-24, AC-30)
+- An administrator adds an administrator as that manager: refused. (FR-11, AC-25)
+- An administrator adds a pending, deactivated or unknown person as that manager: refused. (FR-11, AC-25)
+- An administrator adds a manager to a project that already has an active manager: refused. (AC-25)
+- The person to add has a pending, deactivated or unknown account: refused, with one answer whichever it is. (FR-9, AC-18)
+- The person is already a member: nothing changes. A role is changed by changing the role. (FR-9)
+- A person who is not a member is the target of a role change or a removal: refused, and nothing changes. (FR-9)
+- The change would remove or demote the **last active manager**: refused. (FR-10, AC-21)
+- A manager removes themselves while another active manager remains: allowed. (AC-22)
+- A member's account is deactivated: they stay on the project (nothing is deleted), but every request of theirs is refused at the account check. A deactivated manager is not active, so the last-manager rule does not count them. When the account is reinstated they are a member again. (FR-4)
 
 ## Postconditions
 
@@ -193,14 +200,12 @@ A project manager decides who is in their project, and whether each person is a 
 - Nothing the person did earlier in the project is deleted.
 - An audit entry exists.
 
-## Proposed requirements (for vbench-req, no ids yet)
+## Open questions
 
-- The system shall let a project manager add a person with an active account to their project as a project manager or an engineer.
-- The system shall let a project manager change a member's role, and remove a member.
-- The system shall never remove or demote the last manager of a project.
-- The system shall not let an administrator add themselves to a project.
-- The system shall let an administrator add a manager to a project that has no active manager, and shall let them do nothing else to its members.
-- The system shall give a project member the same abilities whether they are a manager or an engineer, except for managing members.
+For the product owner to decide.
+
+1. Does removing a member need a reason? For now no, only an audit entry.
+2. What a removed member's earlier work in the project shows as (their name or "removed member").
 
 ## Overview
 
@@ -221,7 +226,8 @@ sequenceDiagram
 
 ## Slices
 
-1. TSK-P4.1: A manager adds an engineer, only with an active account (AC-94, AC-95, AC-96)
-2. TSK-P4.2: A manager changes a role or removes a member, rules RULE-P1 (AC-97, AC-98, AC-99, AC-100)
-3. TSK-P4.3: An administrator restores a manager and does nothing else, rules RULE-P2, RULE-P3 (AC-101, AC-102, AC-103, AC-104)
-4. TSK-P4.4: Changes to members are audited (AC-109, AC-110)
+1. TSK-P4.1: A manager adds an engineer, only with an active account (AC-17, AC-18)
+2. TSK-P4.2: A manager changes a role or removes a member, rules RULE-P1 (AC-19, AC-20, AC-21, AC-22)
+3. TSK-P4.3: An administrator restores a manager and does nothing else, rules RULE-P2, RULE-P3 (AC-15, AC-23, AC-24, AC-25)
+4. TSK-P4.4: Changes to members are audited (AC-30, AC-31)
+5. TSK-P4.5: A non-member gets the same answer as for a missing project, and memberships survive deactivation, rules RULE-P4 (AC-27)

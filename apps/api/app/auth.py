@@ -1,4 +1,4 @@
-"""Check the Keycloak access token: signature, expiry, issuer, audience (NFR-1, FR-127)."""
+"""Check the Keycloak access token: signature, expiry, issuer, audience (NFR-1, NFR-1)."""
 
 from dataclasses import dataclass
 from typing import Callable

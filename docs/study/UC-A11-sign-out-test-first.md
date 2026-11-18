@@ -2,11 +2,11 @@
 
 > **A lesson plan, not a description of the current code.** Adapted from an earlier note for the "aiaas" project. Playground already signs people out: [auth/logout/route.ts](../../apps/web/src/app/auth/logout/route.ts) does it in a few lines. This lesson shows the ports and adapters version, test first, to build **after** the [sign in lesson](UC-A10-sign-in-test-first.md) (it adds `take` and `endSessionUrl` to the ports that lesson creates).
 
-**Requirement:** FR-125 (sign out). **Use case:** [UC-A11](../usecases/UC-A11-sign-out.md). **Prerequisite:** the [sign in lesson](UC-A10-sign-in-test-first.md), and [UC-A13](../usecases/UC-A13-view-my-name-and-role.md) for the profile.
+**Requirement:** FR-2 (sign out). **Use case:** [UC-A11](../usecases/UC-A11-sign-out.md). **Prerequisite:** the [sign in lesson](UC-A10-sign-in-test-first.md), and [UC-A13](../usecases/UC-A13-view-my-name-and-role.md) for the profile.
 
 | Lesson label | What it checks | In this repo |
 |---|---|---|
-| SO-1 | after sign out, the session is gone and the answer is Keycloak's end session address with the ID token as a hint | **AC-79** (FR-125) |
+| SO-1 | after sign out, the session is gone and the answer is Keycloak's end session address with the ID token as a hint | **AC-2** (FR-2) |
 | SO-2 | signing out twice with the same id is harmless, and the old id opens nothing | *proposed*: no criterion yet |
 
 > **Status: built (decision 27).** `application/sign-out.ts` and `application/sign-out.test.ts` do this, and `auth/logout/route.ts` is the thin edge. The tests are `node:test`, not vitest. The lesson stays as the walk-through of why.

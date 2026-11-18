@@ -4,55 +4,40 @@
 
 | ID | Proves | Given | When | Then | Level | Status | Notes |
 |---|---|---|---|---|---|---|---|
-| AC-1 | FR-1 | a pending account | an administrator approves it | the account is active and the person can sign in | acceptance | draft |  |
-| AC-2 | FR-1 | a pending account and a person who is not an administrator | that person tries to approve it | it is refused and the account stays pending | acceptance | draft | Only an administrator approves (permissions matrix). |
-| AC-3 | FR-2 | a pending account | its owner makes any request other than asking for their own status | it is refused | acceptance | draft | Was 'sign-in is refused' before decision 24: the person can now sign in at Keycloak, and our API holds them. |
-| AC-4 | FR-3 | an active account | an administrator deactivates it and gives a reason | the account is deactivated and its owner can no longer sign in | acceptance | draft |  |
-| AC-5 | FR-3 | an active account | an administrator deactivates it without a reason | it is refused and the account stays active | acceptance | draft |  |
-| AC-6 | FR-3 | an administrator's own account | that administrator tries to deactivate it | it is refused | unit | draft | An administrator cannot deactivate themselves. The rule is not written in the ontology yet. |
-| AC-7 | FR-4 | a deactivated account | an administrator reinstates it | the account is active and its owner can sign in again | acceptance | draft |  |
-| AC-8 | NFR-1 | each role (administrator, auditor, project manager, engineer) and a person who is not a member of the project | each makes every command and read the role is not allowed | the server refuses every one | acceptance | draft | This is the requirement's own measure: a refusal on every command and every read, for each role. |
-| AC-9 | NFR-1 | a screen that hides a button the role may not use | the request is sent directly to the server | the server still refuses it | integration | draft |  |
-| AC-75 | FR-2 | a pending account | its owner asks for their own status | it says the account is waiting for approval | acceptance | draft |  |
-| AC-76 | FR-123 | a person the system does not know, signed in through the identity provider | they make their first request | a pending account exists for them | acceptance | draft |  |
-| AC-77 | FR-123 | a person who already has an account | they make another request | no second account is created | acceptance | draft |  |
-| AC-78 | FR-124 | an approved person with an identity provider account | they sign in through the identity provider | they can use the product | acceptance | draft |  |
-| AC-79 | FR-125 | a signed-in person | they sign out | the product no longer accepts their session and asks them to sign in again | acceptance | draft |  |
-| AC-80 | FR-126 | a signed-in person | they open their profile | it shows their name and account role | acceptance | draft |  |
-| AC-81 | FR-127 | a request with no token, an expired token, or a token not issued by the identity provider | it is made to any protected route | it is refused | acceptance | draft | Each of the three is its own case in the test. |
-| AC-82 | FR-128 | a signed-in administrator | they try to change an account's role through Playground | there is no way to do it | acceptance | draft |  |
-| AC-83 | FR-128 | the identity provider account that the backend uses | its rights are listed | it cannot assign roles | inspection | draft | Needs checking against what Keycloak's admin roles allow. |
-| AC-84 | FR-3 | an active account whose owner holds a valid token | an administrator deactivates it | the owner's next request is refused | acceptance | draft | Needs our API to check the account on every request, and the person's Keycloak sessions to end. |
-| AC-85 | FR-3 | a deactivated account | its records are inspected | all of its data is still there | acceptance | draft |  |
-| AC-86 | FR-3 | a deactivated person with an evaluation running | time passes | the evaluation reaches its end | future | draft | Cannot be tested until Evaluations exists. |
-| AC-87 | FR-129; FR-130 | an administrator and an account that is active | they create a project with a name and name that account as manager | the project exists and that person is its manager | acceptance | draft |  |
-| AC-88 | FR-129; FR-132 | a person who manages one project | they create a project | the new project exists and they are its manager | acceptance | draft |  |
-| AC-89 | FR-129 | an engineer who manages no project | they try to create a project | it is refused and no project exists | acceptance | draft |  |
-| AC-90 | FR-129 | an administrator | they create a project with an empty name | it is refused and no project exists | acceptance | draft |  |
-| AC-91 | FR-130 | an administrator | they create a project and name no manager | it is refused and no project exists | acceptance | draft |  |
-| AC-92 | FR-130 | an administrator and an account that is pending or deactivated | they name that account as the manager | it is refused and no project exists | acceptance | draft |  |
-| AC-93 | FR-131 | a project created by an administrator | that administrator asks for its contents | it is refused, because they are not a member | acceptance | draft |  |
-| AC-94 | FR-133 | a project manager and an account that is active | the manager adds that person as an engineer | the person is a member of the project with the role engineer | acceptance | draft |  |
-| AC-95 | FR-133 | a project manager and an account that is pending or deactivated | the manager tries to add that person | it is refused and the person is not a member | acceptance | draft |  |
-| AC-96 | FR-133 | an engineer of a project | they try to add a person to it | it is refused | acceptance | draft |  |
-| AC-97 | FR-134 | a project with an engineer and a manager | the manager changes the engineer's role to project manager | the person is a project manager of that project | acceptance | draft |  |
-| AC-98 | FR-134 | a member of a project | its manager removes the member | the person is no longer a member and their next request for the project is refused | acceptance | draft |  |
-| AC-99 | FR-135 | a project with one manager | anyone tries to remove that manager | it is refused and the person is still its manager | unit | draft |  |
-| AC-100 | FR-135 | a project with one manager | anyone tries to change that manager to an engineer | it is refused and the person is still its manager | unit | draft |  |
-| AC-101 | FR-136 | an administrator and a project that has no active manager | the administrator tries to add themselves to the project | it is refused and they are not a member | acceptance | draft |  |
-| AC-102 | FR-137 | a project whose only manager has a deactivated account | an administrator adds another person with an active account as a project manager | that person is a manager of the project | acceptance | draft |  |
-| AC-103 | FR-137 | a project that has an active manager | an administrator tries to add a project manager | it is refused | acceptance | draft |  |
-| AC-104 | FR-138 | an administrator and a project | they try to add an engineer, change a member's role or remove a member | it is refused and the members are unchanged | acceptance | draft |  |
-| AC-105 | FR-139 | a manager and an engineer of the same project | each does the same thing with the project's contents | both are allowed | future | draft | Needs project contents (files, endpoints, evaluations) to exist. |
-| AC-106 | FR-140 | a project, one of its members and a person who is not a member | each asks for the project's contents | the member sees them and the other person is refused | acceptance | draft |  |
-| AC-107 | FR-141 | an administrator who is not a member of a project | they list the projects | they see its name and members and not its contents | acceptance | draft |  |
-| AC-108 | FR-142 | a project that exists, an id that does not, and a person who is not a member of either | they ask for each | the answer is the same for both | acceptance | draft |  |
-| AC-109 | FR-143 | a project | it is created and later a member is added | an audit entry exists for each, saying who did it and what it was | acceptance | draft |  |
-| AC-110 | FR-143 | a project with a member | its manager removes the member | an audit entry exists saying who removed whom | acceptance | draft |  |
-| AC-111 | NFR-2 | the final deployment design | each data store and the hosting are listed | each runs on an AWS service | inspection | draft |  |
-| AC-112 | NFR-3 | the running API | its database setting is inspected | it is a PostgreSQL database | inspection | draft |  |
-| AC-113 | NFR-3 | the API tests and a PostgreSQL database | the tests are run against it | they all pass | integration | draft |  |
-| AC-114 | NFR-4 | the domain code | its imports are inspected | none comes from an adapter, a framework or an outside service | unit | draft | Verified by apps/api/tests/test_architecture.py and apps/web/src/architecture.test.ts. |
-| AC-115 | NFR-4 | a test double in place of the database adapter | the domain tests are run | they pass unchanged | unit | draft | Verified by apps/api/tests/test_service.py and apps/web/src/application/*.test.ts, which use in-memory ports and a fake Keycloak. |
-| AC-116 | NFR-5 | a rule or a use case and its code | the history is read | its test was committed before, or with, its code | inspection | draft |  |
-| AC-117 | NFR-6 | the domain code | its names are compared with the ontology and the vocabulary | the same words are used | inspection | draft |  |
+| AC-1 | FR-1 | an approved person | they sign in through the identity provider | they can use the product | acceptance | draft |  |
+| AC-2 | FR-2 | a signed-in person | they sign out | their session stops working and they must sign in again | acceptance | draft |  |
+| AC-3 | FR-3 | a person the system does not know | they make a request, then another | one pending account exists for them | acceptance | draft |  |
+| AC-4 | FR-3 | a pending account | its owner asks for their status, then for anything else | the status says it is waiting, and everything else is refused | acceptance | draft |  |
+| AC-5 | FR-4 | a pending account | an administrator approves it | the person can sign in and use the product | acceptance | draft |  |
+| AC-6 | FR-4 | an active account | an administrator deactivates it, with a reason | the person's next request is refused, even with a valid token | acceptance | draft |  |
+| AC-7 | FR-4 | a deactivated account | an administrator reinstates it | the person can use the product again, with their data and memberships | acceptance | draft |  |
+| AC-8 | FR-5 | a signed-in person | they open their profile | it shows their name and role | acceptance | draft |  |
+| AC-9 | FR-7 | an administrator and an active account | they create a project naming that account as manager | the project exists and that person is its manager | acceptance | draft |  |
+| AC-10 | FR-7 | a person who manages a project | they create a project | it exists and they are its manager | acceptance | draft |  |
+| AC-11 | FR-7 | a person who manages no project and is not an administrator | they try to create a project | it is refused | acceptance | draft |  |
+| AC-12 | FR-7 | a project name that is empty, only spaces, or over 100 characters | a project is created with it | it is refused | acceptance | draft |  |
+| AC-13 | FR-7 | an administrator | they create a project naming no manager, or one who is not active or does not exist | it is refused, with one answer for an account that cannot be a manager | acceptance | draft |  |
+| AC-14 | FR-8 | a project an administrator created for someone else | that administrator asks for its contents | it is refused | acceptance | draft |  |
+| AC-15 | FR-8 | an administrator | they add themselves to a project, or name themselves its manager | it is refused and they are not a member | acceptance | draft |  |
+| AC-16 | FR-8 | an administrator who is not a member of a project | they list the projects | they see its name and members, never its contents | acceptance | draft |  |
+| AC-17 | FR-9 | a manager and an active account | the manager adds that person as an engineer | they are a member with that role | acceptance | draft |  |
+| AC-18 | FR-9 | a manager and an account that is pending, deactivated or unknown | the manager adds it | it is refused, with one answer for all three | acceptance | draft |  |
+| AC-19 | FR-9 | an engineer in a project | their manager makes them a manager | they are a manager of the project | acceptance | draft |  |
+| AC-20 | FR-9 | a member of a project | their manager removes them | they are out, and their next request gets the same answer as for a missing project | acceptance | draft |  |
+| AC-21 | FR-10 | a project with one active manager | anyone removes or demotes that manager | it is refused | unit | draft |  |
+| AC-22 | FR-9; FR-10 | a project with two active managers | one of them removes themselves | it is allowed and the other remains | unit | draft |  |
+| AC-23 | FR-11 | a project with no active manager, and an active person who is not an administrator | an administrator adds that person as manager, with a reason | they are a manager | acceptance | draft |  |
+| AC-24 | FR-11 | a project with no active manager | an administrator adds a manager without a reason | it is refused | acceptance | draft |  |
+| AC-25 | FR-11 | a project | an administrator adds a manager although one is active, or adds an administrator or an inactive person | it is refused | acceptance | draft |  |
+| AC-26 | FR-12 | a project, a member and a non-member | each asks for its contents | the member sees them and the other is refused | acceptance | draft |  |
+| AC-27 | FR-12 | a project and an id that does not exist | a non-member asks about, or changes the members of, either | the answer is the same for both | acceptance | draft |  |
+| AC-28 | FR-12 | an engineer who is a member | they open the member list | they see its members | acceptance | draft |  |
+| AC-29 | FR-13 | a project | it is created | an audit entry says who created it and who its manager is | acceptance | draft |  |
+| AC-30 | FR-13; FR-11 | a project | a member is added, changed or removed, or a manager is restored with a reason | each has an entry saying who, what and whom, and the reason for a restore | acceptance | draft |  |
+| AC-31 | FR-13 | an administrator | their attempt to change a project's members is refused | an audit entry records the attempt | acceptance | draft |  |
+| AC-32 | NFR-1 | any role, and a person who is not a member | each makes a command or read it may not, even if the screen hides it | the server refuses it | acceptance | draft |  |
+| AC-33 | NFR-1 | a request with no token, an expired one, or one not from our identity provider | it reaches a protected route | it is refused | acceptance | draft |  |
+| AC-34 | NFR-2 | the final deployment design | its data stores and hosting are listed | each is an AWS service | inspection | draft |  |
+| AC-35 | NFR-2 | the API | it runs, and its tests are run on PostgreSQL | it uses PostgreSQL and they pass | integration | draft |  |
+| AC-36 | NFR-3 | the domain code | its imports are checked, and its tests run with fake adapters | it imports nothing outside itself and the tests pass unchanged | unit | draft | Tests: test_architecture.py, architecture.test.ts, test_service.py. |
+| AC-37 | NFR-4 | a rule or a use case, and its code | the history is read | its test came before, or with, the code | inspection | draft |  |

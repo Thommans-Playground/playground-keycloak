@@ -162,3 +162,56 @@ an API call, a failed callback, sign out and a replayed cookie were checked end 
 - Where `app/projects/` gets account status from: a port answered by Access (see BC-PROJECTS).
 - Tagging the web and API tests with the acceptance criteria they prove (`Verifies AC-n`), then the criteria that
   have no test yet.
+
+## 28. The requirements are cut to a core and renumbered (18 Nov 2026)
+
+**Decided.** By the owner. The requirements had sprawled to 43 requirements and 72 criteria, most of them added
+in two days. They are cut to a **core of 17 requirements (13 functional, 4 non-functional) and 37 criteria**, and
+renumbered from 1 so the numbers mean something.
+
+**One-time exception to "ids are append only".** Nothing had been released, and the old numbers were full of gaps
+and merged items. Ids are append only again from now on: the next are FR-14, NFR-5 and AC-57. Decisions 23 to 27
+and the git history use the old numbers, and the lists below translate them.
+
+**Settled with the cut**, after an independent review of UC-P1 and UC-P4 (the eight decisions):
+- An administrator cannot name themselves as a project's manager at creation, and a person who manages a project
+  creates as a manager even if they are also an administrator (FR-7, FR-8).
+- An administrator restoring a manager needs a reason, and cannot name an administrator or an inactive account
+  (FR-11). A refused administrator attempt on a project's members is audited (FR-13).
+- The last-manager rule counts active managers (FR-10).
+- A non-member gets the same answer as for a project that does not exist, for every request, and a manager adding
+  an account that cannot be added gets one answer whatever the reason (FR-12, FR-9).
+- Deactivation removes nothing, including project memberships, so reinstating an account gives them back (FR-4).
+- Adding someone who is already a member changes nothing, and changing or removing a non-member is refused (FR-9).
+- A project name is 1 to 100 characters once spaces at both ends are removed, and need not be unique (FR-7).
+- Every member can see the member list (FR-12).
+
+**Requirements, old to new.**
+- **FR-1** was FR-124
+- **FR-2** was FR-125
+- **FR-3** was FR-123, with FR-2 merged in
+- **FR-4** was FR-1, with FR-3, FR-4, FR-147 merged in
+- **FR-5** was FR-126
+- **FR-6** was FR-24
+- **FR-7** was FR-129, with FR-130, FR-132, FR-152 merged in
+- **FR-8** was FR-131, with FR-136, FR-138, FR-141, FR-144 merged in
+- **FR-9** was FR-133, with FR-134, FR-148, FR-149, FR-150 merged in
+- **FR-10** was FR-135
+- **FR-11** was FR-137, with FR-145, FR-146 merged in
+- **FR-12** was FR-140, with FR-139, FR-142, FR-153 merged in
+- **FR-13** was FR-143, with FR-151 merged in
+- **NFR-1** was NFR-1, with FR-127 merged in
+- **NFR-2** was NFR-2, with NFR-3 merged in
+- **NFR-3** was NFR-4, with NFR-6 merged in
+- **NFR-4** was NFR-5
+- Retired with no survivor: FR-5, FR-128 (FR-5 is covered by the account ontology, FR-128 was stale).
+
+**Criteria, old to new** (after a second cut the same day, to 37 criteria: one for what a person gets, the rule details live in the RULE files). AC-1 was AC-78; AC-2 was AC-79; AC-3 was AC-76, AC-77; AC-4 was AC-3, AC-75; AC-5 was AC-1; AC-6 was AC-4, AC-84; AC-7 was AC-7, AC-85; AC-8 was AC-80; AC-9 was AC-87; AC-10 was AC-88; AC-11 was AC-89; AC-12 was AC-90; AC-13 was AC-91, AC-92; AC-14 was AC-93; AC-15 was AC-101, AC-118; AC-16 was AC-107; AC-17 was AC-94; AC-18 was AC-95; AC-19 was AC-97; AC-20 was AC-98; AC-21 was AC-99, AC-125; AC-22 was AC-126; AC-23 was AC-102; AC-24 was AC-122; AC-25 was AC-103, AC-123, AC-124; AC-26 was AC-106; AC-27 was AC-108, AC-127; AC-28 was AC-137; AC-29 was AC-109; AC-30 was AC-131, AC-132; AC-31 was AC-133; AC-32 was AC-8, AC-9; AC-33 was AC-81; AC-34 was AC-111; AC-35 was AC-112, AC-113; AC-36 was AC-114, AC-115; AC-37 was AC-116.
+- Dropped, no survivor (21): AC-2, AC-5, AC-6, AC-82, AC-83, AC-86, AC-96, AC-100, AC-104, AC-105, AC-110, AC-117, AC-119, AC-120, AC-121, AC-128, AC-129, AC-130, AC-134, AC-135, AC-136. Rule details moved to the RULE files and their unit tests, and the rest into the notes.
+
+**Changes.** `docs/requirements/` rewritten. Use cases, the ontology and context files, the build spec, the study
+lessons and the test comments that cite ids were remapped. Tests tagged `Verifies AC-n` kept their meaning. The
+Access requirements are marked built.
+
+**Still open.** UC-P2 (list and open a project) is not written, so FR-12 is only partly covered by UC-P4. The use
+case ids (UC-A2, UC-A10 to UC-A15, UC-P1, UC-P4) still have gaps. The review hashes are still unstamped.

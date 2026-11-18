@@ -1,4 +1,4 @@
-"""The hexagon holds. Verifies AC-114 (NFR-4): no domain file imports an adapter, a framework or an outside library.
+"""The hexagon holds. Verifies AC-36 (NFR-3): no domain file imports an adapter, a framework or an outside library.
 
 Each bounded context is a package under app/ with a domain/ folder. The rules, for every context:
   - domain/ imports the standard library and itself, nothing else

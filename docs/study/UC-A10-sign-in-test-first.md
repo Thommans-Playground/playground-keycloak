@@ -4,7 +4,7 @@
 
 ## What this lesson is for
 
-[Decision 26](../domain/decisions.md) says the frontend, like the backend, follows domain driven design, test driven development and hexagonal architecture (NFR-4, NFR-5, NFR-6). The API already does. **The web side does not yet:** `apps/web` signs people in correctly, with the same flow, but the code is in `src/lib/auth/`, calls `openid-client` directly and has one unit test (`safeReturnTo`).
+[Decision 26](../domain/decisions.md) says the frontend, like the backend, follows domain driven design, test driven development and hexagonal architecture (NFR-3, NFR-4, NFR-3). The API already does. **The web side does not yet:** `apps/web` signs people in correctly, with the same flow, but the code is in `src/lib/auth/`, calls `openid-client` directly and has one unit test (`safeReturnTo`).
 
 **Update (decision 27): the lean version of this is now built.** `apps/web` has `domain/`, `application/`, `adapters/` and `composition.ts`, with 36 tests, and the sign-in flow was checked end to end against Keycloak. Read the real files next to this lesson: it is the longer, fuller walk-through. Two differences from the code samples below: the repo tests with Node's built-in runner (`node:test` and `node:assert`, which run TypeScript directly on Node 26), so translate `expect(x).toBe(y)` to `assert.equal(x, y)` and skip installing vitest; and the stores are asynchronous, with `take` for read-and-forget. The lesson stays useful for **why each piece is shaped as it is**, and for the sign-out and refresh slices.
 
@@ -22,13 +22,13 @@ The lesson's checks, and what exists in `docs/requirements/` today:
 
 | Lesson label | What it checks | In this repo |
 |---|---|---|
-| SI-1 | a guest opening a protected page is sent to Keycloak | covered in spirit by **AC-78** (FR-124) |
-| SI-2 | after signing in, back on the page they asked for, signed in | **AC-78** (FR-124) |
+| SI-1 | a guest opening a protected page is sent to Keycloak | covered in spirit by **AC-1** (FR-1) |
+| SI-2 | after signing in, back on the page they asked for, signed in | **AC-1** (FR-1) |
 | SI-3 | a return address outside the app becomes `/dashboard` | *proposed*: no criterion yet |
 | SI-4 | an unknown, used, expired or wrong-state callback fails | *proposed*: no criterion yet |
 | SI-5 | the browser holds one opaque `HttpOnly` cookie and no token | *proposed*: no criterion yet |
 
-The requirement is **FR-124** (sign in through the identity provider). SI-3 to SI-5 would become new criteria through vbench-req. Until then, tag tests `Verifies AC-78` where they prove it, and keep the `SI-n` label in the test name.
+The requirement is **FR-1** (sign in through the identity provider). SI-3 to SI-5 would become new criteria through vbench-req. Until then, tag tests `Verifies AC-1` where they prove it, and keep the `SI-n` label in the test name.
 
 ## Differences from the old project to expect
 

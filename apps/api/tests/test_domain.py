@@ -19,7 +19,7 @@ def test_rule_a3_reason_must_say_something():  # Verifies RULE-A3
     assert clean_reason("  Left the team ") == "Left the team"
 
 
-def test_rule_a2_nobody_deactivates_or_demotes_themselves():  # Verifies AC-6
+def test_rule_a2_nobody_deactivates_or_demotes_themselves():  # Verifies RULE-A2
     admin = acct("a", Role.administrator)
     for action in (Action.deactivate, Action.demote):
         with pytest.raises(CannotChangeSelf):
@@ -49,6 +49,6 @@ def test_transitions():
 
 
 def test_domain_errors_say_what_went_wrong_and_not_how_http_answers():
-    # The domain does not know HTTP. The web layer maps a rule to a status (NFR-4).
+    # The domain does not know HTTP. The web layer maps a rule to a status (NFR-3).
     for cls in (ReasonRequired, CannotChangeSelf, LastAdministrator, InvalidTransition, AccountNotFound):
         assert not hasattr(cls, "http_status"), cls.__name__

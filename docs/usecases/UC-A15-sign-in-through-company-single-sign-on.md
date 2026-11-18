@@ -6,7 +6,7 @@ status: draft
 actor: person (not yet signed in)
 context: BC-ACCESS
 satisfies:
-  - id: FR-24
+  - id: FR-6
 criteria: []
 parameters: []
 objects: [OBJ-A1]
@@ -21,9 +21,12 @@ evolved_from: [MK3 UC-A6]
 
 <!-- vbench-uc:begin mirror (generated from the requirements files, do not edit here: change the row, then run sync) -->
 
+<details>
+<summary>The requirements and criteria it runs, copied from docs/requirements (1 requirement, 0 criteria). Do not edit.</summary>
+
 ## What this serves
 
-**FR-24**: The system shall let a person sign in through single sign-on.
+**FR-6**: The system shall let a person sign in through single sign-on.
 
 ## Acceptance criteria it runs
 
@@ -35,11 +38,12 @@ Nothing verifies it yet: it lists no criteria.
 
 Each criterion is run by a test tagged `Verifies AC-<n>`.
 
+</details>
+
 <!-- vbench-uc:end mirror -->
 
-> Study copy. Rewritten from MK3's UC-A6 (SSO login) for Keycloak. It is a Release 2 item (FR-24).
-> **FR-24 has no acceptance criterion yet.** Hand this to vbench-req.
-
+> Study copy. Rewritten from MK3's UC-A6 (SSO login) for Keycloak. It is a Release 2 item (FR-6).
+> **FR-6 has no acceptance criterion yet.** Hand this to vbench-req.
 
 ## Description
 
@@ -61,23 +65,28 @@ This is the clearest example of why a realm file belongs in its own repo (phase 
 
 ## Main flow
 
-1. The person asks to sign in. The system sends them to Keycloak, as in UC-A10. (FR-24)
-2. Keycloak's login page offers the company login. The person chooses it. (FR-24)
-3. Keycloak sends the person to the company's login. They sign in there. (FR-24)
-4. The company login sends the person back to Keycloak. Keycloak creates or finds a Keycloak user for them. (FR-24)
-5. Keycloak sends the person back to Playground with a code, and the flow goes on as in UC-A10, steps 5 to 9. (FR-24)
-6. On the first request, the API makes a pending account if there is none (UC-A12). (FR-24)
+1. The person asks to sign in. The system sends them to Keycloak, as in UC-A10. (FR-6)
+2. Keycloak's login page offers the company login. The person chooses it. (FR-6)
+3. Keycloak sends the person to the company's login. They sign in there. (FR-6)
+4. The company login sends the person back to Keycloak. Keycloak creates or finds a Keycloak user for them. (FR-6)
+5. Keycloak sends the person back to Playground with a code, and the flow goes on as in UC-A10, steps 5 to 9. (FR-6)
+6. On the first request, the API makes a pending account if there is none (UC-A12). (FR-6)
 
 ## Other flows
 
 - The company login refuses the person: Keycloak shows an error and no token is issued.
 - The person has no Playground account: they are pending, and signing in proves only who they are. The account request page is offered. Single sign-on does not approve anyone.
 - The company login gives an email that already belongs to another Keycloak user: Keycloak decides whether to link them. Open: this matters, because the account is linked by the Keycloak id. Linking by email in Keycloak should happen only for a verified email.
-- Open: roles from the company. Playground keeps roles in its own database, so a company group must not make someone an administrator.
 
 ## Postconditions
 
 - As UC-A10, and a Keycloak user exists that is linked to the company login.
+
+## Open questions
+
+For the product owner to decide.
+
+1. Roles from the company. Playground keeps roles in its own database, so a company group must not make someone an administrator.
 
 ## Overview
 

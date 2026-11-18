@@ -17,6 +17,27 @@ evolved_from: [MK3 UC-A3]
 
 # Keep the session alive
 
+<!-- vbench-uc:begin mirror (generated from the requirements files, do not edit here: change the row, then run sync) -->
+
+<details>
+<summary>The requirements and criteria it runs, copied from docs/requirements (0 requirements, 0 criteria). Do not edit.</summary>
+
+## What this serves
+
+## Acceptance criteria it runs
+
+None listed yet. A requirement without criteria cannot be confirmed.
+
+## How it is verified
+
+Nothing verifies it yet: it lists no criteria.
+
+Each criterion is run by a test tagged `Verifies AC-<n>`.
+
+</details>
+
+<!-- vbench-uc:end mirror -->
+
 > Study copy. Rewritten from MK3's UC-A3 (refresh) for Keycloak.
 > **No requirement serves this yet.** The rows in `docs/requirements/requirements.md` have nothing for refreshing, because Keycloak does it. Hand this to vbench-req if a row is wanted, for example one that proves a person is not logged out when two requests arrive together.
 
@@ -55,11 +76,16 @@ This is the one with the clearest lesson. Refresh tokens rotate, so using the ol
 - Keycloak cannot be reached: the same as a refusal. Open: should the session be kept for a retry?
 - The access token is still good for more than 30 seconds: nothing is refreshed.
 - A deactivated person (UC-A2) has their sessions ended in Keycloak: the next refresh is refused, so the web session ends within one access token's life at most. The API also refuses them at once, on every request.
-- Open: the sessions are kept in the web server's memory. A restart ends them all. A shared store such as Redis would fix that.
 
 ## Postconditions
 
 - The session holds a token that is valid for several minutes.
+
+## Open questions
+
+For the product owner to decide.
+
+1. The sessions are kept in the web server's memory. A restart ends them all. A shared store such as Redis would fix that.
 
 ## Overview
 

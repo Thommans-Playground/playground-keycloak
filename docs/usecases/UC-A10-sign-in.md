@@ -6,13 +6,12 @@ status: draft
 actor: person (not yet signed in)
 context: BC-ACCESS
 satisfies:
-  - id: FR-124
-  - id: FR-127
   - id: NFR-1
+  - id: FR-1
 criteria:
-  - id: AC-78
-  - id: AC-81
-  - id: AC-9
+  - id: AC-1
+  - id: AC-32
+  - id: AC-33
 parameters: []
 objects: [OBJ-A1]
 rules: []
@@ -26,46 +25,47 @@ evolved_from: [MK3 UC-A1]
 
 <!-- vbench-uc:begin mirror (generated from the requirements files, do not edit here: change the row, then run sync) -->
 
+<details>
+<summary>The requirements and criteria it runs, copied from docs/requirements (2 requirements, 3 criteria). Do not edit.</summary>
+
 ## What this serves
-
-**FR-124**: The system shall let a person sign in through the identity provider.
-
-**FR-127**: The system shall refuse a request that has no valid token from the identity provider.
 
 **NFR-1**: The system shall check access on the server for every command and read.
 
+**FR-1**: The system shall let a person sign in through the identity provider.
+
 ## Acceptance criteria it runs
 
-**AC-78** (acceptance, proves FR-124)
+**AC-1** (acceptance, proves FR-1)
 
-- Given an approved person with an identity provider account
+- Given an approved person
 - When they sign in through the identity provider
 - Then they can use the product
 
-**AC-81** (acceptance, proves FR-127)
+**AC-32** (acceptance, proves NFR-1)
 
-- Given a request with no token, an expired token, or a token not issued by the identity provider
-- When it is made to any protected route
+- Given any role, and a person who is not a member
+- When each makes a command or read it may not, even if the screen hides it
+- Then the server refuses it
+
+**AC-33** (acceptance, proves NFR-1)
+
+- Given a request with no token, an expired one, or one not from our identity provider
+- When it reaches a protected route
 - Then it is refused
-
-**AC-9** (integration, proves NFR-1)
-
-- Given a screen that hides a button the role may not use
-- When the request is sent directly to the server
-- Then the server still refuses it
 
 ## How it is verified
 
-- acceptance: AC-78, AC-81
-- integration: AC-9
+- acceptance: AC-1, AC-32, AC-33
 
 Each criterion is run by a test tagged `Verifies AC-<n>`.
+
+</details>
 
 <!-- vbench-uc:end mirror -->
 
 > Study copy. Rewritten from MK3's UC-A1 (login) for Keycloak. The requirement and criterion rows are in
 > `docs/requirements/`. The front matter is not in the use case tool's format yet, so no review hashes are stamped.
-
 
 ## Description
 
@@ -91,30 +91,35 @@ What is new in the design language: **a login attempt is a short-lived, single-u
 
 ## Main flow
 
-1. The person asks to sign in. (FR-124)
-2. The system starts a login attempt: it makes a random state, nonce and PKCE verifier, keeps them for a short time, and sends the person to Keycloak. (FR-124)
-3. The person gives their email and password to Keycloak. (FR-124)
-4. Keycloak sends the person back with a one-time code. (FR-124)
-5. The system finds the login attempt, uses it once, and checks the state. (FR-124)
-6. The system exchanges the code for tokens directly with Keycloak. Keycloak checks the PKCE verifier. The system checks the nonce in the ID token. (FR-124)
-7. The system keeps the tokens on the server under a new random session id and sets that id as the session cookie. (FR-124)
-8. The person is sent to the page they first asked for. (FR-124)
-9. On each later request, the web server adds the access token. The API checks its signature, expiry, issuer and audience, and then reads the account. (FR-127, NFR-1, AC-78, AC-81, AC-9)
+1. The person asks to sign in. (FR-1)
+2. The system starts a login attempt: it makes a random state, nonce and PKCE verifier, keeps them for a short time, and sends the person to Keycloak. (FR-1)
+3. The person gives their email and password to Keycloak. (FR-1)
+4. Keycloak sends the person back with a one-time code. (FR-1)
+5. The system finds the login attempt, uses it once, and checks the state. (FR-1)
+6. The system exchanges the code for tokens directly with Keycloak. Keycloak checks the PKCE verifier. The system checks the nonce in the ID token. (FR-1)
+7. The system keeps the tokens on the server under a new random session id and sets that id as the session cookie. (FR-1)
+8. The person is sent to the page they first asked for. (FR-1)
+9. On each later request, the web server adds the access token. The API checks its signature, expiry, issuer and audience, and then reads the account. (NFR-1, AC-1, AC-32, AC-33)
 
 ## Other flows
 
-- The login attempt is missing, used already or expired: the person is sent back to the start with "login expired". (FR-124)
-- The person cancels, or Keycloak refuses: the person is sent back with "login refused". (FR-124)
-- The code exchange fails, or the state, nonce or PKCE check fails: no session is made, and the person is sent back with "login failed". (FR-124)
-- A request reaches the API with no token, an expired token, a token from another issuer or a token for another audience: the API answers 401 and does nothing else. (AC-81)
-- A request is sent straight to the API with the browser's role switch off: the API still checks the account's role and refuses. (AC-9)
-- The `returnTo` address points to another site: it is replaced by the home page, so a sign-in link cannot send a person elsewhere. (FR-124)
-- Open: an unverified email. Keycloak can require verification. Today the API only refuses to give the first administrator to an unverified email.
+- The login attempt is missing, used already or expired: the person is sent back to the start with "login expired". (FR-1)
+- The person cancels, or Keycloak refuses: the person is sent back with "login refused". (FR-1)
+- The code exchange fails, or the state, nonce or PKCE check fails: no session is made, and the person is sent back with "login failed". (FR-1)
+- A request reaches the API with no token, an expired token, a token from another issuer or a token for another audience: the API answers 401 and does nothing else. (AC-33)
+- A request is sent straight to the API with the browser's role switch off: the API still checks the account's role and refuses. (AC-32)
+- The `returnTo` address points to another site: it is replaced by the home page, so a sign-in link cannot send a person elsewhere. (FR-1)
 
 ## Postconditions
 
 - A session exists on the web server. The browser holds its id and no token.
 - Nothing is created in the API database yet. The account appears on the first API request (UC-A12).
+
+## Open questions
+
+For the product owner to decide.
+
+1. An unverified email. Keycloak can require verification. Today the API only refuses to give the first administrator to an unverified email.
 
 ## Overview
 
@@ -137,5 +142,5 @@ sequenceDiagram
 
 ## Slices
 
-1. TSK-A10.1: Send the person to Keycloak and handle the callback (AC-78)
-2. TSK-A10.2: The API checks the token on every protected route (AC-81, AC-9)
+1. TSK-A10.1: Send the person to Keycloak and handle the callback (AC-1)
+2. TSK-A10.2: The API checks the token on every protected route (AC-32, AC-33)

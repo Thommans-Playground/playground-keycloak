@@ -40,14 +40,12 @@ questions:
   - Who added them?
   - Which projects does this person manage?
 satisfies:
-  - id: FR-132
-  - id: FR-133
-  - id: FR-134
-  - id: FR-136
-  - id: FR-137
-  - id: FR-138
-  - id: FR-139
-  - id: FR-143
+  - id: FR-7
+  - id: FR-8
+  - id: FR-9
+  - id: FR-11
+  - id: FR-12
+  - id: FR-13
 ```
 
 # Membership
@@ -98,4 +96,4 @@ The change takes effect at the person's next request, because membership is read
 
 ## Not yet a file
 
-Whether removing a member needs a reason is open. For now only an audit entry is required.
+Whether removing a member needs a reason is open. For now only an audit entry is required. Also open: what `added by` holds for the manager made when a project is created (the administrator or manager who created it, or empty).

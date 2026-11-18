@@ -6,13 +6,10 @@ status: draft
 actor: new person
 context: BC-ACCESS
 satisfies:
-  - id: FR-123
-  - id: FR-2
+  - id: FR-3
 criteria:
   - id: AC-3
-  - id: AC-75
-  - id: AC-76
-  - id: AC-77
+  - id: AC-4
 parameters:
   - name, email and password (given to Keycloak, not to us)
 objects: [OBJ-A1]
@@ -28,48 +25,38 @@ evolved_from: [MK3 UC-A5]
 
 <!-- vbench-uc:begin mirror (generated from the requirements files, do not edit here: change the row, then run sync) -->
 
+<details>
+<summary>The requirements and criteria it runs, copied from docs/requirements (1 requirement, 2 criteria). Do not edit.</summary>
+
 ## What this serves
 
-**FR-123**: The system shall create a pending account the first time a person it does not know reaches it through the identity provider.
-
-**FR-2**: The system shall let a person with a pending account see only that their account is waiting for approval, and refuse everything else.
+**FR-3**: The system shall hold a person it does not know as a pending account, who can see only that it is waiting for approval, until an administrator approves it.
 
 ## Acceptance criteria it runs
 
-**AC-3** (acceptance, proves FR-2)
+**AC-3** (acceptance, proves FR-3)
+
+- Given a person the system does not know
+- When they make a request, then another
+- Then one pending account exists for them
+
+**AC-4** (acceptance, proves FR-3)
 
 - Given a pending account
-- When its owner makes any request other than asking for their own status
-- Then it is refused
-
-**AC-75** (acceptance, proves FR-2)
-
-- Given a pending account
-- When its owner asks for their own status
-- Then it says the account is waiting for approval
-
-**AC-76** (acceptance, proves FR-123)
-
-- Given a person the system does not know, signed in through the identity provider
-- When they make their first request
-- Then a pending account exists for them
-
-**AC-77** (acceptance, proves FR-123)
-
-- Given a person who already has an account
-- When they make another request
-- Then no second account is created
+- When its owner asks for their status, then for anything else
+- Then the status says it is waiting, and everything else is refused
 
 ## How it is verified
 
-- acceptance: AC-3, AC-75, AC-76, AC-77
+- acceptance: AC-3, AC-4
 
 Each criterion is run by a test tagged `Verifies AC-<n>`.
+
+</details>
 
 <!-- vbench-uc:end mirror -->
 
 > Study copy. Rewritten from MK3's UC-A5 (sign up) for Keycloak.
-
 
 ## Description
 
@@ -94,30 +81,35 @@ New in the design language: **lazy provisioning**. The person exists in two plac
 
 ## Main flow
 
-1. The person asks to create an account. The system sends them to Keycloak's registration page. (FR-123)
-2. The person gives a name, an email and a password to Keycloak. Keycloak creates the user and signs them in. (FR-123)
-3. The person comes back and the system makes a session, as in UC-A10. (FR-123)
-4. The person's first request reaches the API with a valid token. (FR-123)
-5. The API looks for an account with the token's Keycloak id and finds none. (AC-76)
-6. The API creates an account with role user and status pending, with the name and email from the token. (FR-123, AC-76)
-7. The API records an audit entry "register" with no administrator. (FR-123)
-8. The API refuses everything except "show me my own status". (FR-2)
-9. The person sees "Waiting for approval". (FR-2, AC-75)
+1. The person asks to create an account. The system sends them to Keycloak's registration page. (FR-3)
+2. The person gives a name, an email and a password to Keycloak. Keycloak creates the user and signs them in. (FR-3)
+3. The person comes back and the system makes a session, as in UC-A10. (FR-3)
+4. The person's first request reaches the API with a valid token. (FR-3)
+5. The API looks for an account with the token's Keycloak id and finds none. (AC-3)
+6. The API creates an account with role user and status pending, with the name and email from the token. (FR-3, AC-3)
+7. The API records an audit entry "register" with no administrator. (FR-3)
+8. The API refuses everything except "show me my own status". (FR-3)
+9. The person sees "Waiting for approval". (FR-3, AC-4)
 
 ## Other flows
 
-- The person already has an account: nothing is created, and the name and email are refreshed from the token. (AC-77)
+- The person already has an account: nothing is created, and the name and email are refreshed from the token. (AC-3)
 - The person's email is in `BOOTSTRAP_ADMIN_EMAILS` and Keycloak says it is verified: the account is created active, with role administrator, and the audit entry says it came from setup. (RULE-A1)
 - The email is in `BOOTSTRAP_ADMIN_EMAILS` but not verified: the account is created pending, as for anyone else, so someone cannot claim the first administrator by registering with an unverified address.
-- A pending person asks for anything other than their own status: the API answers 403 "waiting for approval". (AC-3)
+- A pending person asks for anything other than their own status: the API answers 403 "waiting for approval". (AC-4)
 - The person's name or email changed in Keycloak: the account is updated on the next request. The link stays the Keycloak id.
-- Two first requests arrive at the same moment: only one account may exist. Open: the account table needs a unique identity, and the second insert must be treated as "found". (AC-77)
-- Open: Keycloak's registration page does not check the email by default. Whether to require it, and whether to limit how fast registrations can come from one place, is still undecided.
+- Two first requests arrive at the same moment: only one account may exist. Open: the account table needs a unique identity, and the second insert must be treated as "found". (AC-3)
 
 ## Postconditions
 
 - A Keycloak user exists, and one account exists for its id, pending (or active for the first administrator).
 - No password is held by Playground.
+
+## Open questions
+
+For the product owner to decide.
+
+1. Keycloak's registration page does not check the email by default. Whether to require it, and whether to limit how fast registrations can come from one place, is still undecided.
 
 ## Overview
 
@@ -136,5 +128,5 @@ sequenceDiagram
 
 ## Slices
 
-1. TSK-A12.1: Create the account on first sight, rules RULE-A1 (AC-76, AC-77)
-2. TSK-A12.2: Refuse everything but the person's own status while pending (AC-3, AC-75)
+1. TSK-A12.1: Create the account on first sight, rules RULE-A1 (AC-3)
+2. TSK-A12.2: Refuse everything but the person's own status while pending (AC-4)

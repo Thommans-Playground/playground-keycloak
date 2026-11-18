@@ -10,7 +10,7 @@ Distilled from an earlier prototype for this playground. The originals now live 
 | FastAPI API | `apps/api/` | Validates the token on every request, owns the **account** (status, role), audit trail, account admin |
 | Next.js web (BFF) | `apps/web/` | Runs the OIDC code flow with PKCE, keeps tokens on the server, gives the browser one opaque cookie |
 
-Source: decisions 23 and 24, `BC-ACCESS`, `OBJ-A1`, `SET-5`, `SET-6`, `RULE-A1/A2/A3/A6`, `UC-A2`, FR-1 to FR-5, FR-123 to FR-128, NFR-1, AC-1 to AC-9, AC-75 to AC-86.
+Source: decisions 23 and 24, `BC-ACCESS`, `OBJ-A1`, `SET-5`, `SET-6`, `RULE-A1/A2/A3/A6`, `UC-A2`, and the requirements and criteria in [docs/requirements](../requirements/requirements.md) (FR-1 to FR-5, NFR-1, AC-1 to AC-8, AC-32 and AC-33).
 
 ## The model
 
@@ -51,7 +51,7 @@ sequenceDiagram
 
 ```mermaid
 stateDiagram-v2
-    [*] --> pending: first request from an unknown person (FR-123)
+    [*] --> pending: first request from an unknown person (FR-3)
     pending --> active: approve (admin)
     active --> deactivated: deactivate + reason (admin)
     deactivated --> active: reinstate + reason (admin)
@@ -63,10 +63,10 @@ Never deleted. Deactivation removes nothing (RULE-A6).
 
 | Rule | Behaviour |
 |---|---|
-| Unknown person, valid token | A `pending` account is created (AC-76), once only (AC-77) |
-| Pending | Every request except `GET /me` is refused with `account_pending` (FR-2, AC-3, AC-75) |
-| Deactivated | Every request is refused with `account_deactivated`, checked per request (AC-84) |
-| No / expired / foreign token | 401 (FR-127, AC-81) |
+| Unknown person, valid token | A `pending` account is created (AC-3), once only (AC-3) |
+| Pending | Every request except `GET /me` is refused with `account_pending` (FR-3, AC-4, AC-4) |
+| Deactivated | Every request is refused with `account_deactivated`, checked per request (AC-6) |
+| No / expired / foreign token | 401 (NFR-1, AC-33) |
 | Approve | Status change in our API only. Keycloak is not called (decision 24) |
 | Deactivate | Reason required. Disables the person in Keycloak and ends their sessions, then updates the account |
 | Reinstate | Reason required. Enables the person in Keycloak, then updates the account |
@@ -86,17 +86,17 @@ The source pages were written at different times. Where they disagree, the lates
 | Conflict | Chosen | Why |
 |---|---|---|
 | Roles in the token (decision 23) vs in our database (amendment, `BC-ACCESS`, `OBJ-A1`) | Database | The amendment is dated 16 Nov and later pages follow it |
-| `pending` status (decision 24, FR-123, AC-3, AC-75) vs "no pending status" (`SET-6`, `OBJ-A1`) | `pending` exists | Decision 24 is the newest and says the ontology is not reworked yet |
-| FR-128 "no role change from our screens" vs "an administrator promotes with a reason" (`SET-5`, `RULE-A1/A2/A3`) | Promote and demote exist | The rules are meaningless without them. FR-128 looks stale |
-| Roles: member, administrator, auditor (FR-5) vs user, administrator (`SET-5`) | `user`, `administrator` | The first release has no auditor |
+| `pending` status (decision 24, FR-3, AC-4, AC-4) vs "no pending status" (`SET-6`, `OBJ-A1`) | `pending` exists | Decision 24 is the newest and says the ontology is not reworked yet |
+| A former requirement "no role change from our screens" vs "an administrator promotes with a reason" (`SET-5`, `RULE-A1/A2/A3`) | Promote and demote exist | The rules are meaningless without them. The requirement was stale and was retired (decision 28) |
+| Roles: member, administrator, auditor (a former requirement, retired in decision 28) vs user, administrator (`SET-5`) | `user`, `administrator` | The first release has no auditor |
 | UC-A2 "pending person cannot sign in" vs decision 24 "can sign in, API holds them" | Can sign in, API holds them | Decision 24 |
 
 ## Left out on purpose
 
-Time-limited access (UC-A4, undecided), project membership (moved to Projects), the account request queue (`OBJ-A2`), shares, auditor role, MFA for administrators, API keys, FR-24 SSO with a company login. The `Permissions` check is a simple role check here, because there are no other contexts yet.
+Time-limited access (UC-A4, undecided), project membership (moved to Projects), the account request queue (`OBJ-A2`), shares, auditor role, MFA for administrators, API keys, FR-6 SSO with a company login. The `Permissions` check is a simple role check here, because there are no other contexts yet.
 
 ## Open questions carried over
 
-- AC-83: can `manage-users` assign roles? In Keycloak, yes, it can map roles. The backend account is therefore limited by realm design (no sensitive realm roles exist) and not by Keycloak rights alone.
+- Open: can `manage-users` assign roles? In Keycloak, yes, it can map roles. The backend account is therefore limited by realm design (no sensitive realm roles exist) and not by Keycloak rights alone.
 - Account created in Keycloak and ours together: if one side fails (BC-ACCESS Q6). Here Keycloak is called first, and our account changes only after it succeeds.
 - Rate limiting on registration is not done.

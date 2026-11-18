@@ -7,9 +7,8 @@ object: OBJ-P1
 statement: "A change that would leave a project with no project manager is refused."
 proved_by: []
 satisfies:
-  - id: FR-130
-  - id: FR-132
-  - id: FR-135
+  - id: FR-7
+  - id: FR-10
 ```
 
 # A project always has a manager
@@ -46,9 +45,9 @@ flowchart TB
 
 ## How a test would prove it
 
-- Given a project with one manager, when anyone tries to remove them, then it is refused (AC-99).
-- Given a project with one manager, when anyone tries to change them to an engineer, then it is refused (AC-100).
-- Given an administrator creates a project and names no manager, then it is refused (AC-91).
+- Given a project with one manager, when anyone tries to remove them, then it is refused (AC-21).
+- Given a project with one manager, when anyone tries to change them to an engineer, then it is refused, like a removal.
+- Given an administrator creates a project and names no manager, then it is refused (AC-13).
 
 ## Related
 

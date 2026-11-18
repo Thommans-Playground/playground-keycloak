@@ -7,10 +7,9 @@ object: OBJ-P1
 statement: "The contents of a project are shown only to its members, and a refusal does not reveal whether the project exists."
 proved_by: []
 satisfies:
-  - id: FR-140
-  - id: FR-141
-  - id: FR-142
   - id: NFR-1
+  - id: FR-8
+  - id: FR-12
 ```
 
 # Only members see inside a project
@@ -52,11 +51,11 @@ sequenceDiagram
 ## How a test would prove it
 
 - Given a member and a person who is not a member, when each asks for the contents, then the member sees them and
-  the other is refused (AC-106).
+  the other is refused (AC-26).
 - Given a project that exists and one that does not, when a non-member asks for each, then the answer is the same
-  (AC-108).
+  (AC-27).
 - Given an administrator who is not a member, when they list projects, then they see names and members and no
-  contents (AC-107).
+  contents (AC-16).
 
 ## Related
 

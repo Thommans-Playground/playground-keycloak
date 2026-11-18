@@ -1,5 +1,5 @@
 // The sign in use cases, tested with a strict fake Keycloak and the in-memory stores.
-// Labels SI-n are the sign in lesson's own. SI-1 and SI-2 are AC-78 in docs/requirements.
+// Labels SI-n are the sign in lesson's own. SI-1 and SI-2 are AC-1 in docs/requirements.
 import assert from "node:assert/strict";
 import { beforeEach, test } from "node:test";
 import { finishLogin, isSignInFailed, SignInFailed, startLogin, type SignInDeps } from "./sign-in.ts";
@@ -20,7 +20,7 @@ beforeEach(() => {
 
 const callback = (code: string, state: string) => new URL(`http://app.test/auth/callback?code=${code}&state=${state}`);
 
-test("SI-1: starting a login sends the person to Keycloak and remembers the attempt (Verifies AC-78)", async () => {
+test("SI-1: starting a login sends the person to Keycloak and remembers the attempt (Verifies AC-1)", async () => {
   const { attemptId, redirectTo } = await startLogin(deps, { returnTo: "/admin/accounts", register: false });
   assert.match(redirectTo, /^https:\/\/kc\.test\/auth\?state=state-1/);
   assert.equal(attemptId, "id-1");
@@ -31,7 +31,7 @@ test("a person who asked to register is sent to the registration form", async ()
   assert.deepEqual(idp.lastBegin, { register: true });
 });
 
-test("SI-2: finishing a login makes a session and returns to the page asked for (Verifies AC-78)", async () => {
+test("SI-2: finishing a login makes a session and returns to the page asked for (Verifies AC-1)", async () => {
   const { attemptId } = await startLogin(deps, { returnTo: "/admin/accounts", register: false });
   const { sessionId, returnTo } = await finishLogin(deps, attemptId, callback("code-1", "state-1"));
   assert.equal(returnTo, "/admin/accounts");

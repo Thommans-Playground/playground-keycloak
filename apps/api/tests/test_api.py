@@ -1,7 +1,7 @@
 from tests.conftest import KEY, OTHER_KEY, auth, make_token, me_id, register
 
 
-# FR-127, AC-81: no token, expired token, token not from the identity provider
+# NFR-1, AC-33: no token, expired token, token not from the identity provider
 def test_requests_without_a_valid_token_are_refused(client):
     assert client.get("/me").status_code == 401
     cases = {
@@ -16,7 +16,7 @@ def test_requests_without_a_valid_token_are_refused(client):
         assert r.json()["detail"]["code"] == "invalid_token"
 
 
-# FR-123, AC-76, AC-77
+# FR-3, AC-3
 def test_unknown_person_gets_one_pending_account(client):
     h = auth("sub-maya", "maya@x.test", name="Maya")
     first = client.get("/me", headers=h).json()
@@ -25,7 +25,7 @@ def test_unknown_person_gets_one_pending_account(client):
     assert client.get("/me", headers=auth("sub-ada", "ada@x.test")).status_code == 200
 
 
-# FR-2, AC-3, AC-75
+# FR-3, AC-4
 def test_pending_person_sees_only_their_status(client):
     h, _ = register(client, "sub-maya", "maya@x.test")
     assert client.get("/me", headers=h).json()["status"] == "pending"
@@ -45,20 +45,20 @@ def test_name_and_email_follow_the_token_but_identity_is_the_link(client):
     assert new["id"] == old["id"] and new["email"] == "renamed@x.test" and new["name"] == "New"
 
 
-# FR-1, AC-1, AC-2, decision 24: approving does not call Keycloak
+# FR-4, AC-5, decision 24: approving does not call Keycloak
 def test_administrator_approves_and_member_cannot(client, admin, idp):
     maya, maya_id = register(client, "sub-maya", "maya@x.test")
     bob, bob_id = register(client, "sub-bob", "bob@x.test")
     assert client.post(f"/accounts/{bob_id}/approve", headers=maya).status_code == 403  # pending
     assert client.post(f"/accounts/{maya_id}/approve", headers=admin).json()["status"] == "active"
     assert idp.calls == []
-    # Maya is active but a plain user: still cannot approve (AC-2)
+    # Maya is active but a plain user: still cannot approve (NFR-1, AC-32)
     r = client.post(f"/accounts/{bob_id}/approve", headers=maya)
     assert (r.status_code, r.json()["detail"]["code"]) == (403, "forbidden")
     assert client.get("/accounts", headers=admin).json()[-1]["status"] == "pending"
 
 
-# FR-3, AC-4, AC-5, AC-84, AC-85
+# FR-4, AC-6, RULE-A3
 def test_deactivate_needs_reason_disables_in_keycloak_and_blocks_next_request(client, admin, idp):
     maya, maya_id = register(client, "sub-maya", "maya@x.test")
     client.post(f"/accounts/{maya_id}/approve", headers=admin)
