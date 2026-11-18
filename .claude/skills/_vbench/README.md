@@ -67,10 +67,26 @@ Example:
 | `vbench-branch`, `vbench-commit`, `vbench-pr` | Name branches, write commits, open PRs in the vbench format |
 | `vbench-ontology`, `vbench-contexts` | Domain model: objects, rules, bounded contexts |
 | `vbench-diagrams`, `vbench-mermaid`, `vbench-puml` | Diagrams |
+| `vbench-tdd` | Build a slice test first: red, green, refactor, with a pause for review after each step. Drives the three TDD agents below |
 
 The standards the skills apply are in `_vbench/standards/`. Edit them to change a rule for your repo.
 Starter PlantUML style files for the diagram skills are in `_vbench/templates/`. Copy them next to your diagrams
 (`vbench-puml` says when).
+
+## Agents: `.claude/agents/`
+
+Subagents are separate agent runs with their own clean context and a narrow job. They return a report and cannot
+wait for you, so a pause for review happens in the main conversation between agents. Copy `.claude/agents/` along
+with the skills. Agents load when a session starts, so restart or reload after adding them.
+
+| Agent | Model | Job |
+| ----- | ----- | --- |
+| `tdd-red` | sonnet | One failing test for one behaviour, proved to fail for the right reason. Writes no production code |
+| `tdd-green` | sonnet | The minimum code that makes that test pass. Never edits the test |
+| `tdd-refactor` | sonnet | Tidies code on green only, running the tests after each change. Behaviour does not change |
+| `spec-challenger` | opus | Read-only adversarial review of a use case and its requirements, criteria and ontology. Reports gaps, decides nothing |
+
+They read the test, typecheck and lint commands from the `stacks` block of `vbench.json`.
 
 ## Tests
 
