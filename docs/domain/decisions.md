@@ -371,3 +371,43 @@ and `vbench-req`, the agent table in `_vbench/README.md` and `CLAUDE.md`.
   on every edit, so it needs a decision on noise and cost.
 - The agents load at session start: restart to use them.
 
+## 12. UC-A1 sign in after the first three reviews (18 Nov 2026)
+
+**Decided.** By the owner, answering the findings of vbench-spec-challenger, vbench-security-reviewer and
+vbench-design-reviewer on the rewritten UC-A1. They refine decision 10.
+- **A new sign in ends this browser's earlier session only.** It replaces the session the browser already holds.
+  Other devices stay signed in. This is the session-fixation defence and needs no find-by-person lookup in the
+  session store.
+- **UC-A1 ends at the first page the person sees**: their own page, the waiting page, or the deactivated page. This
+  amends decision 10's sentence that step 9 hands over to UC-A3 (UC-A3 still creates the pending account).
+- **The state is checked before the code is exchanged.** A forged callback never spends a code at Keycloak. The design
+  diagram is redrawn to match the flow.
+- **The web server (BFF) class diagram is drawn now**, before UC-A1's design is reviewed again, and the design
+  sequence is redrawn against it. This closes decision 9's open item.
+- **Two sign-ins started at once in one browser: only the latest start can finish.** The older tab is asked to
+  sign in again, and a refused older callback does not use up the newer attempt. Signed-in tabs are unaffected: the
+  session is shared by every tab of the browser, and signing out in one signs out all of them.
+- **A deactivated person who still gets through (AC-45)**: both sessions end, ours and Keycloak's, by reusing
+  sign out (UC-A2), so the person is not signed straight back in. AC-45 stays in UC-A1, and FR-4 joins its
+  requirements.
+- **A pending person landing on the waiting page gets its own criterion**, under FR-3, run by UC-A3.
+- **Refusals and session events are logged**: each refused callback, each 401, each session that starts or ends and
+  each AC-45 case writes a server log line (event, result, the `sub` when known, a hash of the session id, never a
+  token or a code). On AWS this is CloudWatch. A new requirement, NFR-5, carries it.
+
+**Why.** The three reviews agreed on four things: the design diagram showed an older flow, the two-tab text did not
+match the built behaviour, "ends the earlier session" was ambiguous, and the web server had no class diagram. These
+answers close those and leave the smaller findings (cookie attributes, the algorithm allow list, `returnTo` bypass
+cases, lifetimes, the spec and BC-ACCESS lines, UC-A4's role line) as plain corrections.
+
+**Changes.** Criteria AC-43 and AC-45 reworded, AC-46 (two sign ins), AC-47 (waiting page) and NFR-5 with AC-48
+(logging) added. UC-A1, UC-A3, both diagrams, a new web server class diagram, the build spec, BC-ACCESS and UC-A4.
+
+**Still open.**
+- Where a person's session is kept for a second device (not needed now).
+- A rate limit for registration (account flooding): the security reviewer asked for it to be accepted, with a reason
+  and a revisit point.
+- The status gate in `main.py` belongs in the Access domain, and the token verifier is an edge adapter: both for the
+  design review of the code, not the use case.
+- The tests for AC-38 to AC-48 and the code (D12, D13) are not built.
+
