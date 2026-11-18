@@ -294,3 +294,47 @@ spec-challenger agent, and the use case files and diagrams, starting with UC-A1.
 - The web server (BFF) class diagram is not drawn yet.
 - UC-A1's analysis is a first revision and is not frozen: freeze it after its open gaps are settled.
 
+## 10. UC-A1 sign in: what a person sees, and what is proven (18 Nov 2026)
+
+**Decided.** By the owner, answering the twelve gaps that vbench-spec-challenger found in UC-A1. They build on decision 8.
+- **"Signed in" is testable (AC-1).** The person has a session, and one protected API call (for example `/me`) answers
+  200 with their account. Pending and deactivated people are tested in UC-A3 and UC-A4, not here.
+- **A pending person** lands on the waiting page, built from their own status.
+- **A deactivated person** is normally refused on Keycloak's own page. If they still get through (for example a
+  person re-enabled in Keycloak by hand), they land on our own "your account is deactivated" page, and the session
+  ends.
+- **Order of a deactivation.** Our database changes first, so the API refuses the person at once. Then Keycloak is
+  disabled. If that call fails, the deactivation stands, the administrator is told, and the call can be retried.
+  The spec and BC-ACCESS, which say Keycloak first, are corrected.
+- **Criteria of FR-1.** Four person-visible ones are added: a replayed or expired sign in is refused, a cancelled or
+  failed sign in makes no session, a hostile `returnTo` is replaced by a local page, and the browser never holds a
+  token. State, nonce and PKCE stay unit tests.
+- **AC-32** (any role, a non-member is refused) moves to the Projects use cases (UC-P1, UC-P2). UC-A1 keeps NFR-1
+  only through AC-33.
+- **The token check.** The audience is required: it is added to AC-33 and to decision 1. A missing, expired,
+  wrong-issuer or wrong-audience token gets 401, and no account or audit entry is created.
+- **Sessions.** A callback must come from the browser that started the sign in, or it is refused. A second sign in
+  ends the person's old session. With two tabs, the later sign in wins, and that is written down.
+- **The pending account** is still created at the first API call. UC-A1 ends at the session, and step 9 hands
+  over to UC-A3. The postcondition is corrected.
+- **Identity is the `sub`, and email is an attribute.** "One account for each email" is dropped as a rule. A new
+  `sub` with a known email becomes a second pending account and the administrators are told. A role is never given
+  from an unverified email.
+- **Keycloak unreachable** when a person starts to sign in is a refusal of UC-A1, with its own criterion: the person
+  sees "sign in is not available, try again" and no session is made.
+
+**Why.** The criteria were untestable and the failure paths had none, so a change could break the security
+properties of sign in and every test would still pass. Two layers that agree (decision 8) need a defined answer for
+every case where they do not.
+
+**Changes.** To be made with vbench-req and vbench-uc: AC-1 rewritten and new criteria added, AC-32 moved, AC-33
+and decision 1 amended, the flows, both diagrams, the postcondition and the open questions of UC-A1, UC-A4's order
+of steps, the spec and BC-ACCESS, and a note in OBJ-A1 (identity).
+
+**Still open.**
+- Email verification is deferred to UC-A7 (single sign-on). The owner of the question is the product owner, and it
+  stays in one place, here.
+- The web server (BFF) class diagram is not drawn yet (decision 9).
+- Lifetimes of a login attempt (10 minutes) and of a session (30 minutes idle, 8 hours) are in the code and the spec,
+  and BC-ACCESS still calls them a proposal.
+
