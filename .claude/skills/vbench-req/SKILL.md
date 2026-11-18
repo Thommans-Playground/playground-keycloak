@@ -66,8 +66,11 @@ say which one you are on.
    fill a gap with a guess.
 
 8. **Ask, then write.** Offer: **Accept**, **Change it**, **Reject**. On Accept, run `append` or
-   `update` (use `--dry-run` first if the change is large), then `validate`. Report the ids written and
-   any problem. Do not commit. If the user wants a commit, use vbench-commit.
+   `update` (use `--dry-run` first if the change is large), then `validate`. Then run
+   `python3 .claude/skills/vbench-uc/scripts/uc_tool.py sync --all`, so the copied text in every use case
+   file matches the rows you just wrote. This refreshes the generated copy only: it never edits a flow and never
+   changes a review hash, so each use case stays suspect until a person stamps it. Report the ids written, the
+   use cases refreshed and any problem. Do not commit. If the user wants a commit, use vbench-commit.
 
 ## Next step: the chain
 

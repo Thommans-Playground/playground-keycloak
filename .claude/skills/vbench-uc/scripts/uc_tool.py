@@ -881,6 +881,20 @@ def refresh(path, h, text, reqs_by_id, acs_by_id):
     return text.replace(block, want)
 
 
+def cmd_sync_all(root):
+    """Refresh the copied text of every use case. Review hashes are never touched."""
+    reqs, acs, ucs = load(root)
+    reqs_by_id, acs_by_id = {r["id"]: r for r in reqs}, {a["id"]: a for a in acs}
+    for path, h, text in ucs:
+        new = refresh(path, h, text, reqs_by_id, acs_by_id)
+        if new == text:
+            print(f"{h.get('id')}: already matches")
+        else:
+            path.write_text(new, encoding="utf-8")
+            print(f"{h.get('id')}: copied text refreshed (still suspect until stamped)")
+    return 0
+
+
 def cmd_sync(root, uid):
     reqs, acs, ucs = load(root)
     reqs_by_id, acs_by_id = {r["id"]: r for r in reqs}, {a["id"]: a for a in acs}
@@ -1128,7 +1142,8 @@ def main(argv=None):
     tr = sub.add_parser("trace")
     tr.add_argument("id")
     sy = sub.add_parser("sync")
-    sy.add_argument("id")
+    sy.add_argument("id", nargs="?")
+    sy.add_argument("--all", action="store_true", help="refresh every use case")
     cu = sub.add_parser("check-upstream")
     cu.add_argument("id")
     dg = sub.add_parser("diagram")
@@ -1157,6 +1172,11 @@ def main(argv=None):
     if a.cmd == "trace":
         return cmd_trace(root, a.id)
     if a.cmd == "sync":
+        if a.all:
+            return cmd_sync_all(root)
+        if not a.id:
+            print("Give a use case id, or --all to refresh every use case.")
+            return 1
         return cmd_sync(root, a.id)
     if a.cmd == "diagram":
         return cmd_diagram(root, a.context, a.write, a.force)

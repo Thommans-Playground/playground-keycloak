@@ -152,6 +152,31 @@ class Tests(unittest.TestCase):
         self.assertNotIn("out of date", out)
         self.assertIn("SUSPECT", out)  # sync copies the text but only a person's stamp clears suspect
 
+    def test_sync_all_refreshes_every_use_case_and_leaves_hashes_alone(self):
+        root = make_root()
+        run(root, "create", stdin=json.dumps(NEW))
+        run(root, "create", stdin=json.dumps(dict(NEW, area="P", criteria=[])))
+        before = {p.name: p.read_text() for p in (root / "docs/usecases").glob("UC-*.md")}
+        rows = rq.read_rows(root / rq.PATHS["req"])
+        rows[0]["statement"] = "The system shall move an endpoint to any stage."
+        rq.write_rows(root / rq.PATHS["req"], rq.REQ_COLS, rows)
+        code, out = run(root, "sync", "--all")
+        self.assertEqual(code, 0)
+        self.assertIn("UC-E1", out)
+        self.assertIn("UC-P1", out)
+        for p in (root / "docs/usecases").glob("UC-*.md"):
+            self.assertIn("to any stage", p.read_text())
+            self.assertNotEqual(before[p.name], p.read_text())
+        _, out = run(root, "validate")
+        self.assertNotIn("out of date", out)
+        self.assertIn("SUSPECT", out)
+
+    def test_sync_needs_an_id_or_all(self):
+        root = make_root()
+        code, out = run(root, "sync")
+        self.assertEqual(code, 1)
+        self.assertIn("--all", out)
+
     def test_edited_flow_is_reported_until_stamped(self):
         root = make_root()
         run(root, "create", stdin=json.dumps(NEW))

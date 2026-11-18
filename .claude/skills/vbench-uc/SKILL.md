@@ -40,7 +40,7 @@ that no file serves has no use case. If the tool cannot show a link, say "no lin
   facts, what vbench-req should propose. It changes nothing.
 - `freeze UC-ID`: record a hash of each analysis revision, so an edit to a frozen one is caught.
 - `trace UC-ID`: from each analysis element to what became of it in the design. Lost ones are marked.
-- `sync UC-ID`: refresh the copied text of the requirements and criteria from the requirements files.
+- `sync UC-ID`: refresh the copied text of the requirements and criteria from the requirements files. `sync --all` does it for every use case (vbench-req runs it after it writes rows).
 - `stamp UC-ID`: after a person has reviewed the use case against the current rows, record that
   (it also syncs).
 
