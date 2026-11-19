@@ -124,7 +124,7 @@ What the person and Playground say to each other, with no route, store, port or 
 
 ## Design
 
-The parts that do the work, drawn in [UC-A7-sign-in-through-company-single-sign-on-design-sequence.puml](diagrams/UC-A7-sign-in-through-company-single-sign-on-design-sequence.puml). The web server side has no class diagram yet (decision 9, still open).
+The parts that do the work, drawn in [UC-A7-sign-in-through-company-single-sign-on-design-sequence.puml](diagrams/UC-A7-sign-in-through-company-single-sign-on-design-sequence.puml). The class diagram of the web server side is [bff-design.puml](../domain/diagrams/bff-design.puml).
 
 - D1 (configuration): An identity provider in the realm, with its claim mappings, carried by the realm export
 - D2 (route): The login and callback routes of UC-A1, unchanged

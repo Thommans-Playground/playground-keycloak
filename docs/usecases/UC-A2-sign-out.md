@@ -77,11 +77,12 @@ New in the design language: **the ID token is kept so it can be handed back to K
 3. The system sends the person to Keycloak's end-session address with the ID token as a hint and the home page as the place to return. (FR-2)
 4. Keycloak ends its session and sends the person to the home page. (FR-2)
 5. The system removes the session cookie. (FR-2)
-6. The product asks the person to sign in again. (FR-2, AC-2)
+6. The product asks the person to sign in again, and starting a sign in shows the identity provider's login page, because Keycloak's session has ended too. (FR-2, AC-2)
 
 ## Other flows
 
 - The person has no session, or the session has already gone: the system still removes the cookie and sends the person to the home page. (AC-2)
+- Sign out is reused by UC-A1's beta step 10 (R2, decision 13), to end both sessions of a deactivated person who gets through. Nothing changes here for it.
 - Keycloak cannot be reached for its end-session address: our session is still removed and the person lands on the home page. Their Keycloak session ends by itself when it times out. Open: say so on screen.
 - The request is a GET, for example from a link or an image on another site: it does nothing.
 - Someone keeps a copy of the access token from before: it still passes the API's checks until it expires, which is short. The API reads the account on every request, but a signed-out person's account is still active. Open: to cut this to zero, the API would need to ask Keycloak whether the token is still live.
@@ -131,7 +132,7 @@ Not frozen.
 ## Design
 
 The parts that do the work, drawn in [UC-A2-sign-out-design-sequence.puml](diagrams/UC-A2-sign-out-design-sequence.puml).
-The web server side has no class diagram yet (decision 9, still open).
+The class diagram of the web server side is [bff-design.puml](../domain/diagrams/bff-design.puml).
 
 - D1 (route): The logout route, which answers a post only
 - D2 (use case): The sign out use case of the web server
@@ -159,5 +160,5 @@ A11 became -> D4, D6
 
 ## Slices
 
-1. TSK-A2.1: Drop the session and clear the cookie (AC-2)
-2. TSK-A2.2: End the Keycloak session too (AC-2)
+1. TSK-A2.1: Drop the session and clear the cookie, so the session stops working (AC-2)
+2. TSK-A2.2: End the Keycloak session too, so that starting a sign in afterwards shows the identity provider's login page (AC-2)

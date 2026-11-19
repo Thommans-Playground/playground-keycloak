@@ -1,8 +1,10 @@
 @startuml UC-A5-view-my-name-and-role-design-sequence
 !include ../../domain/diagrams/_style.puml
 hide footbox
-title UC-A5 View my name and role (design sequence, built)
+title UC-A5 View my name and role (design sequence)
 ' Design level (decision 9): the routes, use cases, ports and adapters that do the work. The analysis level is UC-A5-view-my-name-and-role-analysis-sequence.puml.
+' Built today: the dashboard, GET /me, the token check, the 403 route guard and AccessService.account_for. The page is the
+' dashboard (there is no profile page). The 403 is a route guard, not a domain rule.
 ' Step ids are the main flow numbers of UC-A5. The token refresh (UC-A6) is not drawn.
 ' Evolved from MK3 UC-A4: /me now joins Keycloak's facts and our own in one answer.
 
@@ -12,7 +14,7 @@ participant "API\n/me" as A #E6F0FB
 participant "AccessService" as S #E7F4EA
 database "API database" as D #ECECEC
 
-P -> W : 1 open profile
+P -> W : 1 open dashboard
 W -> A : 2 GET /me + access token
 A -> A : 3 verify the token
 alt not valid

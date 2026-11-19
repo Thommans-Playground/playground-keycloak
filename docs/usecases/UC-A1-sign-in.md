@@ -29,8 +29,8 @@ rules: []
 effects:
   - the web server holds the person's Keycloak tokens in a session
   - the browser holds only an opaque session cookie
-  - this browser's earlier session ends when the person signs in again
-  - a log line is written for each refusal and each session that starts or ends
+  - "R2 (decision 13): this browser's earlier session ends when the person signs in again"
+  - "R2 (decision 13): a log line is written for each refusal and each session that starts or ends"
 evolved_from: [MK3 UC-A1]
 ```
 
@@ -168,10 +168,10 @@ What is new in the design language: **a login attempt is a short-lived, single-u
 4. Keycloak sends the person back with a one-time code. (FR-1)
 5. The system finds the login attempt that this browser started, checks the state, and only then uses the attempt up. A callback that does not match is refused without spending the newer attempt. Nothing is sent to Keycloak before this check. (FR-1, AC-38, AC-42, AC-46)
 6. The system exchanges the code for tokens directly with Keycloak. Keycloak checks the PKCE verifier. The system checks the nonce in the ID token. (FR-1, AC-39)
-7. The system keeps the tokens on the server under a new random session id, ends the session this browser already held, and sets the new id as the session cookie (`HttpOnly`, `Secure`, `SameSite=Lax`, no `Domain`, and the `__Host-` prefix when served over HTTPS). A log line records that a session started. (FR-1, NFR-5, AC-41, AC-43, AC-48)
+7. The system keeps the tokens on the server under a new random session id, ends the session this browser already held, and sets the new id as the session cookie (`HttpOnly`, `Secure`, `SameSite=Lax`, no `Domain`). R2, decision 13: ending the session this browser already held, the `__Host-` prefix when served over HTTPS, and a log line that records that a session started. (FR-1, NFR-5, AC-41, AC-43, AC-48)
 8. The person is sent to the page they first asked for, or to their own page when that address is not one of ours. (FR-1, AC-40)
 9. The page asks the API for the person's account, with the access token. The API checks the signature (only the algorithm the realm uses, with keys from the realm's published key set in configuration), expiry, issuer and audience, and then reads the account. A person the system does not know gets a pending account at this first call (UC-A3). (FR-1, NFR-1, AC-1, AC-33)
-10. What the person sees depends on the account. An active person sees their page. A pending person sees the waiting page (UC-A3). A deactivated person sees that the account is deactivated, and both their session and Keycloak's session end (sign out, UC-A2). (AC-1, AC-45, UC-A3 for the waiting page)
+10. What the person sees depends on the account. An active person sees their page. A pending person sees the waiting page (UC-A3, AC-47). A deactivated person sees that the account is deactivated. Alpha: they see the notice "Your account is deactivated" (the dashboard shows it when the API answers 403 `account_deactivated`), and the API refuses their requests; their sessions are not ended by this step. R2, decision 13 (beta plan, kept): both their session and Keycloak's session end, by reusing sign out (UC-A2), so they are not signed straight back in. (AC-1, AC-45, UC-A3 for the waiting page)
 
 ## Other flows
 
@@ -180,12 +180,12 @@ What is new in the design language: **a login attempt is a short-lived, single-u
 - The person cancels, or Keycloak refuses: no session is made, and the person is sent back with "login refused". (AC-39)
 - The code exchange fails, or the state, nonce or PKCE check fails: no session is made, and the person is sent back with "login failed". (AC-39)
 - Keycloak cannot be reached when the person asks to sign in: the person is told that sign in is not available, and no session is made. (AC-44)
-- The browser already holds a session and the person signs in again: the new session is made and the earlier session of this browser ends. Other devices stay signed in. (AC-43)
-- Sign in is started in two tabs of one browser: only the latest start can finish. The older tab's callback is refused with "login expired" and does not use up the newer attempt. Tabs that are already signed in share one session and are not affected. (AC-46)
+- R2, decision 13: the browser already holds a session and the person signs in again: the new session is made and the earlier session of this browser ends. Other devices stay signed in. For the alpha, a second sign in simply makes a new session. (AC-43)
+- R2, decision 13: sign in is started in two tabs of one browser: only the latest start can finish. The older tab's callback is refused with "login expired" and does not use up the newer attempt. Tabs that are already signed in share one session and are not affected. (AC-46)
 - The return address is not a path of ours (another site, `//host`, `/\host`, or an encoded form of those): it is replaced by the person's own page, so a sign in link cannot send a person elsewhere. The address is kept in the login attempt and never read again from the callback. (AC-40)
 - A request reaches the API with no token, an expired token, a token from another issuer, a token for another audience, or a token signed with an algorithm we do not allow: the API answers 401 and creates nothing. (AC-33)
-- A deactivated person is normally refused on Keycloak's own page and never comes back to us. If they get through anyway, for example when they were re-enabled in Keycloak by hand, they see that the account is deactivated and both their session and Keycloak's end, so they are not signed straight back in. (AC-45)
-- Every refusal above, every 401, and every session that starts or ends writes a server log line: the event, the result, the person's id when it is known and a hash of the session id. Never a token or a code. A deactivated person who gets through also raises a line that Keycloak and Playground disagree. (NFR-5, AC-48)
+- A deactivated person is normally refused on Keycloak's own page and never comes back to us. If they get through anyway, for example when they were re-enabled in Keycloak by hand, they see "Your account is deactivated" and the API refuses their requests (alpha). R2, decision 13: both their session and Keycloak's end, so they are not signed straight back in (the loop, both sessions). (AC-45)
+- R2, decision 13: every refusal above, every 401, and every session that starts or ends writes a server log line: the event, the result, the person's id when it is known and a hash of the session id. Never a token or a code. A deactivated person who gets through also raises a line that Keycloak and Playground disagree. (NFR-5, AC-48)
 
 ## Postconditions
 
@@ -195,7 +195,7 @@ What is new in the design language: **a login attempt is a short-lived, single-u
 ## Open questions
 
 Email verification is not required for now (decision 10): the product runs inside the corporate network, and the API only refuses to give the first administrator to an unverified email. Revisit it with UC-A7 (single sign on), or before the product is reachable from outside the network. 
-What a freshly signed-in person sees when the API cannot answer, or answers 401 straight after sign in (a wrong audience after a deploy would otherwise be a sign in loop through Keycloak's own session). No flow or criterion yet.
+What a freshly signed-in person sees when the API cannot answer, or answers 401 straight after sign in (a wrong audience after a deploy would otherwise be a sign in loop through Keycloak's own session). No flow or criterion yet. Owned for beta (R2): it is on decision 12's beta footnote list (a 503 when the API cannot check tokens), and decision 13 defers it. The owner of the product decides it before beta.
 
 ## Overview
 
@@ -221,7 +221,7 @@ sequenceDiagram
 ### Revision 1
 
 What the person and Playground say to each other, with no route, store, port or token. The diagram is
-[UC-A1-sign-in-analysis-sequence.puml](diagrams/UC-A1-sign-in-analysis-sequence.puml). Revised for decisions 10 and 12 (A17 to A22). Not frozen yet: read it, then freeze it.
+[UC-A1-sign-in-analysis-sequence.puml](diagrams/UC-A1-sign-in-analysis-sequence.puml). Revised for decisions 10 and 12 (A17 to A22). Not frozen yet: read it, then freeze it. Release marks (decision 13), without changing any element: for the alpha, A6 does not end this browser's earlier session, A17 does not sign the person out everywhere, and A19, A21 and A22 are R2.
 
 - A1 (step): The person asks to sign in
 - A2 (step): Playground sends the person to Keycloak
@@ -250,7 +250,7 @@ What the person and Playground say to each other, with no route, store, port or 
 
 The parts that do the work. The web server class diagram is [bff-design.puml](../domain/diagrams/bff-design.puml) and the API one is [access-design.puml](../domain/diagrams/access-design.puml). The design sequence is [UC-A1-sign-in-design-sequence.puml](diagrams/UC-A1-sign-in-design-sequence.puml) (steps 1 to 8) and [UC-A1-sign-in-design-sequence-later-requests.puml](diagrams/UC-A1-sign-in-design-sequence-later-requests.puml) (step 9 on). The web server's `IdentityProvider` port is a different port from the API's of the same name, which enables and disables people.
 
-**Planned, not built (decision 12): D12, D13, D15's reuse, D16, and the lookup of an attempt by state in D4 and D14.** The rest is built.
+**Planned, not built (decision 12): D12, D13, D15's reuse, D16, and the lookup of an attempt by state in D4 and D14. R2 (decision 13): all of these wait for the beta.** The rest is built, and the alpha's deactivated notice is the dashboard's, not D12. The web server class diagram [bff-design.puml](../domain/diagrams/bff-design.puml) draws the planned parts in white.
 
 - D1 (route): The login, callback, logout and backend routes, with proxy.ts and lib/ as the Next.js edge, kept thin
 - D2 (use case): SignIn, with startLogin and finishLogin
@@ -301,11 +301,11 @@ A22 became -> D16
 1. TSK-A1.1: Send the person to Keycloak and handle the callback (AC-1)
 2. TSK-A1.2: Refuse a sign in that is expired, replayed, from another browser, cancelled or failed, and check the state before the exchange (AC-38, AC-39, AC-42)
 3. TSK-A1.3: Keep the return address local and every token out of the browser (AC-40, AC-41)
-4. TSK-A1.4: A second sign in ends this browser's earlier session, and only the latest of two starts can finish (AC-43, AC-46)
+4. TSK-A1.4: A second sign in ends this browser's earlier session, and only the latest of two starts can finish. Alpha: the first half is not needed (a second sign in makes a new session); R2, decision 13: the second half (ending the earlier session, the latest start wins) (AC-43, AC-46)
 5. TSK-A1.5: Say so when Keycloak cannot be reached (AC-44)
 6. TSK-A1.6: The API checks the token on every protected route (AC-33)
-7. TSK-A1.7: A deactivated person who still signs in sees why and is signed out everywhere (AC-45)
-8. TSK-A1.8: Log each refusal and each session that starts or ends (AC-48)
+7. TSK-A1.7: R2, decision 13: A deactivated person who still signs in sees why and is signed out everywhere. Alpha: the notice and the API refusal are what the person gets (AC-45)
+8. TSK-A1.8: R2, decision 13: Log each refusal and each session that starts or ends (AC-48)
 
 ## Not in this use case
 

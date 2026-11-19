@@ -11,10 +11,11 @@ criteria:
   - id: AC-3
   - id: AC-4
   - id: AC-47
+  - id: AC-61
 parameters:
   - name, email and password (given to Keycloak, not to us)
 objects: [OBJ-A1]
-rules: [RULE-A1]
+rules: []
 effects:
   - a user exists in Keycloak
   - a pending account exists in the API database, made on the person's first request
@@ -27,7 +28,7 @@ evolved_from: [MK3 UC-A5]
 <!-- vbench-uc:begin mirror (generated from the requirements files, do not edit here: change the row, then run sync) -->
 
 <details>
-<summary>The requirements and criteria it runs, copied from docs/requirements (1 requirement, 3 criteria). Do not edit.</summary>
+<summary>The requirements and criteria it runs, copied from docs/requirements (1 requirement, 4 criteria). Do not edit.</summary>
 
 ## What this serves
 
@@ -53,9 +54,15 @@ evolved_from: [MK3 UC-A5]
 - When its person signs in
 - Then they land on the waiting page
 
+**AC-61** (acceptance, proves FR-3)
+
+- Given an active administrator exists, and a new person whose email is the setup email, verified
+- When they make their first request
+- Then they get a pending account, not an administrator account
+
 ## How it is verified
 
-- acceptance: AC-3, AC-4, AC-47
+- acceptance: AC-3, AC-4, AC-47, AC-61
 
 Each criterion is run by a test tagged `Verifies AC-<n>`.
 
@@ -95,18 +102,20 @@ New in the design language: **lazy provisioning**. The person exists in two plac
 5. The API looks for an account with the token's Keycloak id and finds none. (AC-3)
 6. The API creates an account with role user and status pending, with the name and email from the token. (FR-3, AC-3)
 7. The API records an audit entry "register" with no administrator. (FR-3)
-8. The API refuses everything except "show me my own status". (FR-3)
-9. The person sees "Waiting for approval". (FR-3, AC-4)
+8. The API refuses everything except "show me my own status". (FR-3, AC-4)
+9. The person sees "Waiting for approval", on the waiting page, which is where a pending person lands when they sign in. (FR-3, AC-47)
 
 ## Other flows
 
 - The person already has an account: nothing is created, and the name and email are refreshed from the token. (AC-3)
-- The person's email is in `BOOTSTRAP_ADMIN_EMAILS` and Keycloak says it is verified: the account is created active, with role administrator, and the audit entry says it came from setup. (RULE-A1)
+- The person's email is in `BOOTSTRAP_ADMIN_EMAILS`, Keycloak says it is verified, and no active administrator exists: the account is created active, with role administrator, and the audit entry says it came from setup. This is the setup rule (decision 14). It is not RULE-A1, which protects the last administrator. (FR-3, AC-61)
+- The email is in `BOOTSTRAP_ADMIN_EMAILS`, and verified, but an active administrator already exists: the account is created pending, like anyone else's. The setup rule applies only while no active administrator exists. (AC-61)
 - The email is in `BOOTSTRAP_ADMIN_EMAILS` but not verified: the account is created pending, as for anyone else, so someone cannot claim the first administrator by registering with an unverified address.
 - A pending person asks for anything other than their own status: the API answers 403 "waiting for approval". (AC-4)
 - A person who signs in and whose account is pending lands on the waiting page, built from their own status. (AC-47)
+- An administrator creates the account in Keycloak (a temporary password and the update password action) instead of the person signing up: the person changes the password at first sign in, and the account lands pending, exactly like a signup, at their first request. It is approved in UC-A4. Keycloak never decides what a person may do (decisions 8 and 14). (AC-3)
 - The person's name or email changed in Keycloak: the account is updated on the next request. The link stays the Keycloak id.
-- Two first requests arrive at the same moment: only one account may exist. Open: the account table needs a unique identity, and the second insert must be treated as "found". (AC-3)
+- Two first requests arrive at the same moment: only one account may exist (AC-3). Accepted risk for the alpha, not an open question: the race itself is not handled in code, and a unique identity in the database is what keeps it to one account. It is listed under "Accepted for now" in `docs/standards/security-checklist.md`.
 
 ## Postconditions
 
@@ -139,7 +148,7 @@ sequenceDiagram
 ### Revision 1
 
 What the person and Playground say to each other, with no route, store, port or token. The diagram is
-[UC-A3-register-and-wait-for-approval-analysis-sequence.puml](diagrams/UC-A3-register-and-wait-for-approval-analysis-sequence.puml). Not frozen yet.
+[UC-A3-register-and-wait-for-approval-analysis-sequence.puml](diagrams/UC-A3-register-and-wait-for-approval-analysis-sequence.puml). Not frozen yet. Decision 14 note, no element changed: A12 applies only while no active administrator exists (AC-61), and an account an administrator creates in Keycloak reaches A4 to A9 like a signup.
 
 - A1 (step): The person asks to create an account and is sent to Keycloak to register
 - A2 (step): The person gives a name, an email and a password to Keycloak, which registers and signs them in
@@ -159,7 +168,7 @@ What the person and Playground say to each other, with no route, store, port or 
 
 ## Design
 
-The parts that do the work, drawn in [UC-A3-register-and-wait-for-approval-design-sequence.puml](diagrams/UC-A3-register-and-wait-for-approval-design-sequence.puml). The class diagram of the API side is [access-design.puml](../domain/diagrams/access-design.puml). The web server side has no class diagram yet (decision 9, still open).
+The parts that do the work, drawn in [UC-A3-register-and-wait-for-approval-design-sequence.puml](diagrams/UC-A3-register-and-wait-for-approval-design-sequence.puml). The class diagram of the API side is [access-design.puml](../domain/diagrams/access-design.puml). The class diagram of the web server side is [bff-design.puml](../domain/diagrams/bff-design.puml).
 
 - D1 (route): The web login route with prompt=create, and the callback, kept thin
 - D2 (route): The API route that verifies the token and refuses a pending account anything but /me
@@ -169,7 +178,7 @@ The parts that do the work, drawn in [UC-A3-register-and-wait-for-approval-desig
 - D6 (port): IdentityProvider, on the web server, towards Keycloak
 - D7 (adapter): Keycloak through openid-client, behind IdentityProvider
 - D8 (adapter): SQLAlchemy over PostgreSQL, behind AccountRepository and AuditLog
-- D9 (domain rule): Account starts as user and pending, and RULE-A1 for the setup administrator
+- D9 (domain rule): Account starts as user and pending, and the setup administrator rule (decision 14, AC-61): active administrator only while no active administrator exists. RULE-A1 (the last administrator) is a different rule, in UC-A4
 - D10 (aggregate): Account
 
 ## Changes from analysis to design
@@ -194,5 +203,7 @@ A15 became -> D10
 
 ## Slices
 
-1. TSK-A3.1: Create the account on first sight, rules RULE-A1 (AC-3)
+1. TSK-A3.1: Create the account on first sight, as pending; an account an administrator creates in Keycloak lands the same way. The setup rule is not RULE-A1 and is proven in TSK-A3.4 (AC-3)
 2. TSK-A3.2: Refuse everything but the person's own status while pending (AC-4)
+3. TSK-A3.3: A pending person who signs in lands on the waiting page (AC-47)
+4. TSK-A3.4: The setup rule applies only while no active administrator exists: the setup email, verified, gets an active administrator only then, and a pending account otherwise (AC-61)

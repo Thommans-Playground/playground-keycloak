@@ -26,3 +26,21 @@ None set aside yet. Add a line here, with the decision, when an item does not ap
 - **Registration is not rate limited**: anyone who can reach Keycloak can create pending accounts without limit (API-4
   and API-6 in `.claude/skills/_vbench/standards/security/api.md`). Reason: the product is deployed inside the
   corporate network (as decision 10). Revisit it before the product is reachable from outside, or with UC-A3.
+- **First request race** (UC-A3): two first requests of one new person at the same moment are not handled in code; the
+  database's unique identity keeps it to one account. Reason: alpha, inside the corporate network. Revisit it with
+  UC-A3's build, or before the product is reachable from outside.
+- **Before beta (decision 13).** Deferred hardening, accepted for the alpha because the product runs inside the corporate
+  network (as decisions 10 and 13). Revisit all of it at beta, or before the product is reachable from outside the
+  corporate network, whichever comes first:
+  - the CSRF check (`Sec-Fetch-Site` or `Origin`) on state changing requests;
+  - the extra logging, NFR-5 and AC-48 (release R2);
+  - the algorithm allow list as a criterion (part of AC-33);
+  - the cookie prefix (`__Host-`) and attributes beyond `HttpOnly`, `Secure` and `SameSite=Lax`;
+  - the two tab rule (AC-46);
+  - ending this browser's earlier session when the person signs in again (AC-43);
+  - the deactivated loop: both sessions end when a deactivated person gets through (AC-45);
+  - a 503 when the API cannot check tokens (UC-A1's open question);
+  - the registration rate limit (also listed above);
+  - the access token kept from before sign out, which passes the API's checks until it expires (UC-A2);
+  - FastAPI `/docs` and the default backend client secret outside dev;
+  - the audit trail showing current names, not the names at the time.
