@@ -15,6 +15,9 @@ from tests.fakes import FakeIdp
 from tests.safety import check_test_database
 from app.main import create_app
 
+# The integration tests need the running stack: collected only with INTEGRATION=1.
+collect_ignore_glob = [] if os.environ.get("INTEGRATION") == "1" else ["integration/*"]
+
 ISSUER = "http://kc.test/realms/playground"
 AUDIENCE = "playground-api"
 KEY = rsa.generate_private_key(public_exponent=65537, key_size=2048)
