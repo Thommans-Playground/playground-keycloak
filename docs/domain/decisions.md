@@ -103,6 +103,12 @@ request queue.
 - UC-A4 (time-limited access) is still undecided.
 - OBJ-A2, OBJ-A3, SET-7, RULE-A4 and RULE-A5 are linked from the Access pages but have no files here.
 
+**Footnote (decision 13), to be implemented in the beta version.** For the alpha, project roles (manager and
+engineer), "a project always has a manager", the administrator who never joins or sees inside a project, and the
+administrator's one narrow power to restore a manager are **parked**: FR-8, FR-10, FR-11 and RULE-P1 to RULE-P3 are
+kept, with release `parked`, and come back with role based access in the beta version. The alpha has two account
+roles, and the administrator is a superuser.
+
 ## 4. AWS is the target, and the code follows DDD, TDD and hexagonal (17 Nov 2026)
 
 **Decided.** Two standing constraints, by the owner.
@@ -341,6 +347,13 @@ of steps, the spec and BC-ACCESS, and a note in OBJ-A1 (identity).
 - Lifetimes of a login attempt (10 minutes) and of a session (30 minutes idle, 8 hours) are in the code and the spec,
   and BC-ACCESS still calls them a proposal.
 
+**Footnote (decision 13), to be implemented in the beta version.** For the alpha, keep the sign in answers that
+cost nothing (state, nonce and PKCE, no token in the browser, the API checking the token on every request). The
+rest is **beta hardening**: the criteria AC-43 (a new sign in ends this browser's earlier session), AC-45 (a
+deactivated person who gets through), AC-46 (two sign ins at once) and AC-48 (logging, with NFR-5, now release R2)
+are marked R2 in the requirements. Email verification stays off until single sign on or until the product is
+reachable from outside the corporate network.
+
 ## 11. Three review agents run after a spec change, and teach (18 Nov 2026)
 
 **Decided.** By the owner. Specs are reviewed by three read-only agents, from three lenses, after a use case, its
@@ -411,6 +424,15 @@ cases, lifetimes, the spec and BC-ACCESS lines, UC-A4's role line) as plain corr
   design review of the code, not the use case.
 - The tests for AC-38 to AC-48 and the code (D12, D13) are not built.
 
+**Footnote (decision 13), to be implemented in the beta version.** Everything decided here that is hardening, not
+the alpha's login, is **deferred to beta**: ending this browser's earlier session (D13), the planned lookup of an
+attempt by the login cookie with a compare and delete step (D4, D14), the deactivated page that ends both sessions
+(D12, D15), the security log (D16, NFR-5, AC-48), the cookie prefix and attributes beyond `HttpOnly`, `Secure` and
+`SameSite=Lax`, the CSRF check on state changing requests (`Sec-Fetch-Site` or `Origin`), the algorithm allow list
+as a criterion, a 503 when the API cannot check tokens, and the registration rate limit. The three reviewers'
+remaining findings on UC-A1 are the beta list. Nothing is deleted: the use case, the criteria (notes "R2") and the
+diagrams keep the plan.
+
 ## 13. Alpha scope: simple sign in, two roles, the administrator is a superuser (19 Nov 2026)
 
 **Decided.** By the owner, on the supervisor's brief for the alpha. It narrows decisions 3, 8, 10 and 12 and
@@ -458,4 +480,3 @@ criteria to R2, rework UC-P1 and UC-P2 (create a project, manage members) for th
 - The administrator superuser does everything a member does, in every project: they see inside and run evaluations.
 
 **Still open.** Nothing about roles. The R2 move of the dropped rows and the rework of UC-P1 and UC-P2 are to do.
-
