@@ -2,7 +2,7 @@
 // Labels SI-n are the sign in lesson's own. SI-1 and SI-2 are AC-1 in docs/requirements.
 import assert from "node:assert/strict";
 import { beforeEach, test } from "node:test";
-import { finishLogin, isSignInFailed, SignInFailed, startLogin, type SignInDeps } from "./sign-in.ts";
+import { finishLogin, isSignInFailed, signInFailureCode, SignInFailed, startLogin, type SignInDeps } from "./sign-in.ts";
 import { InMemoryLoginAttemptStore, InMemorySessionStore } from "../adapters/in-memory-stores.ts";
 import { FakeIdentityProvider } from "../testing/fakes.ts";
 
@@ -92,6 +92,26 @@ test("a callback Keycloak marked as an error fails as refused (Verifies AC-39, R
   const { attemptId } = await startLogin(deps, { returnTo: null, register: false });
   const url = new URL("http://app.test/auth/callback?error=access_denied&state=state-1");
   await assert.rejects(finishLogin(deps, attemptId, url), fails("login_refused"));
+});
+
+test("when the identity provider cannot be reached the start fails as unavailable and keeps no attempt (Verifies AC-44)", async () => {
+  idp.beginFails = true;
+  await assert.rejects(startLogin(deps, { returnTo: null, register: false }), fails("identity_provider_unavailable"));
+  assert.equal(await deps.attempts.take("id-1"), null);
+});
+
+test("a failure to start for any other reason is not called unavailable (Verifies AC-44)", async () => {
+  deps.attempts.save = async () => {
+    throw new Error("the store is down");
+  };
+  await assert.rejects(startLogin(deps, { returnTo: null, register: false }), (e: unknown) => !isSignInFailed(e));
+});
+
+test("the page shows the failure's own code, and login_failed for anything unknown (Verifies AC-44)", () => {
+  assert.equal(signInFailureCode(new SignInFailed("identity_provider_unavailable")), "identity_provider_unavailable");
+  assert.equal(signInFailureCode(new SignInFailed("login_expired")), "login_expired");
+  assert.equal(signInFailureCode(new Error("the store is down")), "login_failed");
+  assert.equal(signInFailureCode("nonsense"), "login_failed");
 });
 
 test("a sign in failure is recognised by what it says, even from another copy of the class", () => {

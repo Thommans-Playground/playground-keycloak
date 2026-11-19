@@ -9,6 +9,8 @@ export class FakeIdentityProvider implements IdentityProvider {
   refreshes = 0;
   refreshFails = false;
   endSessionFails = false;
+  /** a test can make Keycloak unreachable when a sign in starts */
+  beginFails = false;
   /** a test can hold a refresh open to prove that two callers share one refresh */
   gate: Promise<void> = Promise.resolve();
   lastBegin: { register: boolean } | undefined;
@@ -20,6 +22,7 @@ export class FakeIdentityProvider implements IdentityProvider {
   }
 
   async beginLogin(opts: { register: boolean }) {
+    if (this.beginFails) throw new Error("the identity provider cannot be reached");
     this.lastBegin = opts;
     const n = ++this.begun;
     return {
