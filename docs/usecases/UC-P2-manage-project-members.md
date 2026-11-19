@@ -40,7 +40,7 @@ evolved_from: [MK3 UC-A3]
 
 ## What this serves
 
-**FR-4**: The system shall let an administrator decide who can use the product: approve a pending account, deactivate an active one with a reason, and reinstate a deactivated one.
+**FR-4**: The system shall let an administrator decide who can use the product: approve a pending account, deactivate an active one with a reason, and reinstate a deactivated one with a reason.
 
 **FR-9**: The system shall let an administrator add and remove members of a project, adding only people with an active account.
 
@@ -77,7 +77,7 @@ evolved_from: [MK3 UC-A3]
 **AC-27** (acceptance, proves FR-12)
 
 - Given a project and an id that does not exist
-- When a non-member asks about, or changes the members of, either
+- When a person who is neither a member nor an administrator asks about, or changes the members of, either
 - Then the answer is the same for both
 
 **AC-28** (acceptance, proves FR-12)

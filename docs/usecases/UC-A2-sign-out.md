@@ -36,7 +36,7 @@ evolved_from: [MK3 UC-A2]
 
 - Given a signed-in person
 - When they sign out
-- Then their session stops working and they must sign in again
+- Then their session stops working, and starting a sign in shows the identity provider's login page
 
 ## How it is verified
 

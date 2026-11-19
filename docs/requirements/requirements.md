@@ -12,10 +12,11 @@
 | FR-1 | Sign in through the identity provider | The system shall let a person sign in through the identity provider. | acceptance test | R1 | yes | draft |  | decision 1; MK3 UC-A1 |
 | FR-2 | Sign out | The system shall let a person sign out. | acceptance test | R1 | yes | draft |  | decision 1; MK3 UC-A2 |
 | FR-3 | A new person is held as pending | The system shall hold a person it does not know as a pending account, who can see only that it is waiting for approval, until an administrator approves it. | acceptance test | R1 | yes | draft | OBJ-A1 | decision 2; MK3 UC-A5 |
-| FR-4 | Decide who can use the product | The system shall let an administrator decide who can use the product: approve a pending account, deactivate an active one with a reason, and reinstate a deactivated one. | acceptance test | R1 | yes | draft |  | ADR 0019; ADR 0010; release plan R1 |
+| FR-4 | Decide who can use the product | The system shall let an administrator decide who can use the product: approve a pending account, deactivate an active one with a reason, and reinstate a deactivated one with a reason. | acceptance test | R1 | yes | draft |  | ADR 0019; ADR 0010; release plan R1 |
 | FR-5 | Show name and account role | The system shall show a signed-in person their name and account role. | acceptance test | R1 | yes | draft | OBJ-A1 | decision 1; MK3 UC-A4 |
 | FR-6 | Sign in through single sign-on | The system shall let a person sign in through single sign-on. | acceptance test | R2 | no | draft |  | release plan R2 |
 | FR-14 | Promote and demote administrators | The system shall let an administrator promote a user to administrator and demote another administrator, with a reason. | acceptance test | R1 | yes | draft | OBJ-A1 | decision 13 |
+| FR-15 | Keep a person signed in | The system shall keep a signed-in person signed in until the session limits. | acceptance test | R1 | yes | draft |  | decision 14; UC-A6 |
 
 **Notes**
 
@@ -37,6 +38,7 @@
 | FR-11 | Restore a project manager | The system shall let an administrator add a project manager to a project that has no active project manager, with a reason, and only a person with an active account who is not an administrator. | acceptance test | parked | no | draft | UC-P2; decision 3 |
 | FR-12 | Contents only for members | The system shall show a project's contents and member list only to its members and to administrators, and answer anyone else as for a project that does not exist. | acceptance test | R1 | no | draft | decision 3; no use case yet |
 | FR-13 | Audit project changes | The system shall record an audit entry for every project creation and every change to a project's members. | acceptance test | R1 | no | draft | UC-P1; UC-P2; decision 3 |
+| FR-16 | See and open projects | The system shall let a person list the projects they belong to, let an administrator list all projects, and let either open a project they may see. | acceptance test | R1 | no | draft | decision 14; UC-P3 |
 
 **Notes**
 
@@ -47,6 +49,12 @@
 - **FR-11:** Parked by decision 13: there are no project managers in the alpha.
 - **FR-12:** The same answer as for a missing project (RULE-P4). Contents are empty containers for now.
 - **FR-13:** Who, what and whom it affected. Refused administrator attempts included.
+
+### Area L
+
+| ID | Name | Statement | Verified by | Release | Built | Status | Objects | Sources |
+|---|---|---|---|---|---|---|---|---|
+| FR-17 | Audit trail | The system shall keep an audit trail of every account change and every project change, which an administrator can read. | acceptance test | R1 | no | draft | OBJ-A1 | decision 14; BC-AUDIT |
 
 ## Quality, constraint and process requirements
 

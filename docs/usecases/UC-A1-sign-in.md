@@ -47,7 +47,7 @@ evolved_from: [MK3 UC-A1]
 
 **FR-1**: The system shall let a person sign in through the identity provider.
 
-**FR-4**: The system shall let an administrator decide who can use the product: approve a pending account, deactivate an active one with a reason, and reinstate a deactivated one.
+**FR-4**: The system shall let an administrator decide who can use the product: approve a pending account, deactivate an active one with a reason, and reinstate a deactivated one with a reason.
 
 **NFR-5**: The system shall write a log line for every refused sign in, every refused request and every session that starts or ends.
 

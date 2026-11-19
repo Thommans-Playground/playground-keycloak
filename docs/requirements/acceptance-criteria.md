@@ -5,12 +5,12 @@
 | ID | Proves | Given | When | Then | Level | Status | Notes |
 |---|---|---|---|---|---|---|---|
 | AC-1 | FR-1 | an active account | its person signs in through the identity provider, then asks for their own account | they have a session, and the answer shows their account | acceptance | draft |  |
-| AC-2 | FR-2 | a signed-in person | they sign out | their session stops working and they must sign in again | acceptance | draft |  |
+| AC-2 | FR-2 | a signed-in person | they sign out | their session stops working, and starting a sign in shows the identity provider's login page | acceptance | draft |  |
 | AC-3 | FR-3 | a person the system does not know | they make a request, then another | one pending account exists for them | acceptance | draft |  |
 | AC-4 | FR-3 | a pending account | its owner asks for their status, then for anything else | the status says it is waiting, and everything else is refused | acceptance | draft |  |
-| AC-5 | FR-4 | a pending account | an administrator approves it | the person can use the product, with no change made in Keycloak | acceptance | draft |  |
+| AC-5 | FR-4 | a pending account | an administrator approves it | the person's next request to a protected route succeeds, with no change made in Keycloak | acceptance | draft |  |
 | AC-6 | FR-4 | an active account | an administrator deactivates it, with a reason | the person cannot sign in at Keycloak, and their next request is refused even with a valid token | acceptance | draft |  |
-| AC-7 | FR-4 | a deactivated account | an administrator reinstates it | the person can use the product again, with their data and memberships, and is enabled in Keycloak | acceptance | draft |  |
+| AC-7 | FR-4 | a deactivated account | an administrator reinstates it, with a reason | the person can use the product again, with their data and memberships, and is enabled in Keycloak | acceptance | draft |  |
 | AC-8 | FR-5 | a signed-in person | they open their profile | it shows their name and role | acceptance | draft |  |
 | AC-9 | FR-7 | an administrator and an active account | they create a project naming that account as a first member | the project exists and that person is a member | acceptance | draft |  |
 | AC-10 | FR-7 | an administrator | they create a project naming themselves as a first member | it exists and they are a member | acceptance | draft |  |
@@ -30,7 +30,7 @@
 | AC-24 | FR-11 | a project with no active manager | an administrator adds a manager without a reason | it is refused | acceptance | draft | Parked with FR-11 by decision 13. |
 | AC-25 | FR-11 | a project | an administrator adds a manager although one is active, or adds an administrator or an inactive person | it is refused | acceptance | draft | Parked with FR-11 by decision 13. |
 | AC-26 | FR-12 | a project, a member, an administrator and a user who is neither | each asks for its contents | the member and the administrator see them and the other is refused | acceptance | draft |  |
-| AC-27 | FR-12 | a project and an id that does not exist | a non-member asks about, or changes the members of, either | the answer is the same for both | acceptance | draft |  |
+| AC-27 | FR-12 | a project and an id that does not exist | a person who is neither a member nor an administrator asks about, or changes the members of, either | the answer is the same for both | acceptance | draft |  |
 | AC-28 | FR-12 | a member of a project | they open the member list | they see its members | acceptance | draft |  |
 | AC-29 | FR-13 | a project | it is created | an audit entry says who created it and who its first members are | acceptance | draft |  |
 | AC-30 | FR-13 | a project | a member is added or removed | each has an entry saying who, what and whom | acceptance | draft |  |
@@ -55,3 +55,14 @@
 | AC-49 | FR-14 | an administrator and a user | the administrator promotes the user, with a reason | they are an administrator, and an audit entry says who, whom and why | acceptance | draft |  |
 | AC-50 | FR-14 | two administrators | one demotes the other, with a reason | the other is a user, and an audit entry says who, whom and why | acceptance | draft |  |
 | AC-51 | FR-14 | the only administrator | they try to demote themselves | it is refused and an administrator remains | acceptance | draft |  |
+| AC-52 | FR-15 | a signed-in person whose access token is about to expire | they make a request | the token is refreshed and the request succeeds | acceptance | draft |  |
+| AC-53 | FR-15 | a signed-in person whose access token is about to expire | two requests arrive at the same moment | only one refresh is sent to the identity provider | acceptance | draft |  |
+| AC-54 | FR-15 | a signed-in person whose refresh is refused by the identity provider | they make a request | their session ends and they must sign in again | acceptance | draft |  |
+| AC-55 | FR-16 | an administrator, a user who is a member of one project, and several projects | each lists projects | the user sees only their own project and the administrator sees all | acceptance | draft |  |
+| AC-56 | FR-17 | an account change and a project change | an administrator opens the audit trail | both entries are there, with who, what, whom and the reason where one was asked | acceptance | draft |  |
+| AC-57 | FR-4 | a deactivated account | an administrator reinstates it without a reason | it is refused and the account stays deactivated | acceptance | draft |  |
+| AC-58 | FR-4 | an active account and an identity provider that cannot be reached | an administrator deactivates it, with a reason | the account is deactivated, the person's next request is refused, and the administrator is told Keycloak was not updated | acceptance | draft |  |
+| AC-59 | FR-4 | a deactivated account and an identity provider that cannot be reached | an administrator reinstates it, with a reason | the account stays deactivated and the administrator is told | acceptance | draft |  |
+| AC-60 | FR-9 | a member of a project who is not an administrator | they try to add or remove a member | it is refused | acceptance | draft |  |
+| AC-61 | FR-3 | an active administrator exists, and a new person whose email is the setup email, verified | they make their first request | they get a pending account, not an administrator account | acceptance | draft |  |
+| AC-62 | FR-14 | two administrators | each demotes the other at the same moment | one is refused and an administrator remains | acceptance | draft |  |

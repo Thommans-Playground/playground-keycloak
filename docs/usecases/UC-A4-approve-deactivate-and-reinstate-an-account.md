@@ -43,7 +43,7 @@ flow_reviewed: 63dc9f3
 
 **FR-3**: The system shall hold a person it does not know as a pending account, who can see only that it is waiting for approval, until an administrator approves it.
 
-**FR-4**: The system shall let an administrator decide who can use the product: approve a pending account, deactivate an active one with a reason, and reinstate a deactivated one.
+**FR-4**: The system shall let an administrator decide who can use the product: approve a pending account, deactivate an active one with a reason, and reinstate a deactivated one with a reason.
 
 **FR-14**: The system shall let an administrator promote a user to administrator and demote another administrator, with a reason.
 
@@ -59,7 +59,7 @@ flow_reviewed: 63dc9f3
 
 - Given a pending account
 - When an administrator approves it
-- Then the person can use the product, with no change made in Keycloak
+- Then the person's next request to a protected route succeeds, with no change made in Keycloak
 
 **AC-6** (acceptance, proves FR-4)
 
@@ -70,7 +70,7 @@ flow_reviewed: 63dc9f3
 **AC-7** (acceptance, proves FR-4)
 
 - Given a deactivated account
-- When an administrator reinstates it
+- When an administrator reinstates it, with a reason
 - Then the person can use the product again, with their data and memberships, and is enabled in Keycloak
 
 **AC-49** (acceptance, proves FR-14)
