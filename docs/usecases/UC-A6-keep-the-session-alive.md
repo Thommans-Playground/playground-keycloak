@@ -13,7 +13,7 @@ criteria:
   - id: AC-54
 parameters: []
 objects: []
-rules: []
+rules: [RULE-A10]
 effects:
   - the session holds a fresh access token, and a new refresh token if Keycloak rotated it
 evolved_from: [MK3 UC-A3]
@@ -167,6 +167,6 @@ A9 became -> D4, D6
 
 ## Slices
 
-1. TSK-A6.1: Refresh the access token before it expires and keep the new one in the session (AC-52)
+1. TSK-A6.1: Refresh the access token before it expires and keep the new one in the session (AC-52; rule RULE-A10)
 2. TSK-A6.2: Two requests at once send one refresh and share its result (AC-53)
 3. TSK-A6.3: A refused refresh ends the session, so the person must sign in again (AC-54)
