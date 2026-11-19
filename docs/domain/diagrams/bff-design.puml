@@ -21,7 +21,7 @@ top to bottom direction
 class "proxy.ts\ncookie gate" as PRX #E6F0FB
 class "Routes\nlogin, callback,\nlogout, backend" as RT #E6F0FB
 class "lib/auth, lib/api\ncookies, getMe" as LIB #E6F0FB
-class "composition.ts\nonly place that\npicks adapters" as COMP #ECECEC
+class "composition.ts\nonly place that\npicks adapters,\nbuilds SignIn\nand SignOut" as COMP #ECECEC
 
 class "«use case»\nSignIn" as SI #E7F4EA {
   +startLogin()
@@ -53,13 +53,17 @@ class "«value object»\nSession" as SE #FFE6CC {
   +needsRefresh()
 }
 
-class "«port»\nIdentityProvider" as PIDP #EEE7F7
+class "«port»\nIdentityProvider" as PIDP #EEE7F7 {
+  +endSessionUrl()
+}
 class "«port»\nLoginAttemptStore" as PLAS #EEE7F7 {
   +save()
   +take(id)
   «planned» +takeByState()
 }
-class "«port»\nSessionStore" as PSS #EEE7F7
+class "«port»\nSessionStore" as PSS #EEE7F7 {
+  +take(id)
+}
 class "«port»\nBackendApi" as PBA #EEE7F7
 class "«planned»\nSecurityLog" as PLOG #FFFFFF {
   +record(event)

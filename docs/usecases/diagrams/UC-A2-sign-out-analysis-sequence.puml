@@ -1,32 +1,35 @@
 @startuml UC-A2-sign-out-analysis-sequence
 !include ../../domain/diagrams/_style.puml
 hide footbox
-title UC-A2 Sign out (analysis: system sequence)
+title UC-A2 Sign out (analysis: system sequence, built)
 ' Analysis level (decision 9): the person, Playground as one box, and Keycloak as an outside system.
 ' No route, store, port, adapter, token or cookie. Step numbers are the main flow numbers of UC-A2.
-' Not drawn: saying on screen that Keycloak could not be reached (open in UC-A2), and a copy of an earlier
-' access token still passing until it expires (open in UC-A2).
+' Decision 15: no sign in of ours means home and Keycloak is not asked.
+' Not drawn: saying on screen that Keycloak could not be reached (not built, listed under Before beta).
 
 actor "Person" as P
 participant "Playground" as PG #E6F0FB
 participant "Keycloak\n(outside)" as K #ECECEC
 
-P -> PG : 1 ask to sign out
-alt a link or image on another site
-  PG --> P : nothing happens
-else the person asked to sign out
+alt a link or image on another site sends a GET
+  P -> PG : GET to the sign out address
+  PG --> P : nothing happens (AC-71)
+else the person asks to sign out (POST)
+  P -> PG : 1 ask to sign out
   PG -> PG : 2 end my sign in\nwith Playground
-  alt Keycloak cannot be reached
-    PG --> P : 5 signed out,\nhome page
+  alt no sign in of ours, or it cannot be read
+    PG --> P : 3 home page,\nKeycloak is not asked
+  else Keycloak address cannot be built
+    PG --> P : 3 home page,\nsigned out
   else
     PG --> P : 3 go to Keycloak\nto end your sign in
     P -> K : 3 end my sign in
     K -> K : 4 end my sign in
-    K --> P : 4 back to home page
-    P -> PG : 5 home page
-    PG --> P : 5 you are signed out
+    K --> P : 4 back to home page (AC-72)
+    P -> PG : 4 home page
+    PG --> P : 4 you are signed out
   end
 end
-P -> PG : 6 ask for something
-PG --> P : 6 sign in again
+P -> PG : 5 ask for something
+PG --> P : 5 sign in again
 @enduml

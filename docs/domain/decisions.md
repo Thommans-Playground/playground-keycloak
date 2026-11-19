@@ -290,6 +290,8 @@ a session store, token verification and cookies, which is the design. Two diagra
   single sequence diagram and says so. Both are drawn when more than one system takes part or a security rule
   shapes the steps.
 
+Footnote (decision 15): sign out was given as the example of a use case with one diagram, and turned out to need both an analysis and a design diagram, because two systems take part and a security rule (POST only) shapes its steps. A use case with one system and no security rule is the example that fits, for example a read only page.
+
 **Why.** One diagram cannot serve the owner, who asks what the person sees, and the builder, who asks which port does
 it. Mixing them hid a real disagreement: the state check sat in a different step in the flow and in the diagram.
 

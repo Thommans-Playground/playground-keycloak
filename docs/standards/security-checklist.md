@@ -42,5 +42,12 @@ None set aside yet. Add a line here, with the decision, when an item does not ap
   - a 503 when the API cannot check tokens (UC-A1's open question);
   - the registration rate limit (also listed above);
   - the access token kept from before sign out, which passes the API's checks until it expires (UC-A2);
+  - sign out during a token refresh can write the session back: the session store needs a "replace only if present"
+    write (UC-A2, decision 15);
+  - server sessions have no lifetime of their own: the store needs a TTL, native in ElastiCache (UC-A2, decision 15);
+  - a cross site POST to the sign out address clears only the cookie, until the CSRF check above (UC-A2, decision 15);
+  - Keycloak down after the first call leaves a browser error page on sign out, because the end session address is
+    built locally; our side is signed out either way (UC-A2, decision 15). Accepted because the product runs inside
+    the corporate network; revisit at beta.
   - FastAPI `/docs` and the default backend client secret outside dev;
   - the audit trail showing current names, not the names at the time.
