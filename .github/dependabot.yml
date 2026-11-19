@@ -1,0 +1,18 @@
+# Weekly pull requests for outdated or vulnerable dependencies and base images.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }
+  - package-ecosystem: npm
+    directory: /apps/web
+    schedule: { interval: weekly }
+  - package-ecosystem: uv
+    directory: /apps/api
+    schedule: { interval: weekly }
+  - package-ecosystem: docker
+    directory: /apps/api
+    schedule: { interval: weekly }
+  - package-ecosystem: docker
+    directory: /apps/web
+    schedule: { interval: weekly }

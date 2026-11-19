@@ -14,9 +14,10 @@ Each level proves more and runs slower. Most tests sit at the bottom.
 
 ## The INTEGRATION=1 switch
 
-The integration and acceptance tests need a running stack. They run only when `INTEGRATION=1` is set. Without it every
-one of them is skipped, and says why. With it, a stack that cannot be reached makes the suite fail: it never goes green
-by skipping.
+The integration and acceptance tests need a running stack. They run only when `INTEGRATION=1` is set. Without it the web
+ones (`*.it.ts`) are skipped and say so, and the API ones (`apps/api/tests/integration`) are not even collected, so a
+normal `uv run pytest` neither runs nor mentions them. With it, a stack that cannot be reached makes the suite fail: it
+never goes green by skipping.
 
 Addresses come from environment variables, with local defaults:
 
@@ -46,12 +47,23 @@ them, and never change `admin@` or `maya@`.
 ## A fresh test stack
 
 `scripts/test-stack.sh` runs its own stack (compose project `playground-test`, its own volumes), on the SAME ports as
-the dev stack, so stop the dev stack first (`docker compose down`).
+the dev stack, so stop the dev stack first (`docker compose stop`, and `docker compose start` afterwards). Never run
+`docker compose down -v` on the dev project: that deletes its databases.
 
 ```
+scripts/test-stack.sh check  say whether the ports are free
 scripts/test-stack.sh up     build and start Keycloak, the API, the web app; wait until all answer
 scripts/test-stack.sh down   stop it and delete its volumes
-scripts/test-stack.sh run    up, run the API and web integration suites, then down (also when a test fails)
+scripts/test-stack.sh run    check, up, the stack tests, then down (also when a test fails)
+scripts/test-stack.sh all    the unit suites first, then run: the whole gate
 ```
 
-CI will call `scripts/test-stack.sh run`.
+The `vbench-test-stack` skill (`/vbench-test-stack`) runs it for you and reports the result.
+
+## CI
+
+`.github/workflows/ci.yml` runs on every pull request and on pushes to `main`, in four jobs: the API tests (SQLite and a
+PostgreSQL service), the web tests (tests, lint, typecheck, build), the traceability tools and tag report, and the
+fresh stack (`scripts/test-stack.sh run`). The use case check (`uc_tool.py validate`) is informational until a person
+has stamped the use cases. Dependabot (`.github/dependabot.yml`) opens weekly pull requests for dependencies and
+base images. A required human review and the required checks are set in the GitHub repository settings, not in a file.
