@@ -126,7 +126,8 @@ def test_bad_tokens_are_refused(verifier, name, token):
         verifier.verify(token())
 
 
-# Verifies AC-33 (signed with an algorithm we do not allow)
+# signed with an algorithm we do not allow
+@pytest.mark.ac("AC-33")
 def test_hs256_token_signed_with_the_public_key_is_refused(verifier):
     pem = KEY.public_key().public_bytes(serialization.Encoding.PEM,
                                         serialization.PublicFormat.SubjectPublicKeyInfo)

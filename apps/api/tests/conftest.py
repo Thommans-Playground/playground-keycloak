@@ -71,3 +71,13 @@ def register(client, sub: str, email: str) -> tuple[dict, str]:
 
 def me_id(client, headers) -> str:
     return client.get("/me", headers=headers).json()["id"]
+
+
+def pytest_collection_modifyitems(items):
+    """Every ac("AC-6") and rule("RULE-A3") marker also becomes a mark named AC_6 or RULE_A3,
+    so `pytest -m AC_6` runs the tests that prove that criterion."""
+    for item in items:
+        for kind in ("ac", "rule"):
+            for marker in item.iter_markers(kind):
+                if marker.args:
+                    item.add_marker(getattr(pytest.mark, str(marker.args[0]).replace("-", "_")))

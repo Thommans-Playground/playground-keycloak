@@ -12,21 +12,25 @@ def acct(id: str, role=Role.user, status=Status.active) -> Account:
     return Account(id, f"sub-{id}", id, f"{id}@x.test", role, status, datetime(2026, 1, 1))
 
 
-def test_rule_a3_reason_must_say_something():  # Verifies RULE-A3
+@pytest.mark.rule("RULE-A3")
+def test_rule_a3_reason_must_say_something():
     for bad in (None, "", "   ", "?!", "ab"):
         with pytest.raises(ReasonRequired):
             clean_reason(bad)
     assert clean_reason("  Left the team ") == "Left the team"
 
 
-def test_rule_a2_nobody_deactivates_or_demotes_themselves():  # Verifies RULE-A2
+@pytest.mark.rule("RULE-A2")
+def test_rule_a2_nobody_deactivates_or_demotes_themselves():
     admin = acct("a", Role.administrator)
     for action in (Action.deactivate, Action.demote):
         with pytest.raises(CannotChangeSelf):
             decide(action, admin, admin, active_admins=2)
 
 
-def test_rule_a1_last_administrator_is_kept():  # Verifies RULE-A1, AC-51
+@pytest.mark.rule("RULE-A1")
+@pytest.mark.ac("AC-51")
+def test_rule_a1_last_administrator_is_kept():
     actor, last = acct("a", Role.administrator), acct("b", Role.administrator)
     for action in (Action.deactivate, Action.demote):
         with pytest.raises(LastAdministrator):
@@ -34,7 +38,8 @@ def test_rule_a1_last_administrator_is_kept():  # Verifies RULE-A1, AC-51
     assert decide(Action.demote, actor, last, active_admins=2).role is Role.user
 
 
-def test_transitions():  # Verifies AC-66
+@pytest.mark.ac("AC-66")
+def test_transitions():
     admin = acct("a", Role.administrator)
     assert decide(Action.approve, admin, acct("p", status=Status.pending), 1).status is Status.active
     assert decide(Action.deactivate, admin, acct("u"), 1).status is Status.deactivated

@@ -63,7 +63,8 @@ def test_a_second_account_with_the_same_id_is_refused(accounts):
         accounts.add(Account("id-1", "sub-9", "Other", "o@x.test", Role.user, Status.pending, T0))
 
 
-# Verifies RULE-A1: the count of active administrators is what the last administrator rule reads
+# the count of active administrators is what the last administrator rule reads
+@pytest.mark.rule("RULE-A1")
 def test_count_counts_only_active_administrators(accounts):
     accounts.add(acct(1, Role.administrator, Status.active))
     accounts.add(acct(2, Role.administrator, Status.pending))
@@ -72,7 +73,7 @@ def test_count_counts_only_active_administrators(accounts):
     assert accounts.count_active_administrators() == 1
 
 
-# Verifies RULE-A1
+@pytest.mark.rule("RULE-A1")
 def test_count_is_zero_with_no_accounts_and_follows_a_save(accounts):
     assert accounts.count_active_administrators() == 0
     a = acct(1, Role.administrator, Status.active)
