@@ -411,3 +411,49 @@ cases, lifetimes, the spec and BC-ACCESS lines, UC-A4's role line) as plain corr
   design review of the code, not the use case.
 - The tests for AC-38 to AC-48 and the code (D12, D13) are not built.
 
+## 13. Alpha scope: simple sign in, two roles, the administrator is a superuser (19 Nov 2026)
+
+**Decided.** By the owner, on the supervisor's brief for the alpha. It narrows decisions 3, 8, 10 and 12 and
+supersedes decision 3 where they differ.
+- **Sign in is simple.** Keycloak does the login, and sessions are kept. The product runs inside the corporate
+  network.
+- **Two account roles: user and administrator.** There is no other role based access control. Everyone who is
+  approved is a user and can run evaluations in the projects they belong to.
+- **An administrator is a superuser.** They do everything a project manager used to do, and more: create projects,
+  add and remove project members, approve signups, and promote other users to administrator. They can also see
+  inside every project.
+- **Project roles are gone.** A project has members, and every member has the same rights in it: they can run
+  evaluations. Only an administrator adds or removes members. Only members and administrators see inside a project,
+  and a person who is neither gets the same answer as for a project that does not exist.
+- **Accounts arrive in two ways.** A person signs up and waits as pending until an administrator approves. Or an
+  administrator creates the account in Keycloak with a temporary password and the "update password" action, and the
+  person changes it at first sign in. The second way needs no code of ours.
+- **Projects, endpoints and evaluations stay as the structure of the product.**
+
+**Superseded from decision 3.** Two project roles (manager and engineer), "a project always has a manager",
+the administrator who never joins or sees inside, and the project manager's own powers. They are not deleted: the
+requirements and criteria move to release R2, and the rules (RULE-P1 to RULE-P3) are marked parked, so a later
+release can bring role based access back.
+
+**Deferred to R2.** The review findings that are beta hardening rather than alpha: the CSRF check, the extra
+logging (NFR-5), the algorithm allow list, the cookie prefix, the two tab rule, the loop after a deactivated sign in
+and the registration rate limit. They stay in the checklist's "Accepted for now" list as one "before beta" set.
+**Kept, because it costs nothing:** state, nonce and PKCE, no token in the browser, the API checking the token on every
+request, and the ports and adapters structure.
+
+**Why.** The specs had grown to 12 decisions and 48 criteria for a login, an approval and a project list. The
+alpha needs a working login with sessions, accounts that can be approved or created, and projects with members
+who can run evaluations. A superuser role is the smallest way to give someone all the powers without building the
+role model.
+
+**Changes.** To make, with vbench-req and vbench-uc: set the release of the dropped and deferred requirements and
+criteria to R2, rework UC-P1 and UC-P2 (create a project, manage members) for the administrator only, add
+"promote to administrator" to UC-A4 or a new use case, and update OBJ-P1, OBJ-P2, SET-3, RULE-P4 and BC-PROJECTS.
+
+**Still open.**
+- Whether an administrator can demote another administrator, and whether the last administrator is protected
+  (RULE-A1 already says there is always one).
+- Whether promoting to administrator needs a reason and an audit entry, as RULE-A3 asks for account changes.
+- Whether a project must keep at least one member.
+- Whether the superuser also runs evaluations in every project, or only reads.
+
