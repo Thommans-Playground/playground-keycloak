@@ -15,7 +15,7 @@
 | FR-4 | Decide who can use the product | The system shall let an administrator decide who can use the product: approve a pending account, deactivate an active one with a reason, and reinstate a deactivated one. | acceptance test | R1 | yes | draft |  | ADR 0019; ADR 0010; release plan R1 |
 | FR-5 | Show name and account role | The system shall show a signed-in person their name and account role. | acceptance test | R1 | yes | draft | OBJ-A1 | decision 1; MK3 UC-A4 |
 | FR-6 | Sign in through single sign-on | The system shall let a person sign in through single sign-on. | acceptance test | R2 | no | draft |  | release plan R2 |
-| FR-14 | Promote and demote administrators | The system shall let an administrator promote a user to administrator and demote another administrator, with a reason. | acceptance test | R1 | no | draft | OBJ-A1 | decision 13 |
+| FR-14 | Promote and demote administrators | The system shall let an administrator promote a user to administrator and demote another administrator, with a reason. | acceptance test | R1 | yes | draft | OBJ-A1 | decision 13 |
 
 **Notes**
 

@@ -15,7 +15,7 @@ properties:
   - name: email
     type: text
     required: true
-    comment: Also the person's sign-in name in Keycloak. Copied from the token at each request. The email is an attribute and not the identity: a new `sub` with a known email becomes a second pending account, which administrators can see.
+    comment: Also the person's sign-in name in Keycloak. Copied from the token at each request. The email is an attribute and not the identity, so a new `sub` with a known email becomes a second pending account, which administrators can see.
   - name: identity
     type: text
     required: true
@@ -112,8 +112,9 @@ administrator comes from the setup and starts active.
   [RULE-A2](RULE-A2-administrator-cannot-change-themselves.md),
   [RULE-A3](RULE-A3-account-change-needs-a-reason.md)). It is still role based access: what each role may do is
   our permission matrix.
-- An **administrator is also a user**. They keep the accounts, and they see no project's contents by role
-  ([RULE-P2](RULE-P2-an-administrator-never-joins-by-role.md)).
+- An **administrator is also a user**, and in the alpha a superuser (decision 13). They keep the accounts, create
+  projects, manage members, and see inside every project. The older rule that an administrator sees no project's
+  contents by role ([RULE-P2](RULE-P2-an-administrator-never-joins-by-role.md)) is parked.
 - The value sets are [SET-1](SET-1-account-roles.md) and [SET-2](SET-2-account-statuses.md).
 - Which projects a person is in, and as what, is not kept here. [Projects](../contexts/BC-PROJECTS.md) holds the
   [membership](OBJ-P2-membership.md) and asks Access only whether the account is active.

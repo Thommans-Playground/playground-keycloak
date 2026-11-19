@@ -1,0 +1,42 @@
+@startuml UC-A4-approve-deactivate-and-reinstate-an-account-analysis-sequence
+!include ../../domain/diagrams/_style.puml
+hide footbox
+title UC-A4 Approve, deactivate, reinstate, promote and demote an account (analysis: system sequence)
+' Analysis level (decision 9): the administrator, Playground as one box, and Keycloak as an outside system.
+' No route, store, port, adapter, token or cookie. Step numbers are the main flow numbers of UC-A4.
+' Written for decision 13: promote and demote change Playground only, and Keycloak is not called.
+' The audit entry (step 7) is a message to nobody outside, so it is a note. Pending people are not drawn: see UC-A3.
+
+actor "Administrator" as AD
+participant "Playground" as PG #E6F0FB
+participant "Keycloak\n(outside system)" as K #ECECEC
+
+AD -> PG : 1, 2 choose an account and what to do\n(approve, deactivate, reinstate, promote or demote)
+AD -> PG : 3 give a reason (not for an approval)
+alt the person asking is not an administrator
+  PG --> AD : 4 refused, nothing changes
+else a reason that says nothing, where one is needed
+  PG --> AD : refused, nothing changes
+else the change does not fit the account,\nor the administrator changes themselves,\nor it would leave no administrator
+  PG --> AD : refused, nothing changes
+else approve
+  PG -> PG : 5 the account is active
+else promote or demote
+  PG -> PG : 5 the role is administrator, or user
+else deactivate
+  PG -> PG : 5 the account is deactivated
+  PG -> K : 5 disable the person, end their sessions
+  alt Keycloak cannot be reached
+    PG --> AD : 6 "Keycloak was not updated", the deactivation stands, retry
+  end
+else reinstate
+  PG -> K : 5 enable the person
+  alt Keycloak cannot be reached
+    PG --> AD : 6 "Keycloak was not updated", still deactivated, retry
+  else
+    PG -> PG : 5 the account is active
+  end
+end
+note right of PG : 7 records who, whom, what and why
+PG --> AD : 8 done
+@enduml

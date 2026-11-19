@@ -10,7 +10,7 @@ owns:
   - SET-2
 refers_to:
   - context: BC-PROJECTS
-    how: answers one question for it, through the AccountStatus port: is this account active?
+    how: answers one question for it, through the AccountStatus port (is this account active?)
 ports_needed:
   - name: AccountRepository
     answers: Find, add, save and list accounts.
@@ -47,7 +47,7 @@ deactivated), and an audit trail of every change.
 
 Roles are kept in Playground, not in Keycloak. The token carries who the person is, and the account says what they hold.
 This holds for any way of signing in: Keycloak's own login now, or a company single sign-on later only proves who the
-person is, and no company group is mapped to a role. A project manager is a role inside one project, held by
+person is, and no company group is mapped to a role. There are no project roles in the alpha (decision 13). A project membership is held by
 [Projects](BC-PROJECTS.md).
 
 ## Its boundary
@@ -131,5 +131,5 @@ For the product owner to decide.
 Built: the account with its role and status, the pending account made on first sight, approve, deactivate and reinstate
 with a reason, the audit entry, the token check, and the session kept on the web server.
 
-Not built: an administrator promoting or demoting an account through the application (the API has the actions, no
-screen), time-limited access, and company single sign-on.
+Not built: time-limited access and company single sign-on. Promoting and demoting an account is built, in the API and
+in the admin accounts table (UC-A4).

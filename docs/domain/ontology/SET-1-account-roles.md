@@ -10,7 +10,7 @@ values:
   - administrator
 meanings:
   user: Uses the product, and sees the projects they are a member of.
-  administrator: Does everything a user does, and also keeps the accounts. Sees no project's contents by role.
+  administrator: Does everything a user does, and also keeps the accounts. In the alpha a superuser (decision 13), who creates projects, manages members and sees inside every project.
 used_by:
   - OBJ-A1
 questions:
@@ -30,11 +30,11 @@ also keeps the accounts.
 
 - approves pending accounts, deactivates and reinstates accounts, always with a reason where one is needed
   ([UC-A4](../../usecases/UC-A4-approve-deactivate-and-reinstate-an-account.md)),
-- promotes a user to administrator, or demotes one, with a reason (the API has the actions, there is no screen yet),
-- creates a project by naming its manager, and restores a manager when a project has none
-  ([UC-P1](../../usecases/UC-P1-create-a-project.md)),
-
-and does **not** see inside a project by role ([RULE-P2](RULE-P2-an-administrator-never-joins-by-role.md)).
+- promotes a user to administrator, or demotes one, with a reason (UC-A4; built in the API and the admin accounts table),
+- creates a project by naming its first members, and adds and removes members
+  ([UC-P1](../../usecases/UC-P1-create-a-project.md), [UC-P2](../../usecases/UC-P2-manage-project-members.md)),
+- sees inside every project (decision 13). The older rule that an administrator does not see inside a project by
+  role ([RULE-P2](RULE-P2-an-administrator-never-joins-by-role.md)) is parked.
 
 ## How a user becomes an administrator
 
