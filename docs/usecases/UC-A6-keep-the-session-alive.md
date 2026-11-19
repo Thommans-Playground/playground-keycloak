@@ -167,6 +167,6 @@ A9 became -> D4, D6
 
 ## Slices
 
-1. TSK-A6.1: Refresh the access token before it expires and keep the new one in the session (AC-52; rule RULE-A10)
+1. TSK-A6.1: Refresh the access token before it expires and keep the new one in the session, rules RULE-A10 (AC-52)
 2. TSK-A6.2: Two requests at once send one refresh and share its result (AC-53)
 3. TSK-A6.3: A refused refresh ends the session, so the person must sign in again (AC-54)

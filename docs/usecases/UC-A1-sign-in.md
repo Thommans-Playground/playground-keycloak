@@ -299,8 +299,8 @@ A22 became -> D16
 ## Slices
 
 1. TSK-A1.1: Send the person to Keycloak and handle the callback (AC-1)
-2. TSK-A1.2: Refuse a sign in that is expired, replayed, from another browser, cancelled or failed, and check the state before the exchange (AC-38, AC-39, AC-42; rules RULE-A7, RULE-A8, RULE-A9)
-3. TSK-A1.3: Keep the return address local and every token out of the browser (AC-40, AC-41; rule RULE-A6)
+2. TSK-A1.2: Refuse a sign in that is expired, replayed, from another browser, cancelled or failed, and check the state before the exchange, rules RULE-A7, RULE-A8, RULE-A9 (AC-38, AC-39, AC-42)
+3. TSK-A1.3: Keep the return address local and every token out of the browser, rules RULE-A6 (AC-40, AC-41)
 4. TSK-A1.4: A second sign in ends this browser's earlier session, and only the latest of two starts can finish. Alpha: the first half is not needed (a second sign in makes a new session); R2, decision 13: the second half (ending the earlier session, the latest start wins) (AC-43, AC-46)
 5. TSK-A1.5: Say so when Keycloak cannot be reached (AC-44)
 6. TSK-A1.6: The API checks the token on every protected route (AC-33)
