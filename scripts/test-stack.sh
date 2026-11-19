@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
-# A fresh, isolated stack for the integration and acceptance tests (and for CI later).
-#   scripts/test-stack.sh up      build and start Keycloak, the API, the web app and their databases, wait until healthy
-#   scripts/test-stack.sh down    stop it and delete its volumes, so the next run starts from nothing
-#   scripts/test-stack.sh run     up, run both integration suites, then down (down runs even when a test fails)
-# It uses its own compose project name, so its volumes never touch the dev stack's. It uses the SAME ports as the dev
-# stack (the Keycloak realm fixes the web address), so stop the dev stack first: docker compose down
-# To run the tests against a stack that is already up, skip this script and set INTEGRATION=1 (see docs/TESTING.md).
+# A fresh, isolated stack for the integration and acceptance tests, and for CI.
+#   scripts/test-stack.sh check   say whether the ports the stack needs are free
+#   scripts/test-stack.sh up      build and start Keycloak, the API, the web app and their databases, wait until they answer
+#   scripts/test-stack.sh down    stop it and delete ITS volumes, so the next run starts from nothing
+#   scripts/test-stack.sh run     check, up, run the stack tests, then down (down also runs when a test fails)
+#   scripts/test-stack.sh all     the unit suites first, then run: the whole gate, the same as CI
+# It uses its own compose project name (playground-test), so `down -v` never touches the dev stack's volumes.
+# It uses the SAME ports as the dev stack (the Keycloak realm fixes the web address), so the dev stack must be stopped:
+#   docker compose stop        (and later: docker compose start)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 PROJECT=playground-test
@@ -13,6 +15,22 @@ COMPOSE=(docker compose -p "$PROJECT" -f docker-compose.yml)
 KEYCLOAK_URL=${KEYCLOAK_URL:-http://localhost:8080}
 API_URL=${API_URL:-http://localhost:8000}
 APP_URL=${APP_URL:-http://localhost:3000}
+PORTS=(8080 8000 3000 5433)
+TEST_DB_URL=${TEST_DATABASE_URL:-postgresql+psycopg://playground:playground@localhost:5433/playground_test}
+
+# A port that is already taken means the dev stack (or something else) is running: stop here, with a clear message.
+check_ports() {
+  local busy=()
+  for p in "${PORTS[@]}"; do
+    if (exec 3<>"/dev/tcp/127.0.0.1/$p") 2>/dev/null; then busy+=("$p"); fi
+  done
+  if ((${#busy[@]})); then
+    echo "These ports are already in use: ${busy[*]}" >&2
+    echo "Stop the dev stack first:  docker compose stop   (start it again later with: docker compose start)" >&2
+    return 1
+  fi
+  echo "ports ${PORTS[*]} are free"
+}
 
 # Keycloak, the API and the web app have no health check, so wait until each one answers.
 wait_for() {
@@ -24,6 +42,7 @@ wait_for() {
   echo "$name did not answer at $url" >&2
   return 1
 }
+
 start() {
   "${COMPOSE[@]}" up -d --build --wait --wait-timeout 300
   wait_for keycloak "$KEYCLOAK_URL/realms/playground/.well-known/openid-configuration"
@@ -31,22 +50,48 @@ start() {
   wait_for web "$APP_URL/"
 }
 
+stack_tests() {
+  export INTEGRATION=1
+  echo "== API on the stack's PostgreSQL (playground_test)"
+  (cd apps/api && TEST_DATABASE_URL="$TEST_DB_URL" uv run pytest -q)
+  echo "== API integration tests"
+  (cd apps/api && uv run pytest -q tests/integration)
+  echo "== web integration and acceptance tests"
+  (cd apps/web && npm run test:integration)
+}
+
+unit_tests() {
+  echo "== API unit tests (SQLite)"
+  (cd apps/api && uv run pytest -q)
+  echo "== web unit tests, lint, typecheck"
+  (cd apps/web && npm test && npm run lint && npm run typecheck)
+  echo "== traceability tools and the tag report"
+  for d in .claude/skills/vbench-*/scripts; do
+    (cd "$d" && for t in test_*.py; do [ -e "$t" ] && python3 -m unittest "${t%.py}"; done) || true
+  done
+  python3 .claude/skills/vbench-req/scripts/req_tool.py validate
+  python3 .claude/skills/vbench-at/scripts/at_tool.py report | tail -3
+}
+
 case "${1:-}" in
-  up)
-    start
-    ;;
-  down)
-    "${COMPOSE[@]}" down -v --remove-orphans
-    ;;
+  check) check_ports ;;
+  up) check_ports; start ;;
+  down) "${COMPOSE[@]}" down -v --remove-orphans ;;
   run)
+    check_ports
     trap '"${COMPOSE[@]}" down -v --remove-orphans' EXIT
     start
-    export INTEGRATION=1
-    (cd apps/api && uv run pytest -q tests/integration)
-    (cd apps/web && npm run test:integration)
+    stack_tests
+    ;;
+  all)
+    unit_tests
+    check_ports
+    trap '"${COMPOSE[@]}" down -v --remove-orphans' EXIT
+    start
+    stack_tests
     ;;
   *)
-    echo "usage: $0 up|down|run" >&2
+    echo "usage: $0 check|up|down|run|all" >&2
     exit 2
     ;;
 esac
