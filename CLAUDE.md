@@ -32,3 +32,8 @@ The application follows **domain driven design**, **test driven development** an
 ## Reviews
 
 Three read-only agents review the specs, and each teaches (what is wrong, why it matters, up to three options): `vbench-spec-challenger` (does the spec agree with itself), `vbench-security-reviewer` (OWASP and the OAuth BCP, against the generic checklists in `.claude/skills/_vbench/standards/security/` and our overlay `docs/standards/security-checklist.md`) and `vbench-design-reviewer` (DDD, ports and adapters, the AWS target). Run all three, together, after you write or change a use case, its diagrams, a requirement or a decision, and before it is built; skip them only for a change that touches no flow, criterion, diagram or decision. They never edit, and a person decides. A decision that accepts a risk goes in the checklist's "Accepted for now" list.
+
+## Decisions
+
+The owner's decisions (scope, people, who may do what, accepted risk) go in `docs/domain/decisions.md`. Technical decisions (how it is built) go in `docs/adr/`, one short file each, numbered and never edited to change their meaning (see `docs/adr/README.md`). The agent decides the technical ones and records them there, and asks the owner only about scope, people, permissions and risk.
+
