@@ -452,8 +452,10 @@ role model.
 criteria to R2, rework UC-P1 and UC-P2 (create a project, manage members) for the administrator only, add
 "promote to administrator" to UC-A4 or a new use case, and update OBJ-P1, OBJ-P2, SET-3, RULE-P4 and BC-PROJECTS.
 
-**Still open.**
-- Whether promoting to administrator needs a reason and an audit entry, as RULE-A3 asks for account changes.
-- Whether a project must keep at least one member.
-- Whether the superuser also runs evaluations in every project, or only reads.
+**Also decided.**
+- Promoting or demoting an administrator needs a reason and an audit entry, as RULE-A3 asks for every account change.
+- A project does not have to keep a member. An administrator can remove anyone, and an empty project is fine.
+- The administrator superuser does everything a member does, in every project: they see inside and run evaluations.
+
+**Still open.** Nothing about roles. The R2 move of the dropped rows and the rework of UC-P1 and UC-P2 are to do.
 
