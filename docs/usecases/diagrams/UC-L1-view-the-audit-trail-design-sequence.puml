@@ -1,0 +1,38 @@
+@startuml UC-L1-view-the-audit-trail-design-sequence
+!include ../../domain/diagrams/_style.puml
+hide footbox
+skinparam maxMessageSize 50
+title UC-L1 View the audit trail (design sequence)
+' Design level (decision 9), drawn against docs/domain/diagrams/audit-design.puml. Analysis: UC-L1-view-the-audit-trail-analysis-sequence.puml.
+' Step numbers are the main flow numbers of UC-L1.
+' BUILT today, inside Access: GET /audit, the administrator guard, SqlAudit.entries() and the admin accounts page. Account entries only.
+' PLANNED (decision 14): the Audit context, AuditService.read(caller), AuditRepository, the Caller, kind and details columns,
+' names and emails at the time, and project entries. The lower part shows how entries arrive (AC-29, AC-30), a flow of UC-A4, UC-P1 and UC-P2.
+' Not drawn: the token check (UC-A1 step 9) and the web page.
+
+actor "Administrator" as AD
+participant "Routes\n(API)" as R #E6F0FB
+participant "Audit-\nService\n(planned)" as S #E7F4EA
+participant "Audit-\nRepository\n(SqlAudit)" as AR #EEE7F7
+participant "Access or\nProjects\nservice" as OS #E7F4EA
+participant "AuditLog\n(own port)" as AL #EEE7F7
+participant "Bridge\n(root)" as BR #EEE7F7
+
+AD -> R : 1 GET /audit
+R -> R : 2 guard: token, account found, active, administrator, so a Caller
+alt not an administrator
+  R --> AD : 2 403 forbidden, no entry
+else
+  R -> S : 2 read(caller)
+  S -> AR : 3 list_newest_first()
+  AR --> S : 3 entries of both kinds
+  S --> R : entries
+  R --> AD : 4, 5 200 the entries, with kind, details and the names at the time
+end
+
+== How the entries got there (other flows, AC-29 and AC-30) ==
+OS -> AL : record(actor, action, target, people, reason)
+AL -> BR : the same call, in the context's own words
+BR -> S : record(entry), with names and emails copied at that moment
+S -> AR : add(entry)
+@enduml
