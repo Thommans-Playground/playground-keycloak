@@ -60,6 +60,14 @@ scripts/test-stack.sh all    the unit suites first, then run: the whole gate
 
 The `vbench-test-stack` skill (`/vbench-test-stack`) runs it for you and reports the result.
 
+## The V cycle report
+
+`python3 .claude/skills/vbench-vcycle/scripts/vcycle.py UC-A1` (or `/vbench-vcycle UC-A1`, or `--all`) joins the
+checks into one table for a use case: requirements, criteria and their tests, analysis, rules and their tests, design
+and diagrams, slices, and the review stamps. Each row is ok, warn or FAIL, and the exit code is 1 on a FAIL (on a warn
+too with `--strict`). It reads files and runs nothing: it shows that a tagged test exists, not that it passes, so it
+goes with the test runs and never replaces them. CI keeps `vcycle.json` as the record of each run.
+
 ## CI
 
 `.github/workflows/ci.yml` runs on every pull request and on pushes to `main`, in four jobs: the API tests (SQLite and a

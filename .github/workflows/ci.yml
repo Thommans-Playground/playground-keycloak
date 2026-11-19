@@ -81,10 +81,22 @@ jobs:
         run: python3 .claude/skills/vbench-req/scripts/req_tool.py validate
       - name: Tag report (no tag may name a criterion or rule that does not exist)
         run: python3 .claude/skills/vbench-at/scripts/at_tool.py report | tail -40
-      # Informational until a person has stamped the use cases: today it reports unstamped review hashes.
+      # Informational until a person has stamped the use cases and the criteria without tests are built.
       - name: Use case check (informational)
         continue-on-error: true
         run: python3 .claude/skills/vbench-uc/scripts/uc_tool.py validate | tail -5
+      - name: The V cycle of every use case (informational)
+        continue-on-error: true
+        run: |
+          python3 .claude/skills/vbench-vcycle/scripts/vcycle.py --all
+          python3 .claude/skills/vbench-vcycle/scripts/vcycle.py --all --json > vcycle.json || true
+      - name: Keep the record of the V cycle run
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vcycle
+          path: vcycle.json
+          if-no-files-found: ignore
 
   stack:
     name: Fresh stack, integration and acceptance tests

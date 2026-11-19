@@ -71,6 +71,8 @@ unit_tests() {
   done
   python3 .claude/skills/vbench-req/scripts/req_tool.py validate
   python3 .claude/skills/vbench-at/scripts/at_tool.py report | tail -3
+  echo "== the V cycle of every use case (informational until the use cases are stamped)"
+  python3 .claude/skills/vbench-vcycle/scripts/vcycle.py --all | grep -E "^RESULT|^USE CASES" || true
 }
 
 case "${1:-}" in
