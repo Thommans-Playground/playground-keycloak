@@ -372,6 +372,16 @@ class Tests(unittest.TestCase):
         self.assertNotIn("RULE-A1", no_test)
         self.assertNotIn("RULE-A3", no_test)
 
+    def test_a_title_can_name_one_criterion_and_a_rule_together(self):
+        root = make_root()
+        (root / "docs/domain/ontology/RULE-A1-x.md").write_text("```yaml\nid: RULE-A1\ntype: rule\nname: x\n```\n")
+        put(root, "a.test.ts", "it('x (Verifies AC-1, RULE-A1)', () => {});\n")
+        code, out = run(root, "report")
+        self.assertEqual(code, 0)
+        self.assertNotIn("AC-1 (proves", out)
+        self.assertNotIn("CANNOT CARRY A REVIEW HASH", out)
+        self.assertIn("RULES WITH NO TEST (0)", out)
+
     def test_stamp_with_no_test_says_so(self):
         root = make_root()
         code, out = run(root, "stamp", "AC-1")

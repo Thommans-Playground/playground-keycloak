@@ -42,7 +42,7 @@ import uc_tool as uc  # noqa: E402
 
 TESTS_DIR = "tests/acceptance"   # default; vbench.json tests_dirs overrides it
 DEFAULT_STACK = "pytest"
-TAG = re.compile(r"Verifies\s+(AC-\d+(?:\s*,\s*AC-\d+)*)(?:\s*\[reviewed\s+([0-9a-f]{7})\])?")
+TAG = re.compile(r"Verifies\s+((?:AC-\d+|RULE-[A-Z]\d+)(?:\s*,\s*(?:AC-\d+|RULE-[A-Z]\d+))*)(?:\s*\[reviewed\s+([0-9a-f]{7})\])?")
 # The pytest form: @pytest.mark.ac("AC-12") or @pytest.mark.ac("AC-12", reviewed="7a2439b"). One marker for each criterion.
 MARK = re.compile(r"""mark\.ac\(\s*["'](AC-\d+)["']\s*(?:,\s*reviewed\s*=\s*["']([0-9a-f]{7})["']\s*)?\)""")
 EXTENSIONS = {".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".py", ".java", ".kt", ".go", ".rb", ".cs", ".feature"}
@@ -53,7 +53,7 @@ STACK_PATH = re.compile(r"(^|/)(integration|acceptance|e2e)(/|$)|\.it\.[cm]?[jt]
 # A line that starts a test (test(, it(, itest(, it.skip(, describe(): a tag counts in its title, or in a comment right above.
 TITLE = re.compile(r"^\s*(?:await\s+)?[\w.]*(?:test|it|describe)\w*(?:\.\w+)?\s*\(")
 SKIPPED = re.compile(r"\.skip\s*\(|\{\s*skip\s*:\s*true")
-RULE_TAG = re.compile(r"Verifies\s+(RULE-[A-Z]\d+(?:\s*,\s*RULE-[A-Z]\d+)*)")
+RULE_TAG = re.compile(r"Verifies\s+((?:AC-\d+|RULE-[A-Z]\d+)(?:\s*,\s*(?:AC-\d+|RULE-[A-Z]\d+))*)")
 RULE_MARK = re.compile(r"""^\s*@pytest\.mark\.rule\(\s*["'](RULE-[A-Z]\d+)["']\s*\)""")
 AC_MARK_LINE = re.compile(r"""^\s*@pytest\.mark\.ac\(\s*["'](AC-\d+)["']\s*(?:,\s*reviewed\s*=\s*["']([0-9a-f]{7})["']\s*)?\)""")
 Tag = collections.namedtuple("Tag", "path line kind id hash listed stack")
