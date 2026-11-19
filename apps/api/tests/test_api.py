@@ -1,7 +1,7 @@
 from tests.conftest import KEY, OTHER_KEY, auth, make_token, me_id, register
 
 
-# NFR-1, AC-33: no token, expired token, token not from the identity provider
+# Verifies AC-33 (NFR-1): no token, expired token, token not from the identity provider
 def test_requests_without_a_valid_token_are_refused(client):
     assert client.get("/me").status_code == 401
     cases = {
@@ -16,7 +16,7 @@ def test_requests_without_a_valid_token_are_refused(client):
         assert r.json()["detail"]["code"] == "invalid_token"
 
 
-# FR-3, AC-3
+# Verifies AC-3 (FR-3)
 def test_unknown_person_gets_one_pending_account(client):
     h = auth("sub-maya", "maya@x.test", name="Maya")
     first = client.get("/me", headers=h).json()
@@ -25,7 +25,7 @@ def test_unknown_person_gets_one_pending_account(client):
     assert client.get("/me", headers=auth("sub-ada", "ada@x.test")).status_code == 200
 
 
-# FR-3, AC-4
+# Verifies AC-4 (FR-3)
 def test_pending_person_sees_only_their_status(client):
     h, _ = register(client, "sub-maya", "maya@x.test")
     assert client.get("/me", headers=h).json()["status"] == "pending"
@@ -45,7 +45,7 @@ def test_name_and_email_follow_the_token_but_identity_is_the_link(client):
     assert new["id"] == old["id"] and new["email"] == "renamed@x.test" and new["name"] == "New"
 
 
-# FR-4, AC-5, decision 2: approving does not call Keycloak
+# Verifies AC-5, AC-63 (FR-4, decision 2): approving does not call Keycloak, and a user cannot approve
 def test_administrator_approves_and_member_cannot(client, admin, idp):
     maya, maya_id = register(client, "sub-maya", "maya@x.test")
     bob, bob_id = register(client, "sub-bob", "bob@x.test")
@@ -58,7 +58,7 @@ def test_administrator_approves_and_member_cannot(client, admin, idp):
     assert client.get("/accounts", headers=admin).json()[-1]["status"] == "pending"
 
 
-# FR-4, AC-6, RULE-A3
+# Verifies AC-6, AC-64, RULE-A3 (FR-4)
 def test_deactivate_needs_reason_disables_in_keycloak_and_blocks_next_request(client, admin, idp):
     maya, maya_id = register(client, "sub-maya", "maya@x.test")
     client.post(f"/accounts/{maya_id}/approve", headers=admin)
@@ -75,7 +75,7 @@ def test_deactivate_needs_reason_disables_in_keycloak_and_blocks_next_request(cl
     assert any(a["id"] == maya_id and a["status"] == "deactivated" for a in client.get("/accounts", headers=admin).json())
 
 
-# FR-4, AC-7
+# Verifies AC-7 (FR-4)
 def test_reinstate_enables_in_keycloak(client, admin, idp):
     maya, maya_id = register(client, "sub-maya", "maya@x.test")
     client.post(f"/accounts/{maya_id}/approve", headers=admin)
@@ -86,7 +86,7 @@ def test_reinstate_enables_in_keycloak(client, admin, idp):
     assert client.get("/me", headers=maya).json()["status"] == "active"
 
 
-# RULE-A2, RULE-A1 through the API
+# Verifies AC-49, AC-50, AC-65, RULE-A2 (promote, demote and self change through the API)
 def test_admin_rules_over_http(client, admin):
     ada_id = me_id(client, admin)
     r = client.post(f"/accounts/{ada_id}/deactivate", headers=admin, json={"reason": "oops no"})

@@ -30,13 +30,13 @@ test("a token with time left is returned and nothing is refreshed", async () => 
   assert.equal(idp.refreshes, 0);
 });
 
-test("a token about to expire is refreshed, and the new one is kept", async () => {
+test("a token about to expire is refreshed, and the new one is kept (Verifies AC-52)", async () => {
   await sessions.put("s1", session(now + 10_000));
   assert.equal(await accessTokenFor("s1"), "at-refreshed-1");
   assert.equal((await sessions.get("s1"))?.accessToken, "at-refreshed-1");
 });
 
-test("two requests at once share one refresh", async () => {
+test("two requests at once share one refresh (Verifies AC-53)", async () => {
   await sessions.put("s1", session(now + 10_000));
   let release!: () => void;
   idp.gate = new Promise<void>((r) => (release = r));
@@ -47,7 +47,7 @@ test("two requests at once share one refresh", async () => {
   assert.equal(idp.refreshes, 1);
 });
 
-test("when Keycloak refuses the refresh the session ends", async () => {
+test("when Keycloak refuses the refresh the session ends (Verifies AC-54)", async () => {
   await sessions.put("s1", session(now + 10_000));
   idp.refreshFails = true;
   assert.equal(await accessTokenFor("s1"), null);

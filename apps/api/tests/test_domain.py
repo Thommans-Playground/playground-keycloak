@@ -26,7 +26,7 @@ def test_rule_a2_nobody_deactivates_or_demotes_themselves():  # Verifies RULE-A2
             decide(action, admin, admin, active_admins=2)
 
 
-def test_rule_a1_last_administrator_is_kept():
+def test_rule_a1_last_administrator_is_kept():  # Verifies RULE-A1, AC-51
     actor, last = acct("a", Role.administrator), acct("b", Role.administrator)
     for action in (Action.deactivate, Action.demote):
         with pytest.raises(LastAdministrator):
@@ -34,7 +34,7 @@ def test_rule_a1_last_administrator_is_kept():
     assert decide(Action.demote, actor, last, active_admins=2).role is Role.user
 
 
-def test_transitions():
+def test_transitions():  # Verifies AC-66
     admin = acct("a", Role.administrator)
     assert decide(Action.approve, admin, acct("p", status=Status.pending), 1).status is Status.active
     assert decide(Action.deactivate, admin, acct("u"), 1).status is Status.deactivated

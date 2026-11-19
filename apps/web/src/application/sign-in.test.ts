@@ -39,13 +39,13 @@ test("SI-2: finishing a login makes a session and returns to the page asked for 
   assert.equal(session?.accessToken, "at-code-1");
 });
 
-test("SI-5: the result holds a session id and an address, never a token", async () => {
+test("SI-5: the result holds a session id and an address, never a token (Verifies AC-41)", async () => {
   const { attemptId } = await startLogin(deps, { returnTo: null, register: false });
   const result = await finishLogin(deps, attemptId, callback("code-1", "state-1"));
   assert.deepEqual(Object.keys(result).sort(), ["returnTo", "sessionId"]);
 });
 
-test("SI-3: an outside return address becomes the default", async () => {
+test("SI-3: an outside return address becomes the default (Verifies AC-40, RULE-A6)", async () => {
   for (const bad of ["https://evil.example", "//evil.example", "/\\evil.example"]) {
     const { attemptId, redirectTo } = await startLogin(deps, { returnTo: bad, register: false });
     const state = new URL(redirectTo).searchParams.get("state")!;
@@ -56,39 +56,39 @@ test("SI-3: an outside return address becomes the default", async () => {
 
 const fails = (code: string) => (e: unknown) => e instanceof SignInFailed && e.code === code;
 
-test("SI-4: an unknown attempt fails", async () => {
+test("SI-4: an unknown attempt fails (Verifies AC-38)", async () => {
   await assert.rejects(finishLogin(deps, "nope", callback("c", "state-1")), fails("login_expired"));
 });
 
-test("SI-4: a missing attempt cookie fails", async () => {
+test("SI-4: a missing attempt cookie fails (Verifies AC-42)", async () => {
   await assert.rejects(finishLogin(deps, undefined, callback("c", "state-1")), fails("login_expired"));
 });
 
-test("SI-4: an attempt works once", async () => {
+test("SI-4: an attempt works once (Verifies AC-38, RULE-A7)", async () => {
   const { attemptId } = await startLogin(deps, { returnTo: null, register: false });
   await finishLogin(deps, attemptId, callback("code-1", "state-1"));
   await assert.rejects(finishLogin(deps, attemptId, callback("code-2", "state-1")), fails("login_expired"));
 });
 
-test("SI-4: an attempt older than ten minutes fails", async () => {
+test("SI-4: an attempt older than ten minutes fails (Verifies AC-38, RULE-A8)", async () => {
   const { attemptId } = await startLogin(deps, { returnTo: null, register: false });
   now += 10 * 60 * 1000;
   await assert.rejects(finishLogin(deps, attemptId, callback("code-1", "state-1")), fails("login_expired"));
 });
 
-test("SI-4: a callback with the wrong state fails and makes no session", async () => {
+test("SI-4: a callback with the wrong state fails and makes no session (Verifies AC-39, RULE-A9)", async () => {
   const { attemptId } = await startLogin(deps, { returnTo: null, register: false });
   await assert.rejects(finishLogin(deps, attemptId, callback("code-1", "someone-elses-state")), fails("login_failed"));
 });
 
-test("a code that was used before fails", async () => {
+test("a code that was used before fails (Verifies AC-39, RULE-A9)", async () => {
   const first = await startLogin(deps, { returnTo: null, register: false });
   await finishLogin(deps, first.attemptId, callback("code-1", "state-1"));
   const second = await startLogin(deps, { returnTo: null, register: false });
   await assert.rejects(finishLogin(deps, second.attemptId, callback("code-1", "state-2")), fails("login_failed"));
 });
 
-test("a callback Keycloak marked as an error fails as refused", async () => {
+test("a callback Keycloak marked as an error fails as refused (Verifies AC-39, RULE-A9)", async () => {
   const { attemptId } = await startLogin(deps, { returnTo: null, register: false });
   const url = new URL("http://app.test/auth/callback?error=access_denied&state=state-1");
   await assert.rejects(finishLogin(deps, attemptId, url), fails("login_refused"));
