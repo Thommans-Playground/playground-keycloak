@@ -41,7 +41,9 @@ import uc_tool as uc  # noqa: E402
 
 TESTS_DIR = "tests/acceptance"   # default; vbench.json tests_dirs overrides it
 DEFAULT_STACK = "pytest"
-TAG = re.compile(r"Verifies\s+(AC-\d+)(?:\s*\[reviewed\s+([0-9a-f]{7})\])?")
+TAG = re.compile(r"Verifies\s+(AC-\d+(?:\s*,\s*AC-\d+)*)(?:\s*\[reviewed\s+([0-9a-f]{7})\])?")
+# The pytest form: @pytest.mark.ac("AC-12") or @pytest.mark.ac("AC-12", reviewed="7a2439b"). One marker for each criterion.
+MARK = re.compile(r"""mark\.ac\(\s*["'](AC-\d+)["']\s*(?:,\s*reviewed\s*=\s*["']([0-9a-f]{7})["']\s*)?\)""")
 EXTENSIONS = {".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".py", ".java", ".kt", ".go", ".rb", ".cs", ".feature"}
 SKIP = {"node_modules", ".git", "__pycache__", ".next", "dist", "build"}
 STACKS = {
@@ -58,7 +60,9 @@ def criteria(root):
 
 
 def scan(root, dirs):
-    """Every `Verifies AC-n` tag in the test folders: (path, line number, ac id, recorded hash or None)."""
+    """Every `Verifies AC-n` tag and every `@pytest.mark.ac("AC-n")` marker in the test folders:
+    (path, line number, ac id, recorded hash or None). A comment may list several ids (`Verifies AC-5, AC-63`);
+    the recorded hash then belongs to none of them."""
     found = []
     for d in dirs:
         base = (root / d)
@@ -73,6 +77,10 @@ def scan(root, dirs):
                 continue
             for n, line in enumerate(text.splitlines(), 1):
                 for m in TAG.finditer(line):
+                    ids = re.findall(r"AC-\d+", m.group(1))
+                    for ac_id in ids:
+                        found.append((p, n, ac_id, m.group(2) if len(ids) == 1 else None))
+                for m in MARK.finditer(line):
                     found.append((p, n, m.group(1), m.group(2)))
     return found
 
@@ -291,10 +299,12 @@ def cmd_stamp(root, dirs, ac_id):
         print(f"{ac_id}: no test carries this tag.")
         return 1
     pattern = re.compile(rf"Verifies\s+{re.escape(ac_id)}(?:\s*\[reviewed\s+[0-9a-f]{{7}}\])?")
+    marker = re.compile(rf"""mark\.ac\(\s*["']{re.escape(ac_id)}["']\s*(?:,\s*reviewed\s*=\s*["'][0-9a-f]{{7}}["']\s*)?\)""")
     for p in files:
         with open(p, newline="", encoding="utf-8") as f:
             text = f.read()
         new = pattern.sub(f"Verifies {ac_id} [reviewed {now}]", text)
+        new = marker.sub(f'mark.ac("{ac_id}", reviewed="{now}")', new)
         if new != text:
             with open(p, "w", newline="", encoding="utf-8") as f:
                 f.write(new)

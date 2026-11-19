@@ -198,6 +198,12 @@ Code and tests are not files with a header. They link by a **tag** in a comment 
   **stale** until a person checks it again. `at_tool.py` reports this and stamps it
   (`at_tool.py stamp AC-12`).
 
+In **pytest** the tag is a real marker, one for each criterion or rule:
+`@pytest.mark.ac("AC-12")`, or `@pytest.mark.ac("AC-12", reviewed="7a2439b")` once reviewed, and
+`@pytest.mark.rule("RULE-A3")`. The marker must be registered (`markers` in `pyproject.toml`), and a small hook in
+`conftest.py` also adds a mark named `AC_12`, so `pytest -m AC_12` runs the tests that prove that criterion.
+In other test frameworks the comment or test name form stays: `Verifies AC-12`, or a list, `Verifies AC-5, AC-63`.
+
 `at_tool.py` scans the test folders (`tests_dirs` in `vbench.json`, default `tests/acceptance`) for
 the `Verifies AC-<n>` tags. So a criterion shows which tests point at it, and one with no tag shows
 up as untested. A use case that lists a criterion with no test shows up too.

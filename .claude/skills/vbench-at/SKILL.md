@@ -50,6 +50,15 @@ A test says which criterion it runs, in a comment or its name:
 Verifies AC-12 [reviewed 7a2439b]
 ```
 
+In pytest, use a marker for each criterion, which also lets `pytest -m AC_12` run them:
+
+```
+@pytest.mark.ac("AC-12", reviewed="7a2439b")
+```
+
+A comment may list several ids (`Verifies AC-5, AC-63`); a recorded hash then belongs to none of them, so use one
+marker or one tag for each criterion when you want the stale check.
+
 The hash is a short fingerprint of the criterion (given, when, then, level), the same one `vbench-uc` keeps.
 If the criterion changes, the test is **stale** until a person checks it and runs `stamp`. A change to the
 criterion's `notes` does not count. Stamping is the act of review, so never stamp to make a warning go away.

@@ -79,6 +79,45 @@ class Tests(unittest.TestCase):
         self.assertIn("ACCEPTANCE CRITERIA WITH NO TEST (2)", out)
         self.assertNotIn("AC-1 (proves", out)
 
+    def test_a_pytest_marker_covers_its_criterion(self):
+        root = make_root()
+        put(root, "test_a.py", '@pytest.mark.ac("AC-1")\ndef test_x():\n    pass\n')
+        _, out = run(root, "report")
+        self.assertIn("ACCEPTANCE CRITERIA WITH NO TEST (2)", out)
+        self.assertNotIn("AC-1 (proves", out)
+
+    def test_one_test_can_carry_several_markers(self):
+        root = make_root()
+        put(root, "test_a.py", '@pytest.mark.ac("AC-1")\n@pytest.mark.ac("AC-2")\ndef test_x():\n    pass\n')
+        _, out = run(root, "report")
+        self.assertIn("2 Verifies tag(s) found for 2 criterion(s)", out)
+
+    def test_a_comment_can_list_several_criteria(self):
+        root = make_root()
+        put(root, "a.test.ts", "// Verifies AC-1, AC-2\n")
+        _, out = run(root, "report")
+        self.assertIn("2 Verifies tag(s) found for 2 criterion(s)", out)
+
+    def test_a_marker_with_a_wrong_hash_is_stale(self):
+        root = make_root()
+        put(root, "test_a.py", '@pytest.mark.ac("AC-1", reviewed="abcdef0")\ndef test_x():\n    pass\n')
+        code, out = run(root, "report")
+        self.assertEqual(code, 1)
+        self.assertIn("STALE TESTS", out)
+
+    def test_a_marker_for_an_unknown_criterion_is_a_problem(self):
+        root = make_root()
+        put(root, "test_a.py", '@pytest.mark.ac("AC-99")\ndef test_x():\n    pass\n')
+        code, _ = run(root, "report")
+        self.assertEqual(code, 1)
+
+    def test_stamp_sets_the_hash_on_a_marker(self):
+        root = make_root()
+        p = put(root, "test_a.py", '@pytest.mark.ac("AC-1")\ndef test_x():\n    pass\n')
+        run(root, "stamp", "AC-1")
+        self.assertIn(f'@pytest.mark.ac("AC-1", reviewed="{hash_of(root, "AC-1")}")', p.read_text())
+        self.assertEqual(run(root, "report")[0], 0)
+
     def test_a_tag_for_an_unknown_criterion_is_a_problem(self):
         root = make_root()
         put(root, "a.test.ts", "// Verifies AC-99\n")
