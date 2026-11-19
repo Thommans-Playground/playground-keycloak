@@ -9,6 +9,8 @@ satisfies:
   - id: FR-2
 criteria:
   - id: AC-2
+  - id: AC-71
+  - id: AC-72
 parameters: []
 objects: []
 rules: []
@@ -24,7 +26,7 @@ evolved_from: [MK3 UC-A2]
 <!-- vbench-uc:begin mirror (generated from the requirements files, do not edit here: change the row, then run sync) -->
 
 <details>
-<summary>The requirements and criteria it runs, copied from docs/requirements (1 requirement, 1 criterion). Do not edit.</summary>
+<summary>The requirements and criteria it runs, copied from docs/requirements (1 requirement, 3 criteria). Do not edit.</summary>
 
 ## What this serves
 
@@ -38,9 +40,21 @@ evolved_from: [MK3 UC-A2]
 - When they sign out
 - Then their session stops working, and starting a sign in shows the identity provider's login page
 
+**AC-71** (acceptance, proves FR-2)
+
+- Given a signed-in person
+- When a page on another site sends a GET to the sign out address
+- Then nothing happens, and their session still works
+
+**AC-72** (acceptance, proves FR-2)
+
+- Given a signed-in person
+- When they sign out
+- Then they end on our home page, not on an error page of the identity provider
+
 ## How it is verified
 
-- acceptance: AC-2
+- acceptance: AC-2, AC-71, AC-72
 
 Each criterion is run by a test tagged `Verifies AC-<n>`.
 
