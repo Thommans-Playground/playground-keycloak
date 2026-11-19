@@ -480,3 +480,52 @@ criteria to R2, rework UC-P1 and UC-P2 (create a project, manage members) for th
 - The administrator superuser does everything a member does, in every project: they see inside and run evaluations.
 
 **Still open.** Nothing about roles. The R2 move of the dropped rows and the rework of UC-P1 and UC-P2 are to do.
+
+## 14. Making the alpha ready for code (19 Nov 2026)
+
+**Decided.** By the owner, answering the findings of the three reviewers across all nine use cases. They build on
+decision 13.
+- **Projects learns who the caller is through a `Caller` value object.** The API resolves the token, the active
+  account and the role once, and passes a `Caller` (account id, is administrator) into every Projects use case.
+  Projects never looks a role up. Every project route goes through the same full check as the account routes (token,
+  account found, not deactivated, not pending) before the role is looked at.
+- **What each Projects refusal answers.** A person who is neither a member nor an administrator gets the same 404 as
+  for a missing project. A member who is not an administrator changing members, or a user creating a project, gets
+  403. A bad name or an inactive first member gets 422. Authorisation is checked before the input is validated.
+- **A new use case, UC-P3: list and open a project.** A user lists only the projects they are a member of, and an
+  administrator lists all. Opening one follows RULE-P4. For the alpha, a project's "contents" are its detail read
+  (name, members, and empty lists for files, endpoints and evaluations).
+- **Deactivation order is in the alpha.** Our database changes first and the API refuses the person at once, then
+  Keycloak is disabled. If Keycloak fails, the deactivation stands, the administrator is told and the call can be
+  repeated. A reinstatement is the reverse and fails closed. Criteria prove both.
+- **Reinstating an account needs a reason**, like a deactivation. FR-4 and AC-7 are reworded.
+- **Keeping the session alive is a requirement** with three criteria: a refresh before expiry, two requests at once
+  send one refresh, and a refused refresh ends the session.
+- **An account an administrator creates in Keycloak lands pending**, like a signup, and is approved in Playground
+  (UC-A4). Keycloak never decides what a person may do (decision 8).
+- **The first-administrator setup rule applies only while no active administrator exists.**
+- **The audit trail becomes its own bounded context, Audit (BC-AUDIT).** It owns the audit table and the read of
+  it for administrators. Access and Projects each keep an `AuditLog` port and write to it through an adapter that
+  the composition root wires to Audit, so no context imports another. An entry holds the actor, the action, what
+  kind of thing and which one it was done to, the people involved, the reason and the time, so AC-29 and AC-30 can
+  be proven. The existing Access audit moves to it, with a migration.
+- **Alembic comes in now**, with a baseline of today's schema and one migration for Audit and Projects. A shared
+  database module that belongs to no context holds the declarative base. This closes decision 4's open item.
+- **The last-administrator check is one step.** The count and the change cannot be split by a second administrator
+  acting at the same moment. A test runs two changes at once. RULE-A1's "repair it by hand in Keycloak" is corrected:
+  roles live in our database.
+- **Adding a project member needs only an audit entry**, no reason.
+
+**Why.** The reviews agreed that UC-A1 to UC-A6 are built or nearly, and that UC-P1 and UC-P2 cannot be coded until
+the caller, the refusals, a way in to the projects, and the audit and tables are decided. A separate Audit context
+keeps account and project changes in one trail without one context reaching into another.
+
+**Changes.** To make, with vbench-req and vbench-uc: new requirement rows and criteria (sessions, listing projects,
+the audit trail, deactivation failure, reinstating with a reason, refusals, setup rule, last administrator), UC-P3,
+the Caller and the refusal table in UC-P1 and UC-P2, a Projects class diagram, the Audit context page and class
+diagram, the beta entries in "Accepted for now", and the stale lines the reviewers listed.
+
+**Still open.**
+- A project's real contents (files, endpoints, evaluations) come with their own use cases.
+- Whether a project name must be unique: not in the alpha.
+
