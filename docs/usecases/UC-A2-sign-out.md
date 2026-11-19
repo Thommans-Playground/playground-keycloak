@@ -36,7 +36,7 @@ evolved_from: [MK3 UC-A2]
 
 - Given a signed-in person
 - When they sign out
-- Then their session stops working and they must sign in again
+- Then their session stops working, and starting a sign in shows the identity provider's login page
 
 ## How it is verified
 
@@ -77,11 +77,12 @@ New in the design language: **the ID token is kept so it can be handed back to K
 3. The system sends the person to Keycloak's end-session address with the ID token as a hint and the home page as the place to return. (FR-2)
 4. Keycloak ends its session and sends the person to the home page. (FR-2)
 5. The system removes the session cookie. (FR-2)
-6. The product asks the person to sign in again. (FR-2, AC-2)
+6. The product asks the person to sign in again, and starting a sign in shows the identity provider's login page, because Keycloak's session has ended too. (FR-2, AC-2)
 
 ## Other flows
 
 - The person has no session, or the session has already gone: the system still removes the cookie and sends the person to the home page. (AC-2)
+- Sign out is reused by UC-A1's beta step 10 (R2, decision 13), to end both sessions of a deactivated person who gets through. Nothing changes here for it.
 - Keycloak cannot be reached for its end-session address: our session is still removed and the person lands on the home page. Their Keycloak session ends by itself when it times out. Open: say so on screen.
 - The request is a GET, for example from a link or an image on another site: it does nothing.
 - Someone keeps a copy of the access token from before: it still passes the API's checks until it expires, which is short. The API reads the account on every request, but a signed-out person's account is still active. Open: to cut this to zero, the API would need to ask Keycloak whether the token is still live.
@@ -94,7 +95,7 @@ New in the design language: **the ID token is kept so it can be handed back to K
 
 ## Overview
 
-The high level picture. The detailed sequence, with step numbers that match the main flow, is in [UC-A2-sign-out-sequence.puml](diagrams/UC-A2-sign-out-sequence.puml).
+The high level picture. The analysis sequence is in [UC-A2-sign-out-analysis-sequence.puml](diagrams/UC-A2-sign-out-analysis-sequence.puml) and the design sequence, with the route, ports and adapters, in [UC-A2-sign-out-design-sequence.puml](diagrams/UC-A2-sign-out-design-sequence.puml). Both use the step numbers of the main flow.
 
 ```mermaid
 sequenceDiagram
@@ -107,7 +108,57 @@ sequenceDiagram
     P->>K: end its session
 ```
 
+## Analysis
+
+### Revision 1
+
+Split into two diagrams (decision 9) because two systems take part (Playground and Keycloak) and a security rule
+shapes the steps (only a post signs out). What the person and Playground say to each other, with no route, store,
+port or token. The diagram is [UC-A2-sign-out-analysis-sequence.puml](diagrams/UC-A2-sign-out-analysis-sequence.puml).
+Not frozen.
+
+- A1 (step): The person asks to sign out
+- A2 (step): Playground ends the person's sign in with Playground
+- A3 (step): Playground sends the person to Keycloak to end the sign in there
+- A4 (step): Keycloak ends its own sign in and sends the person back to the home page
+- A5 (step): The person is left signed out of Playground
+- A6 (step): The next request asks the person to sign in again
+- A7 (rule): Signing out ends two sign ins, ours and Keycloak's
+- A8 (rule): A request from a link or an image on another site does nothing
+- A9 (refusal): The person has no sign in, or it has already gone: they still land on the home page
+- A10 (refusal): Keycloak cannot be reached: our sign in still ends, the person lands on the home page
+- A11 (outside system): Keycloak
+
+## Design
+
+The parts that do the work, drawn in [UC-A2-sign-out-design-sequence.puml](diagrams/UC-A2-sign-out-design-sequence.puml).
+The class diagram of the web server side is [bff-design.puml](../domain/diagrams/bff-design.puml).
+
+- D1 (route): The logout route, which answers a post only
+- D2 (use case): The sign out use case of the web server
+- D3 (port): SessionStore
+- D4 (port): IdentityProvider, which gives the end-session address
+- D5 (adapter): In-memory session store, ElastiCache on AWS
+- D6 (adapter): Keycloak through openid-client, behind IdentityProvider
+- D7 (domain rule): The ID token is kept in the session so it can be given back as a hint
+
+## Changes from analysis to design
+
+```
+A1 became -> D1
+A2 became -> D2, D3, D5
+A3 became -> D2, D4, D6
+A4 dropped: Keycloak's own end-session page, nothing of ours is built for it
+A5 became -> D1
+A6 became -> D1, D3
+A7 became -> D2, D7
+A8 became -> D1
+A9 became -> D1, D2, D3
+A10 became -> D2, D4
+A11 became -> D4, D6
+```
+
 ## Slices
 
-1. TSK-A2.1: Drop the session and clear the cookie (AC-2)
-2. TSK-A2.2: End the Keycloak session too (AC-2)
+1. TSK-A2.1: Drop the session and clear the cookie, so the session stops working (AC-2)
+2. TSK-A2.2: End the Keycloak session too, so that starting a sign in afterwards shows the identity provider's login page (AC-2)

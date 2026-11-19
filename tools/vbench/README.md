@@ -288,7 +288,7 @@ first needed (Levels 0 to 2 in the getting-started guide). Every skill opens wit
 | Piece | What it is | Install |
 |---|---|---|
 | **CLI** `vbench` | Stdlib-only Python. `init`, `check`, `new`, `id`, `commit`, `status`, `next`, `trace`, `ontology`, `doctor`, `sync`, `update` (and `export`, `serve`, `mcp` for the optional extras). `status`, `check`, `next` and `trace` take `--json`. Same verdict locally and in CI. | `uv tool install "git+<repo-url>@v0.1.0"` |
-| **Claude Code plugin** | The `/vbench:` skills (discovery, v-1 to v-5, fix, status, commit, next, help) and three read-only subagents: `uc-scaffolder`, `spec-challenger`, `trace-checker`. | `/plugin marketplace add <repo-url>` then `/plugin install vbench` |
+| **Claude Code plugin** | The `/vbench:` skills (discovery, v-1 to v-5, fix, status, commit, next, help) and three read-only subagents: `vbench-uc-scaffolder`, `vbench-spec-challenger`, `vbench-trace-checker`. | `/plugin marketplace add <repo-url>` then `/plugin install vbench` |
 | **Scaffold** | `.vbench/config.toml`, a documentation tree (map, methodology, naming, requirements, backlog and build order, ADRs, security, learnings, discovery briefs, design patterns, use-case template), `CONTRIBUTING.md`, CI. | `vbench init` |
 
 `<repo-url>` is any Git URL, GitHub or GitLab. Pin a tag (`@v0.1.0`) in both places. To run once without installing:

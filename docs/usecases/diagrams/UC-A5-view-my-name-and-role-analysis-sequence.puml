@@ -1,0 +1,23 @@
+@startuml UC-A5-view-my-name-and-role-analysis-sequence
+!include ../../domain/diagrams/_style.puml
+hide footbox
+title UC-A5 View my name and role (analysis: system sequence)
+' Analysis level (decision 9): the person and Playground as one box. No outside system takes part in the main flow.
+' No route, store, port, adapter, token or cookie. Step numbers are the main flow numbers of UC-A5.
+' Not drawn: the expired proof being renewed (UC-A6), because UC-A5 only points to it.
+
+actor "Person" as P
+participant "Playground" as PG #E6F0FB
+
+P -> PG : 1 open my profile\n(who I am is checked, step 3)
+alt no valid proof of who the person is
+  PG --> P : refused,\nsign in again
+else
+  PG -> PG : 4 find my account,\nrefresh name and email
+  alt the account is deactivated
+    PG --> P : 5 refused,\n"Your account\nis deactivated."
+  else waiting for approval or active
+    PG --> P : 6, 7 my name,\nrole and status
+  end
+end
+@enduml

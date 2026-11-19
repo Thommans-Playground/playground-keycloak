@@ -1,0 +1,25 @@
+@startuml UC-L1-view-the-audit-trail-analysis-sequence
+!include ../../domain/diagrams/_style.puml
+hide footbox
+skinparam maxMessageSize 60
+title UC-L1 View the audit trail\n(analysis: system sequence)
+' Analysis level (decision 9): the administrator and Playground as one box. No outside system takes part.
+' No route, store, port, adapter, token or cookie. Step numbers are the main flow numbers of UC-L1.
+' Reading writes nothing. How an entry gets into the trail is the last step of UC-A4, UC-P1 and UC-P2.
+
+actor "Administrator" as AD
+participant "Playground" as PG #E6F0FB
+
+AD -> PG : 1 ask to see\nthe audit trail
+|||
+alt the person is not an administrator
+  PG --> AD : 2 refused,\nno entry shown
+else
+  PG -> PG : 3 gather every entry,\nnewest first, account\nchanges and project\nchanges together
+  |||
+  PG --> AD : 4 each entry shows when, who,\nwhat, to which account\nor project, and the reason\nwhere one was asked
+  |||
+  note right of PG : 5 a project creation shows\nits first members,\na member change\nshows the member
+end
+|||
+@enduml

@@ -1,0 +1,46 @@
+@startuml UC-P1-create-a-project-design-sequence
+!include ../../domain/diagrams/_style.puml
+hide footbox
+skinparam sequenceMessageAlign left
+skinparam maxMessageSize 100
+skinparam ParticipantPadding 6
+title UC-P1 Create a project (design sequence, planned)
+' Design level (decision 9), drawn against docs/domain/diagrams/projects-design.puml (decisions 13 and 14).
+' The analysis level is UC-P1-create-a-project-analysis-sequence.puml.
+' Step ids are the main flow numbers of UC-P1. PLANNED, NOT BUILT.
+' Before step 1 the composition root runs the full check (token, account found, not deactivated, not pending)
+' and builds the Caller. That check is the account routes' check and is not drawn.
+' Authorisation (step 2) comes before validation (steps 3 and 4). Answers are mapped to HTTP in main.py:
+' NotAnAdministrator 403, InvalidProjectName and MemberNotEligible 422.
+' Steps 5 and 6 are one transaction: SqlProjects and the AuditLog adapter share one database session.
+
+actor "Administrator" as U
+participant "Projects-\nService" as S #E7F4EA
+participant "Caller" as C #D5E8D4
+participant "Project" as J #FFE6CC
+participant "Account-\nStatus" as AS #EEE7F7
+participant "Project-\nRepository" as R #EEE7F7
+participant "AuditLog" as AL #EEE7F7
+
+U -> S : 1 create(caller, name, first_members)
+S -> C : 2 is_administrator?
+alt not an administrator
+  S --> U : 2 NotAnAdministrator (403)
+else
+  S -> S : 3 ProjectName(name),\ntrimmed, 1 to 100
+  alt name not valid
+    S --> U : 3 InvalidProjectName (422)
+  else
+    S -> AS : 4 active_among(first_members)
+    AS --> S : the active ones
+    alt one is not active or unknown
+      S --> U : 4 MemberNotEligible (422)
+    else
+      S -> J : 5 new Project(name, created_by,\nmembers, added_by = creator)
+      S -> R : 5 add(project)
+      S -> AL : 6 record(who created it,\nwho the first members are)
+      S --> U : 7 the new project
+    end
+  end
+end
+@enduml

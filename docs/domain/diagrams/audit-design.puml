@@ -1,0 +1,67 @@
+@startuml audit-design
+!include _style.puml
+title Playground Audit: ports and adapters (partly built, mostly planned)
+' palette: boundary=blue · service=green · domain=amber · port=lavender · adapter/infra=gray
+' Shows the Audit hexagon (decision 14): the entry, the use case service, the port, the adapter, the two bridges.
+' BUILT today, inside Access: the audit_entries table, the SqlAudit adapter, the AuditLog port and GET /audit.
+' PLANNED: everything drawn here as its own context, the kind and details columns, the names and emails at the
+' time, the two bridges, the Alembic migration, and the project entries. Boxes marked planned do not exist yet.
+' Not drawn: the Access and Projects services that call their AuditLog ports (see access-design.puml and the
+' Projects diagram), and the web page that shows the trail.
+' The bridges sit in the composition root (main.py), the one place that knows Access, Projects and Audit.
+
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+top to bottom direction
+
+class "«entity, planned»\nAuditEntry" as AE #FFE6CC {
+  at
+  actor (id, name, email)
+  action
+  kind (account, project)
+  target (id, name, email)
+  details (people involved)
+  reason
+}
+
+class "«service, planned»\nAuditService" as SVC #E7F4EA {
+  +record(entry)
+  +read(caller)
+}
+
+class "«port, built as AuditLog»\nAuditRepository" as PAR #EEE7F7 {
+  +add(entry)
+  +list_newest_first()
+}
+
+class "«adapter, built»\nSqlAudit" as SQL #EEE7F7
+
+class "RDS PostgreSQL\naudit_entries" as DB #ECECEC
+
+package "Composition root (main.py)" {
+  class "«adapter, planned»\nAccessAuditBridge" as BA #EEE7F7
+  class "«adapter, planned»\nProjectsAuditBridge" as BP #EEE7F7
+}
+
+class "«port»\nAccess AuditLog\n(built)" as PAL #EEE7F7
+class "«port»\nProjects AuditLog\n(planned)" as PPL #EEE7F7
+
+AE <.. SVC : builds, reads
+SVC --> PAR
+PAR <|.. SQL
+SQL --> DB : AWS, RDS\nPostgreSQL
+BA --> SVC : record
+BP --> SVC : record
+PAL <|.. BA
+PPL <|.. BP
+
+note right of SVC
+  read(caller) lets
+  only an administrator in.
+  The trail is append only.
+end note
+note right of AE
+  Names and emails are
+  copied in when it happens.
+end note
+@enduml

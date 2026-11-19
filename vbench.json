@@ -1,7 +1,7 @@
 {
   "id_prefix": "UC",
   "system_name": "Playground",
-  "areas": { "A": "BC-ACCESS", "P": "BC-PROJECTS" },
+  "areas": { "A": "BC-ACCESS", "P": "BC-PROJECTS", "L": "BC-AUDIT" },
   "providers": ["keycloak"],
   "tests_dirs": ["apps/api/tests", "apps/web/src"],
 

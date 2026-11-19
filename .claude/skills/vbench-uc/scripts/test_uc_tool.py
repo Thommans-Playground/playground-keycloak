@@ -152,6 +152,31 @@ class Tests(unittest.TestCase):
         self.assertNotIn("out of date", out)
         self.assertIn("SUSPECT", out)  # sync copies the text but only a person's stamp clears suspect
 
+    def test_sync_all_refreshes_every_use_case_and_leaves_hashes_alone(self):
+        root = make_root()
+        run(root, "create", stdin=json.dumps(NEW))
+        run(root, "create", stdin=json.dumps(dict(NEW, area="P", criteria=[])))
+        before = {p.name: p.read_text() for p in (root / "docs/usecases").glob("UC-*.md")}
+        rows = rq.read_rows(root / rq.PATHS["req"])
+        rows[0]["statement"] = "The system shall move an endpoint to any stage."
+        rq.write_rows(root / rq.PATHS["req"], rq.REQ_COLS, rows)
+        code, out = run(root, "sync", "--all")
+        self.assertEqual(code, 0)
+        self.assertIn("UC-E1", out)
+        self.assertIn("UC-P1", out)
+        for p in (root / "docs/usecases").glob("UC-*.md"):
+            self.assertIn("to any stage", p.read_text())
+            self.assertNotEqual(before[p.name], p.read_text())
+        _, out = run(root, "validate")
+        self.assertNotIn("out of date", out)
+        self.assertIn("SUSPECT", out)
+
+    def test_sync_needs_an_id_or_all(self):
+        root = make_root()
+        code, out = run(root, "sync")
+        self.assertEqual(code, 1)
+        self.assertIn("--all", out)
+
     def test_edited_flow_is_reported_until_stamped(self):
         root = make_root()
         run(root, "create", stdin=json.dumps(NEW))
@@ -295,6 +320,20 @@ class Tests(unittest.TestCase):
     A = "- A1 (object): Evaluation\n- A2 (step): record the endpoint at this moment\n- A3 (port): endpoint lookup"
     D = "- D1 (aggregate): Evaluation\n- D2 (value object): TargetSnapshot\n- D3 (port): EndpointReader"
     LOG = "- A1 kept -> D1\n- A2 became -> D2: matches the target snapshot\n- A3 renamed -> D3"
+
+    def test_analysis_needs_a_sequence_diagram_and_links_must_exist(self):
+        root, p = self._with_sections(analysis=self.A)
+        _, out = run(root, "validate")
+        self.assertIn("Analysis section but no UC-E1-<slug>-analysis-sequence.puml", out)
+        p.write_text(p.read_text() + "\nSee diagrams/UC-E1-move-design-sequence.puml\n")
+        _, out = run(root, "validate")
+        self.assertIn("UC-E1-move-design-sequence.puml, which does not exist", out)
+        d = root / "docs/usecases/diagrams"
+        d.mkdir()
+        (d / "UC-E1-move-analysis-sequence.puml").write_text("@startuml\n@enduml\n")
+        (d / "UC-E1-move-design-sequence.puml").write_text("@startuml\n@enduml\n")
+        _, out = run(root, "validate")
+        self.assertNotIn("sequence.puml", out)
 
     def test_no_analysis_is_only_a_note(self):
         root, _ = self._with_sections()

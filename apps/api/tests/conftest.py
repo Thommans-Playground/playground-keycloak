@@ -15,6 +15,9 @@ from tests.fakes import FakeIdp
 from tests.safety import check_test_database
 from app.main import create_app
 
+# The integration tests need the running stack: collected only with INTEGRATION=1.
+collect_ignore_glob = [] if os.environ.get("INTEGRATION") == "1" else ["integration/*"]
+
 ISSUER = "http://kc.test/realms/playground"
 AUDIENCE = "playground-api"
 KEY = rsa.generate_private_key(public_exponent=65537, key_size=2048)
@@ -71,3 +74,13 @@ def register(client, sub: str, email: str) -> tuple[dict, str]:
 
 def me_id(client, headers) -> str:
     return client.get("/me", headers=headers).json()["id"]
+
+
+def pytest_collection_modifyitems(items):
+    """Every ac("AC-6") and rule("RULE-A3") marker also becomes a mark named AC_6 or RULE_A3,
+    so `pytest -m AC_6` runs the tests that prove that criterion."""
+    for item in items:
+        for kind in ("ac", "rule"):
+            for marker in item.iter_markers(kind):
+                if marker.args:
+                    item.add_marker(getattr(pytest.mark, str(marker.args[0]).replace("-", "_")))

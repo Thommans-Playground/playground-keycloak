@@ -6,20 +6,17 @@ status: draft
 context: BC-PROJECTS
 id_prefix: none
 comment: >-
-  The fact that an account is in a project, with a project role. It exists as an object because it has a
-  role and a history of its own.
+  The fact that an account is in a project. It has no role in the alpha: every member has the same rights. It
+  exists as an object because it has a history of its own (when it was added, and by whom).
 properties:
-  - name: project role
-    type: SET-3
-    required: true
-    comment: Project manager or engineer.
+  # Parked by decision 13: project role (SET-3, manager or engineer), brought back with role based access.
   - name: added
     type: date
     required: true
   - name: added by
     type: Account
     required: true
-    comment: The project manager who added them, or the administrator who restored a manager.
+    comment: The administrator who added them. For a first member named when the project is created it is the creator (decision 14).
 links:
   - domain: Membership
     property: is of
@@ -31,19 +28,14 @@ links:
     range: Project
     cardinality: many-to-one
     kind: part
-rules:
-  - RULE-P1
-  - RULE-P2
-  - RULE-P3
+rules: []
 questions:
-  - Is this person a member of this project, and as what?
+  - Is this person a member of this project?
   - Who added them?
-  - Which projects does this person manage?
+  - Which projects does this person belong to?
 satisfies:
   - id: FR-7
-  - id: FR-8
   - id: FR-9
-  - id: FR-11
   - id: FR-12
   - id: FR-13
 ```
@@ -52,33 +44,33 @@ satisfies:
 
 ## What it is
 
-A membership says **this account is in this project, as a project manager or an engineer**. It is the only way a
-person gets to see inside a project. Access holds the account. Projects holds the membership, and refers to the
-account by id.
+A membership says **this account is in this project**. In the alpha it has no role: every member has the same
+rights, which is to run evaluations (decision 13). It is the way a user gets to see inside a project (an
+administrator sees inside every project without one). Access holds the account. Projects holds the membership, and
+refers to the account by id.
+
+The **project role** it used to carry (project manager or engineer, [SET-3](SET-3-project-roles.md)) is parked, not
+deleted. It returns with role based access in a later release.
 
 ## Why it exists
 
-Two people can be in the same project with different roles, and one person can be in many projects. That is a
-relation with an attribute of its own (the role), so it is an object and not a property of either side.
+One person can be in many projects and a project has many people. That is a relation with facts of its own (when,
+and by whom), so it is an object and not a property of either side.
 
 ## In context
 
 ```mermaid
 erDiagram
     ACCOUNT ||--o{ MEMBERSHIP : "is of"
-    PROJECT ||--|{ MEMBERSHIP : "has"
+    PROJECT ||--o{ MEMBERSHIP : "has"
 ```
 
 ## How it changes
 
 ```mermaid
 stateDiagram-v2
-    [*] --> engineer: a manager adds a person
-    [*] --> manager: a manager adds a person, or the creator is named
-    engineer --> manager: a manager changes the role
-    manager --> engineer: a manager changes the role, if another manager remains
-    engineer --> [*]: a manager removes the person
-    manager --> [*]: a manager removes the person, if another manager remains
+    [*] --> member: an administrator adds a person
+    member --> [*]: an administrator removes the person
 ```
 
 The change takes effect at the person's next request, because membership is read on every request.
@@ -87,13 +79,13 @@ The change takes effect at the person's next request, because membership is read
 
 - Only an **active** account can be added. An account that is pending, deactivated or unknown cannot.
 - A member whose account is later deactivated **stays** on the project, and nothing they made is removed. They
-  are refused at the account check, so they cannot use it. They still count as a manager for the last-manager
-  rule while they are on the project.
-- Every addition, change and removal is audited: who, what and who it affected.
-- An administrator is never a member because they are an administrator
-  ([RULE-P2](RULE-P2-an-administrator-never-joins-by-role.md)), and may only restore a manager
-  ([RULE-P3](RULE-P3-administrator-only-restores-a-manager.md)).
+  are refused at the account check, so they cannot use it.
+- Every addition and removal is audited: who, what and who it affected.
+- Only an administrator adds or removes members. A project may end up with none.
+- Parked by decision 13: the role, [RULE-P1](RULE-P1-a-project-always-has-a-manager.md),
+  [RULE-P2](RULE-P2-an-administrator-never-joins-by-role.md) and
+  [RULE-P3](RULE-P3-administrator-only-restores-a-manager.md).
 
 ## Not yet a file
 
-Whether removing a member needs a reason is open. For now only an audit entry is required. Also open: what `added by` holds for the manager made when a project is created (the administrator or manager who created it, or empty).
+Removing or adding a member needs no reason, only an audit entry (decision 14). For a first member named when a project is created, `added by` is the creator.

@@ -11,11 +11,11 @@ properties:
   - name: name
     type: text
     required: true
-    comment: How the person is shown to others, for example in a project's member list. Copied from Keycloak at each sign-in.
+    comment: How the person is shown to others, for example in a project's member list. Copied from the token at each request.
   - name: email
     type: text
     required: true
-    comment: Also the person's sign-in name in Keycloak. Copied from Keycloak at each sign-in. One account for each email.
+    comment: Also the person's sign-in name in Keycloak. Copied from the token at each request. The email is an attribute and not the identity, so a new `sub` with a known email becomes a second pending account, which administrators can see.
   - name: identity
     type: text
     required: true
@@ -27,7 +27,7 @@ properties:
   - name: status
     type: SET-2
     required: true
-    comment: Pending, active or deactivated. A new account starts pending, except the first administrator.
+    comment: Pending, active or deactivated. A new account starts pending, except the first administrator, and only while no active administrator exists.
   - name: created
     type: date
     required: true
@@ -74,7 +74,7 @@ Keycloak does not know our rules. It cannot say who administers this product, or
 | Fact | Kept by |
 | ---- | ------- |
 | Password, sign-in, second factor, sessions | Keycloak. We never hold them. |
-| Name and email | Keycloak first. Our account keeps a copy, refreshed at each sign-in. |
+| Name and email | Keycloak first. Our account keeps a copy, refreshed from the token at each request. |
 | The link between the two | The Keycloak id, never the email |
 | Role, status, who created the account, when | Playground, in this account |
 | Which projects they are in, and as what | Playground, in Projects, by account id |
@@ -102,17 +102,25 @@ stateDiagram-v2
 
 An account is never deleted. It is made the first time Playground sees a person who has signed in at Keycloak,
 and it waits as **pending** until an administrator approves it (decision 2). Registering is Keycloak's. The first
-administrator comes from the setup and starts active.
+administrator comes from the setup and starts active. That setup rule applies **only while no active administrator
+exists** (decision 14): after that, a person with the setup email is a pending account like anyone else.
+
+Every change of an account (approve, deactivate, reinstate, promote, demote) is written as an audit entry to the Audit
+context ([BC-AUDIT](../contexts/BC-AUDIT.md)) through the AuditLog port. The account does not keep the audit itself.
+Deactivating and reinstating need a reason, and so do promoting and demoting; an approval does not
+([RULE-A3](RULE-A3-account-change-needs-a-reason.md)).
 
 ## Good to know
 
+- The identity is the `sub` alone, because there is one issuer today. It becomes (issuer, `sub`) if a second issuer is trusted (revisit with UC-A7).
 - The **role lives here**, not in Keycloak. Promotion, its reason and its guardrails are in one place, and nobody can
   change a role behind the product's back ([RULE-A1](RULE-A1-always-an-administrator.md),
   [RULE-A2](RULE-A2-administrator-cannot-change-themselves.md),
   [RULE-A3](RULE-A3-account-change-needs-a-reason.md)). It is still role based access: what each role may do is
   our permission matrix.
-- An **administrator is also a user**. They keep the accounts, and they see no project's contents by role
-  ([RULE-P2](RULE-P2-an-administrator-never-joins-by-role.md)).
+- An **administrator is also a user**, and in the alpha a superuser (decision 13). They keep the accounts, create
+  projects, manage members, and see inside every project. The older rule that an administrator sees no project's
+  contents by role ([RULE-P2](RULE-P2-an-administrator-never-joins-by-role.md)) is parked.
 - The value sets are [SET-1](SET-1-account-roles.md) and [SET-2](SET-2-account-statuses.md).
 - Which projects a person is in, and as what, is not kept here. [Projects](../contexts/BC-PROJECTS.md) holds the
   [membership](OBJ-P2-membership.md) and asks Access only whether the account is active.

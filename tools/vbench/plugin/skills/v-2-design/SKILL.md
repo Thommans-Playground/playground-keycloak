@@ -101,7 +101,7 @@ If a design choice is genuinely contested, interview the user with `../discovery
 - Run `vbench sync`, `vbench check diagrams` and `vbench check refs`.
 
 ## Gate
-First hand the spec to the `spec-challenger` agent and fold what it finds into the design, or say why not. Summarise levels touched, aggregates/ports/patterns (each with its force), schema and ADR impact, the
+First hand the spec to the `vbench-spec-challenger` agent and fold what it finds into the design, or say why not. Summarise levels touched, aggregates/ports/patterns (each with its force), schema and ADR impact, the
 verification plan and the tasks. Ask for approval; stop. Next: `/vbench:v-3-code <UC-id>`.
 
 ## Connections

@@ -19,3 +19,9 @@ dev = ["pytest>=8", "cryptography>=43"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+filterwarnings = ["ignore:Unknown pytest.mark.(AC|RULE)_:pytest.PytestUnknownMarkWarning"]
+markers = [
+    "ac(id, reviewed=None): the acceptance criterion this test proves, for example ac('AC-6'). One marker for each criterion. Also selectable as -m AC_6.",
+    "rule(id): the ontology rule this test proves, for example rule('RULE-A3'). Also selectable as -m RULE_A3.",
+    "integration: needs the running stack (Keycloak and API); collected only with INTEGRATION=1.",
+]

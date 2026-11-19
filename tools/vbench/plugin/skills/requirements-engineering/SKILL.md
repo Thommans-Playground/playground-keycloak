@@ -31,4 +31,4 @@ detail, architecture, review. The ten steps and the id scheme are in `references
 
 ## Connections
 - Called by: `/vbench:v-1-requirements` when nothing traces to a `STK-REQ` or `REQ-FR` id.
-- Hands off to: `uc-scaffolder` (or `vbench new uc`) once the requirement exists.
+- Hands off to: `vbench-uc-scaffolder` (or `vbench new uc`) once the requirement exists.

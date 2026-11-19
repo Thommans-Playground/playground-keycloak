@@ -90,7 +90,7 @@ For the product owner to decide.
 
 ## Overview
 
-The high level picture. The detailed sequence, with step numbers that match the main flow, is in [UC-A7-sign-in-through-company-single-sign-on-sequence.puml](diagrams/UC-A7-sign-in-through-company-single-sign-on-sequence.puml).
+The high level picture. The analysis sequence is in [UC-A7-sign-in-through-company-single-sign-on-analysis-sequence.puml](diagrams/UC-A7-sign-in-through-company-single-sign-on-analysis-sequence.puml) and the design sequence, with the routes, ports and adapters, in [UC-A7-sign-in-through-company-single-sign-on-design-sequence.puml](diagrams/UC-A7-sign-in-through-company-single-sign-on-design-sequence.puml). Both use the step numbers of the main flow.
 
 ```mermaid
 sequenceDiagram
@@ -101,6 +101,52 @@ sequenceDiagram
     K->>C: send the person there
     C-->>K: signed answer
     K-->>P: back to Playground, as UC-A1
+```
+
+## Analysis
+
+### Revision 1
+
+What the person and Playground say to each other, with no route, store, port or token. The diagram is
+[UC-A7-sign-in-through-company-single-sign-on-analysis-sequence.puml](diagrams/UC-A7-sign-in-through-company-single-sign-on-analysis-sequence.puml). Not frozen yet.
+
+- A1 (step): The person asks to sign in, as in UC-A1
+- A2 (step): The person chooses the company login at Keycloak
+- A3 (step): Keycloak sends the person to the company login, and they sign in there
+- A4 (step): The company login sends the person back to Keycloak, which creates or finds a Keycloak user for them
+- A5 (step): Keycloak sends the person back to Playground with proof, and the sign in goes on as in UC-A1
+- A6 (step): On the first request, Playground makes a pending account if there is none (UC-A3)
+- A7 (rule): Single sign-on proves who the person is, it does not approve anyone
+- A8 (refusal): The company login refuses the person, so they are not signed in
+- A9 (outside system): Keycloak
+- A10 (outside system): The company login (identity provider)
+- A11 (object): Account
+
+## Design
+
+The parts that do the work, drawn in [UC-A7-sign-in-through-company-single-sign-on-design-sequence.puml](diagrams/UC-A7-sign-in-through-company-single-sign-on-design-sequence.puml). The class diagram of the web server side is [bff-design.puml](../domain/diagrams/bff-design.puml).
+
+- D1 (configuration): An identity provider in the realm, with its claim mappings, carried by the realm export
+- D2 (route): The login and callback routes of UC-A1, unchanged
+- D3 (use case): The sign in use case of the web server (UC-A1), unchanged
+- D4 (port): IdentityProvider, unchanged
+- D5 (service): The API TokenVerifier, unchanged
+- D6 (aggregate): Account, made pending on the first request (UC-A3)
+
+## Changes from analysis to design
+
+```
+A1 became -> D2, D3
+A2 dropped: Keycloak's own login page, set up by configuration (D1), nothing of ours is built
+A3 became -> D1
+A4 became -> D1
+A5 became -> D2, D3, D4
+A6 became -> D5, D6
+A7 became -> D6
+A8 dropped: shown by Keycloak, nothing of ours is built
+A9 became -> D1, D4
+A10 became -> D1
+A11 became -> D6
 ```
 
 ## Slices

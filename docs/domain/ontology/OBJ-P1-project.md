@@ -6,7 +6,7 @@ status: draft
 context: BC-PROJECTS
 id_prefix: PROJ-
 comment: >-
-  A place where a team keeps its files, endpoints and evaluations. Only its members can see inside it.
+  A place where a team keeps its files, endpoints and evaluations. Only its members and the administrators can see inside it.
 properties:
   - name: name
     type: text
@@ -18,7 +18,7 @@ properties:
   - name: created by
     type: Account
     required: true
-    comment: The administrator or project manager who created it. Not a member because of that, unless they are its manager.
+    comment: The administrator who created it. Not a member because of that, unless they named themselves.
 links:
   - domain: Membership
     property: is in
@@ -27,16 +27,13 @@ links:
     kind: part
     defined_in: OBJ-P2
 rules:
-  - RULE-P1
   - RULE-P4
 questions:
-  - Who is in this project, and who manages it?
-  - Does this project still have a manager?
+  - Who is in this project?
   - May this person see inside this project?
   - Which projects does this person belong to?
 satisfies:
   - id: FR-7
-  - id: FR-8
   - id: FR-12
   - id: FR-13
 ```
@@ -71,21 +68,23 @@ Files, endpoints and evaluations are other contexts. They carry a project id and
 
 ```mermaid
 flowchart LR
-    A[An administrator or a manager creates it] --> M[It has one manager from the start]
-    M --> U[Members come and go, a manager always remains]
+    A[An administrator creates it, naming its first members] --> M[Members come and go]
+    M --> E[It may be empty]
 ```
 
-- An **administrator** creates a project by naming its manager. They do not join it, so they see its name and
-  members and never its contents.
-- A **project manager** who creates a project becomes its manager.
-- Members are added and removed by a manager ([UC-P2](../../usecases/UC-P2-manage-project-members.md)).
+- Only an **administrator** creates a project, naming its first members (active accounts only). The administrator
+  is a superuser: they see inside every project and are not made a member by creating it.
+- Only an administrator adds and removes members ([UC-P2](../../usecases/UC-P2-manage-project-members.md)).
+- A project may be empty: it has no manager, because there are no project roles in the alpha (decision 13).
 
 ## Good to know
 
-- The contents of a project are shown only to its members, and a person who is not a member cannot tell whether
-  a project exists ([RULE-P4](RULE-P4-only-members-see-inside-a-project.md)).
-- A project always has a manager ([RULE-P1](RULE-P1-a-project-always-has-a-manager.md)).
+- The contents and the members of a project are shown to its members and to administrators. Anyone else gets the
+  same answer as for a project that does not exist ([RULE-P4](RULE-P4-only-members-see-inside-a-project.md)).
+- Every member has the same rights in it: they run evaluations.
 - Nothing is deleted when a member is removed or an account is deactivated.
+- Parked by decision 13: the project manager and the rule that a project always has one
+  ([RULE-P1](RULE-P1-a-project-always-has-a-manager.md)). They return with role based access in a later release.
 
 ## Not yet a file
 

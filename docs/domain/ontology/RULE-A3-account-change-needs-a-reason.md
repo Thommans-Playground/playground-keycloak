@@ -26,6 +26,8 @@ Creating an account does not need one: the person's own request already says why
 
 ## Allowed and refused
 
+Every change except an approval needs one, so a reinstatement needs a reason like a deactivation (decision 14).
+
 Allowed: "Left the team", "Needs to help approve requests".
 
 Refused: an empty reason, or one that is only spaces or noise.
@@ -33,6 +35,7 @@ Refused: an empty reason, or one that is only spaces or noise.
 ## How a test would prove it
 
 - Given an active account, when an administrator deactivates it with no reason, then it is refused and it stays active.
+- Given a deactivated account, when an administrator reinstates it with no reason, then it is refused and it stays deactivated (AC-57).
 - Given the same change with a real reason, then it succeeds and the reason is in the audit trail.
 
 ## Related

@@ -48,8 +48,14 @@ when it is provided by an outside system (`provided_by`). The tool refuses to ov
 by hand unless told to (`--force`). Names and colours of actors and contexts can be set under
 `diagram` in `vbench.json`.
 
-The **flow of one use case** is a different diagram. It stays Mermaid, inline in the use case file,
-as a sequence diagram under "Main flow", and only when it helps.
+The **sequence diagrams of one use case** are different again. They are `.puml` files in the use case
+`diagrams/` folder, linked from the use case file (decision 9). The **analysis** sequence diagram
+(`UC-<id>-<slug>-analysis-sequence.puml`) is a system sequence: the person, the product as one box and any outside
+system, with no route, store, port, adapter, token or cookie. The **design** sequence diagram
+(`UC-<id>-<slug>-design-sequence.puml`) shows routes, use cases, ports and adapters, and sits beside the context
+class diagram (`docs/domain/diagrams/<context>-design.puml`). A use case with one system and no security flow keeps one
+`UC-<id>-<slug>-sequence.puml`. A very short flow may still be a small inline Mermaid sequence under "Main flow",
+as an aid to the reader, never instead of the analysis diagram.
 
 ## Where the files go
 

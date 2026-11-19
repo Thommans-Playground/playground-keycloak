@@ -1,0 +1,43 @@
+@startuml UC-A4-approve-deactivate-and-reinstate-an-account-analysis-sequence
+!include ../../domain/diagrams/_style.puml
+hide footbox
+title UC-A4 Approve, deactivate, reinstate, promote and demote an account (analysis: system sequence)
+' Analysis level (decision 9): the administrator, Playground as one box, and Keycloak as an outside system.
+' No route, store, port, adapter, token or cookie. Step numbers are the main flow numbers of UC-A4.
+' Decisions 13 and 14: promote and demote change Playground only. A deactivation changes our account first and then Keycloak,
+' a reinstatement changes Keycloak first and then our account, and a failed Keycloak call is told and leaves an audit entry.
+' The audit entry (step 8) goes to the Audit context, which is part of Playground at this level, so it is a note. Pending people are not drawn: see UC-A3.
+
+actor "Administrator" as AD
+participant "Playground" as PG #E6F0FB
+participant "Keycloak\n(outside system)" as K #ECECEC
+
+AD -> PG : 1, 2 choose an account and what to do\n(approve, deactivate, reinstate, promote or demote)
+AD -> PG : 3 give a reason (not for an approval)
+alt the person asking is not an administrator
+  PG --> AD : 4 refused, nothing changes
+else a reason that says nothing, where one is needed\n(a reinstatement too)
+  PG --> AD : refused, nothing changes
+else the change does not fit the account,\nor the administrator changes themselves,\nor it would leave no administrator
+  PG --> AD : 5 refused, nothing changes
+else approve
+  PG -> PG : 5, 6 the account is active
+else promote or demote
+  PG -> PG : 5, 6 the role is administrator, or user
+else deactivate
+  PG -> PG : 5, 6 the account is deactivated (first)
+  PG -> K : 6 then disable the person, end their sessions
+  alt Keycloak cannot be reached
+    PG --> AD : 7 "Keycloak was not updated", the deactivation stands, repeat
+  end
+else reinstate
+  PG -> K : 6 enable the person (first)
+  alt Keycloak cannot be reached
+    PG --> AD : 7 "Keycloak was not updated", still deactivated, repeat
+  else
+    PG -> PG : 6 then the account is active
+  end
+end
+note right of PG : 5 the check that an administrator remains\nand the change are one step\n8 records who, whom, what and why,\nalso for a half-done change
+PG --> AD : 9 done
+@enduml

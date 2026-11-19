@@ -41,6 +41,6 @@ Paths to `scripts/` and `references/` are relative to this skill's directory.
    Push or open a PR only after the user says yes. Never edit CI workflows as part of shipping.
 
 ## Connections
-- Calls: `/vbench:v-4-verify`, `trace-checker`.
+- Calls: `/vbench:v-4-verify`, `vbench-trace-checker`.
 - Back-edges: any Blocking item returns to `/vbench:v-3-code`, `/vbench:v-2-design` or `/vbench:v-1-requirements`
   depending on where the defect lives.

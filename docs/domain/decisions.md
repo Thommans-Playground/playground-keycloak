@@ -14,7 +14,7 @@ Two choices, made by the owner:
   Playground's own database, and not in Keycloak or the token. The token carries who the person is. Roles are managed
   from our application and are changed only with our rules and an audit entry.
 
-The server checks the token on every request (signature, expiry, issuer) and then checks project membership (NFR-1).
+The server checks the token on every request (signature, expiry, issuer) and then checks project membership (NFR-1). **Amended 18 Nov 2026:** the check also requires the audience, so a token issued for another client is refused (decision 10). A token with a missing, expired, wrong issuer or wrong audience gets 401.
 Access gets one port, `IdentityProvider`, with a stub adapter (a fixed set of people) for the early slices and a
 Keycloak adapter later.
 
@@ -102,6 +102,12 @@ request queue.
 - FR-5 still says account roles are member, administrator or auditor.
 - UC-A4 (time-limited access) is still undecided.
 - OBJ-A2, OBJ-A3, SET-7, RULE-A4 and RULE-A5 are linked from the Access pages but have no files here.
+
+**Footnote (decision 13), to be implemented in the beta version.** For the alpha, project roles (manager and
+engineer), "a project always has a manager", the administrator who never joins or sees inside a project, and the
+administrator's one narrow power to restore a manager are **parked**: FR-8, FR-10, FR-11 and RULE-P1 to RULE-P3 are
+kept, with release `parked`, and come back with role based access in the beta version. The alpha has two account
+roles, and the administrator is a superuser.
 
 ## 4. AWS is the target, and the code follows DDD, TDD and hexagonal (17 Nov 2026)
 
@@ -241,3 +247,285 @@ the account request queue, shares and evaluations of the earlier model were take
 RULE-A4 and the build spec, so there are no links to files that do not exist.
 
 **Still open.** UC-P3 is not written. UC-A6 serves no requirement yet. The review hashes are still unstamped.
+
+## 8. The API decides, Keycloak authenticates, and deactivation disables both (18 Nov 2026)
+
+**Decided.** By the owner, while challenging UC-A1 (sign in). It confirms decision 2 and settles the rest.
+- **The API decides what a person may do, and Keycloak only proves who they are.** A pending person can sign in and
+  holds a token, and the API refuses everything except their own status. Approval changes our account only and does not
+  call Keycloak.
+- **Deactivation disables the account in both places.** Playground sets the account to deactivated, and the backend
+  disables the person in Keycloak and ends their sessions. Reinstating enables both again. The API still refuses a
+  deactivated person on every request, so a token that has not yet expired, or a Keycloak that was changed by hand,
+  cannot open the door.
+
+**Why.** Two layers that agree keep a deactivated person out even when one of them is wrong (deny by default,
+enforced on the server). Keeping pending in our API needs no Keycloak extension.
+
+**Changes.** UC-A4 (step 5, effects, postconditions, TSK-A4.2) and the criteria AC-5, AC-6 and AC-7 now say this.
+
+**Still open.**
+- Which change comes first, and what happens when the Keycloak call fails: decided in decision 10.
+- UC-A1 does not yet say what a deactivated person sees: Keycloak's own refusal page, or a refusal from our API for a
+  person whose Keycloak account was re-enabled by hand. The criteria of UC-A1 (AC-1 is untestable as written), the
+  audience check in decision 1, where the pending account is created, identity by `sub` and not by email, and
+  replacing the old session on a second sign in are the other findings still to settle.
+
+## 9. A use case has an analysis sequence diagram and a design sequence diagram (18 Nov 2026)
+
+**Decided.** By the owner. The sequence diagram of a use case used to be "the analysis", but UC-A1's named web routes,
+a session store, token verification and cookies, which is the design. Two diagrams now, one for each level.
+- **Analysis: a system sequence diagram.** It shows the person, Playground as one box, and any outside system
+  (for example Keycloak), with the messages between them and the failure branches. It names no route, store, port,
+  adapter, token, cookie or algorithm. It is the diagram reviewed with the owner, and it is frozen with the Analysis
+  section.
+- **Design: a design sequence diagram, and the class diagram.** The sequence diagram shows the parts that do the work:
+  routes, use cases, ports and adapters. It is the old detailed diagram. The class diagram (aggregates, ports and
+  adapters) is the one that follows the architecture: one for each context under `docs/domain/diagrams/`, plus one
+  for the web server (BFF) where a use case runs there. Every step of the design sequence lands on a class, and
+  every port or adapter carries a step.
+- **The link is the change log.** Each analysis element says what became of it in the design (`A3 became -> D3`),
+  as the tool already checks.
+- **Not every use case needs both.** A use case with one system and no security flow (for example sign out) keeps a
+  single sequence diagram and says so. Both are drawn when more than one system takes part or a security rule
+  shapes the steps.
+
+**Why.** One diagram cannot serve the owner, who asks what the person sees, and the builder, who asks which port does
+it. Mixing them hid a real disagreement: the state check sat in a different step in the flow and in the diagram.
+
+**Changes.** The standard `.claude/skills/_vbench/standards/usecases.md`, the use case, diagram and PlantUML skills, the
+spec-challenger agent, and the use case files and diagrams, starting with UC-A1.
+
+**Still open.**
+- The web server (BFF) class diagram is not drawn yet.
+- UC-A1's analysis is a first revision and is not frozen: freeze it after its open gaps are settled.
+
+## 10. UC-A1 sign in: what a person sees, and what is proven (18 Nov 2026)
+
+**Decided.** By the owner, answering the twelve gaps that vbench-spec-challenger found in UC-A1. They build on decision 8.
+- **"Signed in" is testable (AC-1).** The person has a session, and one protected API call (for example `/me`) answers
+  200 with their account. Pending and deactivated people are tested in UC-A3 and UC-A4, not here.
+- **A pending person** lands on the waiting page, built from their own status.
+- **A deactivated person** is normally refused on Keycloak's own page. If they still get through (for example a
+  person re-enabled in Keycloak by hand), they land on our own "your account is deactivated" page, and the session
+  ends.
+- **Order of a deactivation.** Our database changes first, so the API refuses the person at once. Then Keycloak is
+  disabled. If that call fails, the deactivation stands, the administrator is told, and the call can be retried.
+  The spec and BC-ACCESS, which say Keycloak first, are corrected.
+- **Criteria of FR-1.** Four person-visible ones are added: a replayed or expired sign in is refused, a cancelled or
+  failed sign in makes no session, a hostile `returnTo` is replaced by a local page, and the browser never holds a
+  token. State, nonce and PKCE stay unit tests.
+- **AC-32** (any role, a non-member is refused) moves to the Projects use cases (UC-P1, UC-P2). UC-A1 keeps NFR-1
+  only through AC-33.
+- **The token check.** The audience is required: it is added to AC-33 and to decision 1. A missing, expired,
+  wrong-issuer or wrong-audience token gets 401, and no account or audit entry is created.
+- **Sessions.** A callback must come from the browser that started the sign in, or it is refused. A second sign in
+  ends the person's old session. With two tabs, the later sign in wins, and that is written down.
+- **The pending account** is still created at the first API call. UC-A1 ends at the session, and step 9 hands
+  over to UC-A3. The postcondition is corrected.
+- **Identity is the `sub`, and email is an attribute.** "One account for each email" is dropped as a rule. A new
+  `sub` with a known email becomes a second pending account and the administrators are told. A role is never given
+  from an unverified email.
+- **Keycloak unreachable** when a person starts to sign in is a refusal of UC-A1, with its own criterion: the person
+  sees "sign in is not available, try again" and no session is made.
+
+**Why.** The criteria were untestable and the failure paths had none, so a change could break the security
+properties of sign in and every test would still pass. Two layers that agree (decision 8) need a defined answer for
+every case where they do not.
+
+**Changes.** To be made with vbench-req and vbench-uc: AC-1 rewritten and new criteria added, AC-32 moved, AC-33
+and decision 1 amended, the flows, both diagrams, the postcondition and the open questions of UC-A1, UC-A4's order
+of steps, the spec and BC-ACCESS, and a note in OBJ-A1 (identity).
+
+**Still open.**
+- Email verification is not required for now, and sign in stays simple authentication, by the owner: the product is
+  deployed inside the corporate network. A person's name and email are therefore as Keycloak holds them, unverified,
+  and an administrator approving a pending account relies on the network boundary and their own knowledge of the
+  person. Revisit it with UC-A7 (single sign-on), or before the product is reachable from outside the corporate
+  network. It stays one question, held here.
+- The web server (BFF) class diagram is not drawn yet (decision 9).
+- Lifetimes of a login attempt (10 minutes) and of a session (30 minutes idle, 8 hours) are in the code and the spec,
+  and BC-ACCESS still calls them a proposal.
+
+**Footnote (decision 13), to be implemented in the beta version.** For the alpha, keep the sign in answers that
+cost nothing (state, nonce and PKCE, no token in the browser, the API checking the token on every request). The
+rest is **beta hardening**: the criteria AC-43 (a new sign in ends this browser's earlier session), AC-45 (a
+deactivated person who gets through), AC-46 (two sign ins at once) and AC-48 (logging, with NFR-5, now release R2)
+are marked R2 in the requirements. Email verification stays off until single sign on or until the product is
+reachable from outside the corporate network.
+
+## 11. Three review agents run after a spec change, and teach (18 Nov 2026)
+
+**Decided.** By the owner. Specs are reviewed by three read-only agents, from three lenses, after a use case, its
+diagrams, a requirement or a decision is written or changed, and before it is built.
+- `vbench-spec-challenger`: does the spec agree with itself (criteria, flows, diagrams, ids).
+- `vbench-security-reviewer`: is it sound by OWASP ASVS, the Top 10, the OAuth 2.0 Security BCP and the cheat sheets,
+  using generic checklists that travel with the skills (`.claude/skills/_vbench/standards/security/`: web, API and
+  GenAI) and this project's overlay (`docs/standards/security-checklist.md`: which lenses apply, what is set aside,
+  what is accepted).
+- `vbench-design-reviewer`: does the design fit domain driven design, ports and adapters and the AWS target.
+- Each finding teaches: what is wrong, why it matters in a concrete case, and up to three options with one marked as
+  leaning. They never edit and never decide.
+- The skills run them: `vbench-uc` after a use case is written or changed, `vbench-req` after a security related
+  criterion changes. `CLAUDE.md` says so for decisions. The agents' descriptions also say "use proactively".
+
+**Why.** The first review of UC-A1 found sixteen gaps by a single lens. Security and architecture are separate
+questions from consistency, and a model reciting OWASP from memory can be wrong, so the checklist is kept in the
+repo and each finding says whether it is from the checklist or from memory.
+
+**Changes.** Two new agents, the checklist, the challenger's report (a "why it matters" line), the skills `vbench-uc`
+and `vbench-req`, the agent table in `_vbench/README.md` and `CLAUDE.md`.
+
+**Still open.**
+- The generic checklists are from memory and have no section numbers or editions: look each item up in the current
+  OWASP source before relying on it. The GenAI lens has no use case yet. OWASP's broader AI guidance (AI Exchange,
+  machine learning security) has no file.
+- A hook that nudges the model after an edit under `docs/usecases/` or to `decisions.md` was not added. It would run
+  on every edit, so it needs a decision on noise and cost.
+- The agents load at session start: restart to use them.
+
+## 12. UC-A1 sign in after the first three reviews (18 Nov 2026)
+
+**Decided.** By the owner, answering the findings of vbench-spec-challenger, vbench-security-reviewer and
+vbench-design-reviewer on the rewritten UC-A1. They refine decision 10.
+- **A new sign in ends this browser's earlier session only.** It replaces the session the browser already holds.
+  Other devices stay signed in. This is the session-fixation defence and needs no find-by-person lookup in the
+  session store.
+- **UC-A1 ends at the first page the person sees**: their own page, the waiting page, or the deactivated page. This
+  amends decision 10's sentence that step 9 hands over to UC-A3 (UC-A3 still creates the pending account).
+- **The state is checked before the code is exchanged.** A forged callback never spends a code at Keycloak. The design
+  diagram is redrawn to match the flow.
+- **The web server (BFF) class diagram is drawn now**, before UC-A1's design is reviewed again, and the design
+  sequence is redrawn against it. This closes decision 9's open item.
+- **Two sign-ins started at once in one browser: only the latest start can finish.** The older tab is asked to
+  sign in again, and a refused older callback does not use up the newer attempt. Signed-in tabs are unaffected: the
+  session is shared by every tab of the browser, and signing out in one signs out all of them.
+- **A deactivated person who still gets through (AC-45)**: both sessions end, ours and Keycloak's, by reusing
+  sign out (UC-A2), so the person is not signed straight back in. AC-45 stays in UC-A1, and FR-4 joins its
+  requirements.
+- **A pending person landing on the waiting page gets its own criterion**, under FR-3, run by UC-A3.
+- **Refusals and session events are logged**: each refused callback, each 401, each session that starts or ends and
+  each AC-45 case writes a server log line (event, result, the `sub` when known, a hash of the session id, never a
+  token or a code). On AWS this is CloudWatch. A new requirement, NFR-5, carries it.
+
+**Why.** The three reviews agreed on four things: the design diagram showed an older flow, the two-tab text did not
+match the built behaviour, "ends the earlier session" was ambiguous, and the web server had no class diagram. These
+answers close those and leave the smaller findings (cookie attributes, the algorithm allow list, `returnTo` bypass
+cases, lifetimes, the spec and BC-ACCESS lines, UC-A4's role line) as plain corrections.
+
+**Changes.** Criteria AC-43 and AC-45 reworded, AC-46 (two sign ins), AC-47 (waiting page) and NFR-5 with AC-48
+(logging) added. UC-A1, UC-A3, both diagrams, a new web server class diagram, the build spec, BC-ACCESS and UC-A4.
+
+**Still open.**
+- Where a person's session is kept for a second device (not needed now).
+- A rate limit for registration (account flooding): the security reviewer asked for it to be accepted, with a reason
+  and a revisit point.
+- The status gate in `main.py` belongs in the Access domain, and the token verifier is an edge adapter: both for the
+  design review of the code, not the use case.
+- The tests for AC-38 to AC-48 and the code (D12, D13) are not built.
+
+**Footnote (decision 13), to be implemented in the beta version.** Everything decided here that is hardening, not
+the alpha's login, is **deferred to beta**: ending this browser's earlier session (D13), the planned lookup of an
+attempt by the login cookie with a compare and delete step (D4, D14), the deactivated page that ends both sessions
+(D12, D15), the security log (D16, NFR-5, AC-48), the cookie prefix and attributes beyond `HttpOnly`, `Secure` and
+`SameSite=Lax`, the CSRF check on state changing requests (`Sec-Fetch-Site` or `Origin`), the algorithm allow list
+as a criterion, a 503 when the API cannot check tokens, and the registration rate limit. The three reviewers'
+remaining findings on UC-A1 are the beta list. Nothing is deleted: the use case, the criteria (notes "R2") and the
+diagrams keep the plan.
+
+## 13. Alpha scope: simple sign in, two roles, the administrator is a superuser (19 Nov 2026)
+
+**Decided.** By the owner, on the supervisor's brief for the alpha. It narrows decisions 3, 8, 10 and 12 and
+supersedes decision 3 where they differ.
+- **Sign in is simple.** Keycloak does the login, and sessions are kept. The product runs inside the corporate
+  network.
+- **Two account roles: user and administrator.** There is no other role based access control. Everyone who is
+  approved is a user and can run evaluations in the projects they belong to.
+- **An administrator is a superuser.** They do everything a project manager used to do, and more: create projects,
+  add and remove project members, approve signups, and promote other users to administrator. They can also see
+  inside every project.
+- **Project roles are gone.** A project has members, and every member has the same rights in it: they can run
+  evaluations. Only an administrator adds or removes members. Only members and administrators see inside a project,
+  and a person who is neither gets the same answer as for a project that does not exist.
+- **Accounts arrive in two ways.** A person signs up and waits as pending until an administrator approves. Or an
+  administrator creates the account in Keycloak with a temporary password and the "update password" action, and the
+  person changes it at first sign in. The second way needs no code of ours.
+- **Administrators can promote a user to administrator and demote another administrator.** The last administrator
+  is protected (RULE-A1: there is always one), and an administrator does not change themselves (RULE-A2).
+- **Projects, endpoints and evaluations stay as the structure of the product.**
+
+**Superseded from decision 3.** Two project roles (manager and engineer), "a project always has a manager",
+the administrator who never joins or sees inside, and the project manager's own powers. They are not deleted: the
+requirements and criteria move to release R2, and the rules (RULE-P1 to RULE-P3) are marked parked, so a later
+release can bring role based access back.
+
+**Deferred to R2.** The review findings that are beta hardening rather than alpha: the CSRF check, the extra
+logging (NFR-5), the algorithm allow list, the cookie prefix, the two tab rule, the loop after a deactivated sign in
+and the registration rate limit. They stay in the checklist's "Accepted for now" list as one "before beta" set.
+**Kept, because it costs nothing:** state, nonce and PKCE, no token in the browser, the API checking the token on every
+request, and the ports and adapters structure.
+
+**Why.** The specs had grown to 12 decisions and 48 criteria for a login, an approval and a project list. The
+alpha needs a working login with sessions, accounts that can be approved or created, and projects with members
+who can run evaluations. A superuser role is the smallest way to give someone all the powers without building the
+role model.
+
+**Changes.** To make, with vbench-req and vbench-uc: set the release of the dropped and deferred requirements and
+criteria to R2, rework UC-P1 and UC-P2 (create a project, manage members) for the administrator only, add
+"promote to administrator" to UC-A4 or a new use case, and update OBJ-P1, OBJ-P2, SET-3, RULE-P4 and BC-PROJECTS.
+
+**Also decided.**
+- Promoting or demoting an administrator needs a reason and an audit entry, as RULE-A3 asks for every account change.
+- A project does not have to keep a member. An administrator can remove anyone, and an empty project is fine.
+- The administrator superuser does everything a member does, in every project: they see inside and run evaluations.
+
+**Still open.** Nothing about roles. The R2 move of the dropped rows and the rework of UC-P1 and UC-P2 are to do.
+
+## 14. Making the alpha ready for code (19 Nov 2026)
+
+**Decided.** By the owner, answering the findings of the three reviewers across all nine use cases. They build on
+decision 13.
+- **Projects learns who the caller is through a `Caller` value object.** The API resolves the token, the active
+  account and the role once, and passes a `Caller` (account id, is administrator) into every Projects use case.
+  Projects never looks a role up. Every project route goes through the same full check as the account routes (token,
+  account found, not deactivated, not pending) before the role is looked at.
+- **What each Projects refusal answers.** A person who is neither a member nor an administrator gets the same 404 as
+  for a missing project. A member who is not an administrator changing members, or a user creating a project, gets
+  403. A bad name or an inactive first member gets 422. Authorisation is checked before the input is validated.
+- **A new use case, UC-P3: list and open a project.** A user lists only the projects they are a member of, and an
+  administrator lists all. Opening one follows RULE-P4. For the alpha, a project's "contents" are its detail read
+  (name, members, and empty lists for files, endpoints and evaluations).
+- **Deactivation order is in the alpha.** Our database changes first and the API refuses the person at once, then
+  Keycloak is disabled. If Keycloak fails, the deactivation stands, the administrator is told and the call can be
+  repeated. A reinstatement is the reverse and fails closed. Criteria prove both.
+- **Reinstating an account needs a reason**, like a deactivation. FR-4 and AC-7 are reworded.
+- **Keeping the session alive is a requirement** with three criteria: a refresh before expiry, two requests at once
+  send one refresh, and a refused refresh ends the session.
+- **An account an administrator creates in Keycloak lands pending**, like a signup, and is approved in Playground
+  (UC-A4). Keycloak never decides what a person may do (decision 8).
+- **The first-administrator setup rule applies only while no active administrator exists.**
+- **The audit trail becomes its own bounded context, Audit (BC-AUDIT).** It owns the audit table and the read of
+  it for administrators. Access and Projects each keep an `AuditLog` port and write to it through an adapter that
+  the composition root wires to Audit, so no context imports another. An entry holds the actor, the action, what
+  kind of thing and which one it was done to, the people involved, the reason and the time, so AC-29 and AC-30 can
+  be proven. The existing Access audit moves to it, with a migration.
+- **Alembic comes in now**, with a baseline of today's schema and one migration for Audit and Projects. A shared
+  database module that belongs to no context holds the declarative base. This closes decision 4's open item.
+- **The last-administrator check is one step.** The count and the change cannot be split by a second administrator
+  acting at the same moment. A test runs two changes at once. RULE-A1's "repair it by hand in Keycloak" is corrected:
+  roles live in our database.
+- **Adding a project member needs only an audit entry**, no reason.
+
+**Why.** The reviews agreed that UC-A1 to UC-A6 are built or nearly, and that UC-P1 and UC-P2 cannot be coded until
+the caller, the refusals, a way in to the projects, and the audit and tables are decided. A separate Audit context
+keeps account and project changes in one trail without one context reaching into another.
+
+**Changes.** To make, with vbench-req and vbench-uc: new requirement rows and criteria (sessions, listing projects,
+the audit trail, deactivation failure, reinstating with a reason, refusals, setup rule, last administrator), UC-P3,
+the Caller and the refusal table in UC-P1 and UC-P2, a Projects class diagram, the Audit context page and class
+diagram, the beta entries in "Accepted for now", and the stale lines the reviewers listed.
+
+**Still open.**
+- A project's real contents (files, endpoints, evaluations) come with their own use cases.
+- Whether a project name must be unique: not in the alpha.
+

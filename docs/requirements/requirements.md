@@ -12,9 +12,11 @@
 | FR-1 | Sign in through the identity provider | The system shall let a person sign in through the identity provider. | acceptance test | R1 | yes | draft |  | decision 1; MK3 UC-A1 |
 | FR-2 | Sign out | The system shall let a person sign out. | acceptance test | R1 | yes | draft |  | decision 1; MK3 UC-A2 |
 | FR-3 | A new person is held as pending | The system shall hold a person it does not know as a pending account, who can see only that it is waiting for approval, until an administrator approves it. | acceptance test | R1 | yes | draft | OBJ-A1 | decision 2; MK3 UC-A5 |
-| FR-4 | Decide who can use the product | The system shall let an administrator decide who can use the product: approve a pending account, deactivate an active one with a reason, and reinstate a deactivated one. | acceptance test | R1 | yes | draft |  | ADR 0019; ADR 0010; release plan R1 |
+| FR-4 | Decide who can use the product | The system shall let an administrator decide who can use the product: approve a pending account, deactivate an active one with a reason, and reinstate a deactivated one with a reason. | acceptance test | R1 | yes | draft |  | ADR 0019; ADR 0010; release plan R1 |
 | FR-5 | Show name and account role | The system shall show a signed-in person their name and account role. | acceptance test | R1 | yes | draft | OBJ-A1 | decision 1; MK3 UC-A4 |
 | FR-6 | Sign in through single sign-on | The system shall let a person sign in through single sign-on. | acceptance test | R2 | no | draft |  | release plan R2 |
+| FR-14 | Promote and demote administrators | The system shall let an administrator promote a user to administrator and demote another administrator, with a reason. | acceptance test | R1 | yes | draft | OBJ-A1 | decision 13 |
+| FR-15 | Keep a person signed in | The system shall keep a signed-in person signed in until the session limits. | acceptance test | R1 | yes | draft |  | decision 14; UC-A6 |
 
 **Notes**
 
@@ -29,23 +31,30 @@
 
 | ID | Name | Statement | Verified by | Release | Built | Status | Sources |
 |---|---|---|---|---|---|---|---|
-| FR-7 | Create a project | The system shall let an administrator or a project manager create a project, which has a manager from the start. | acceptance test | R1 | no | draft | UC-P1; decision 3 |
-| FR-8 | Administrators get no access to contents by role | The system shall not give an administrator access to a project's contents by their role. | acceptance test | R1 | no | draft | UC-P1; decision 3 |
-| FR-9 | Manage project members | The system shall let a project manager add, change the role of and remove members of their project, adding only people with an active account. | acceptance test | R1 | no | draft | UC-P2; decision 3 |
-| FR-10 | Keep an active manager | The system shall refuse a removal or demotion that would leave a project with no active project manager. | acceptance test | R1 | no | draft | UC-P2; decision 3 |
-| FR-11 | Restore a project manager | The system shall let an administrator add a project manager to a project that has no active project manager, with a reason, and only a person with an active account who is not an administrator. | acceptance test | R1 | no | draft | UC-P2; decision 3 |
-| FR-12 | Contents only for members | The system shall show a project's contents and member list only to its members, and answer anyone else as for a project that does not exist. | acceptance test | R1 | no | draft | decision 3; no use case yet |
-| FR-13 | Audit project changes | The system shall record an audit entry for every project creation, every change to a project's members, and every refused attempt by an administrator to change them. | acceptance test | R1 | no | draft | UC-P1; UC-P2; decision 3 |
+| FR-7 | Create a project | The system shall let an administrator create a project and name its first members. | acceptance test | R1 | no | draft | UC-P1; decision 3 |
+| FR-8 | Administrators get no access to contents by role | The system shall not give an administrator access to a project's contents by their role. | acceptance test | parked | no | draft | UC-P1; decision 3 |
+| FR-9 | Manage project members | The system shall let an administrator add and remove members of a project, adding only people with an active account. | acceptance test | R1 | no | draft | UC-P2; decision 3 |
+| FR-10 | Keep an active manager | The system shall refuse a removal or demotion that would leave a project with no active project manager. | acceptance test | parked | no | draft | UC-P2; decision 3 |
+| FR-11 | Restore a project manager | The system shall let an administrator add a project manager to a project that has no active project manager, with a reason, and only a person with an active account who is not an administrator. | acceptance test | parked | no | draft | UC-P2; decision 3 |
+| FR-12 | Contents only for members | The system shall show a project's contents and member list only to its members and to administrators, and answer anyone else as for a project that does not exist. | acceptance test | R1 | no | draft | decision 3; no use case yet |
+| FR-13 | Audit project changes | The system shall record an audit entry for every project creation and every change to a project's members. | acceptance test | R1 | no | draft | UC-P1; UC-P2; decision 3 |
+| FR-16 | See and open projects | The system shall let a person list the projects they belong to, let an administrator list all projects, and let either open a project they may see. | acceptance test | R1 | no | draft | decision 14; UC-P3 |
 
 **Notes**
 
 - **FR-7:** Name rules and who names the manager: UC-P1. Open: a second manager at creation?
-- **FR-8:** The administrator's boundary: RULE-P2 and RULE-P3 (decision 3).
+- **FR-8:** Parked by decision 13: the administrator is a superuser in the alpha.
 - **FR-9:** Roles are names only for now (UC-P2). Open: does removing a member need a reason?
-- **FR-10:** Counts active managers only (RULE-P1).
-- **FR-11:** The only administrator power over members (RULE-P3).
+- **FR-10:** Parked by decision 13: there are no project managers in the alpha.
+- **FR-11:** Parked by decision 13: there are no project managers in the alpha.
 - **FR-12:** The same answer as for a missing project (RULE-P4). Contents are empty containers for now.
 - **FR-13:** Who, what and whom it affected. Refused administrator attempts included.
+
+### Area L
+
+| ID | Name | Statement | Verified by | Release | Built | Status | Objects | Sources |
+|---|---|---|---|---|---|---|---|---|
+| FR-17 | Audit trail | The system shall keep an audit trail of every account change and every project change, which an administrator can read. | acceptance test | R1 | no | draft | OBJ-A1 | decision 14; BC-AUDIT |
 
 ## Quality, constraint and process requirements
 
@@ -54,10 +63,12 @@
 | ID | Kind | Name | Statement | Quality attribute | Stimulus | Environment | Response | Measure | Verified by | Release | Built | Status | Sources |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | NFR-1 | quality | Access is checked on the server | The system shall check access on the server for every command and read. | Security | A person asks for something their role does not allow. | Normal operation, with the browser's role switch off. | The server refuses the request. | An acceptance test for each role shows a refusal on every command and every read. | inspection | R1 | no | draft | release plan R1; risk register R-08; north star |
+| NFR-5 | quality | Security events are logged | The system shall write a log line for every refused sign in, every refused request and every session that starts or ends. | Security | A sign in is refused, a request is refused, or a session starts or ends. | Normal operation. | One log line is written with the event, the result, the person's id when it is known and a hash of the session id, and with no token or code in it. | An acceptance test for each event finds its log line, and none holds a token or a code. | acceptance test | R2 | no | draft | decision 12; vbench-security-reviewer on UC-A1 |
 
 **Notes**
 
 - **NFR-1:** The token is checked on every request, then the account and the membership (decision 1).
+- **NFR-5:** Deferred by decision 13: beta hardening.
 
 ### Area No area
 

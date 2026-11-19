@@ -32,7 +32,7 @@ Paths, id patterns and commands come from `.vbench/config.toml`.
    requirements doc, and are cited by the ACs they constrain. Each FR gets a one-line user story
    (`As a <role>, I want <goal> so that <benefit>`) in §4.
 5. **Create or update.** Decide, with evidence from sibling specs: is this a new flow in an existing UC, or a
-   new UC? New: run `vbench new uc --area <letter> --title "<title>"`, or delegate to the `uc-scaffolder`
+   new UC? New: run `vbench new uc --area <letter> --title "<title>"`, or delegate to the `vbench-uc-scaffolder`
    subagent. Existing: edit in place. Say which and why. Fill the spec header's **Primary actor** and **Bounded
    context** (the context's name, reused exactly across specs) and **Depends on**: the overall use-case diagram is
    generated from them.
@@ -56,5 +56,5 @@ Paths, id patterns and commands come from `.vbench/config.toml`.
 ## Connections
 - Reads: requirements doc, sibling specs, `docs/00-naming-conventions.md`.
 - Writes: the UC spec (ACs), `STK-REQ`, `REQ-FR` and `REQ-NFR` entries.
-- Reads: the approved discovery brief. Calls: `requirements-engineering`, `uc-scaffolder`.
+- Reads: the approved discovery brief. Calls: `requirements-engineering`, `vbench-uc-scaffolder`.
 - Next: `/vbench:v-2-design`. Back-edge from it: a design that exposes a missing AC returns here.

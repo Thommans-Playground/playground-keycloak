@@ -1,0 +1,25 @@
+@startuml UC-P3-list-and-open-a-project-analysis-sequence
+!include ../../domain/diagrams/_style.puml
+hide footbox
+title UC-P3 List and open a project (analysis: system sequence)
+' Analysis level (decision 9): the person and Playground as one box. No outside system takes part.
+' Alpha scope (decision 13): a user sees the projects they belong to, an administrator sees all.
+' No route, store, port, adapter, token or cookie. Step numbers are the main flow numbers of UC-P3.
+
+actor "Person" as U
+note over U, PG : Opening a project is a second request, after the list.
+participant "Playground" as PG #E6F0FB
+
+U -> PG : 1 ask for my projects
+PG -> PG : 2 check the account
+||20||
+PG --> U : 3 the projects: a user's own,\nall of them for an administrator
+||30||
+U -> PG : 4 open one project
+alt neither a member nor an administrator,\nor no such project
+  PG --> U : 5 the same answer for both,\nas for a missing project
+else
+  ||20||
+  PG --> U : 6 its name, its members and\nempty lists of files, endpoints\nand evaluations
+end
+@enduml

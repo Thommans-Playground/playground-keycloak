@@ -113,7 +113,8 @@ A state machine: use a composite `state "Active stages" as Active { ... }` and o
 `Active --> Retired` arrow, instead of repeating an arrow from every state.
 
 A sequence diagram: name the participants in the project's words and show the permission
-check, the domain rule and the save as separate steps.
+check, the domain rule and the save as separate steps. This is for a small inline sequence only. The analysis and
+design sequence diagrams of a use case are `.puml` files (decision 9, `vbench-puml`).
 
 ## Step 5: Check it
 

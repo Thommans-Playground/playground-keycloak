@@ -406,6 +406,23 @@ def problems_in(root, ucs, reqs, acs):
     return p
 
 
+def diagram_findings(root, uid, text):
+    """Notes on the sequence diagrams of a use case (decision 9): an Analysis section needs an analysis sequence
+    diagram (UC-<id>-<slug>-analysis-sequence.puml) or a single UC-<id>-<slug>-sequence.puml, and a .puml the
+    text links to must exist."""
+    out, folder = [], root / UC_DIR / "diagrams"
+    if analysis_revisions(text) is not None:
+        have = [p.name for p in folder.glob(f"{uid}-*sequence.puml")] if folder.is_dir() else []
+        if not any(n.endswith("-analysis-sequence.puml") or
+                   (n.endswith("-sequence.puml") and not n.endswith("-design-sequence.puml")) for n in have):
+            out.append(f"{uid}: has an Analysis section but no {uid}-<slug>-analysis-sequence.puml "
+                       f"(or a single {uid}-<slug>-sequence.puml) in {UC_DIR}/diagrams")
+    for name in sorted(set(re.findall(r"[\w./-]*?(UC-[\w-]+\.puml)", text))):
+        if not (folder / name).is_file():
+            out.append(f"{uid}: links {name}, which does not exist in {UC_DIR}/diagrams")
+    return out
+
+
 def notes_in(root, ucs, reqs, acs):
     reqs_by_id, acs_by_id = {r["id"]: r for r in reqs}, {a["id"]: a for a in acs}
     files = ontology_files(root)
@@ -413,6 +430,7 @@ def notes_in(root, ucs, reqs, acs):
     for _, h, text in ucs:
         if "_error" in h:
             continue
+        out += diagram_findings(root, h["id"], text)
         out += slice_findings(h["id"], h, text)[1]
         out += trace_findings(h["id"], h, text)[1]
         block = mirror_block(text)
@@ -863,6 +881,20 @@ def refresh(path, h, text, reqs_by_id, acs_by_id):
     return text.replace(block, want)
 
 
+def cmd_sync_all(root):
+    """Refresh the copied text of every use case. Review hashes are never touched."""
+    reqs, acs, ucs = load(root)
+    reqs_by_id, acs_by_id = {r["id"]: r for r in reqs}, {a["id"]: a for a in acs}
+    for path, h, text in ucs:
+        new = refresh(path, h, text, reqs_by_id, acs_by_id)
+        if new == text:
+            print(f"{h.get('id')}: already matches")
+        else:
+            path.write_text(new, encoding="utf-8")
+            print(f"{h.get('id')}: copied text refreshed (still suspect until stamped)")
+    return 0
+
+
 def cmd_sync(root, uid):
     reqs, acs, ucs = load(root)
     reqs_by_id, acs_by_id = {r["id"]: r for r in reqs}, {a["id"]: a for a in acs}
@@ -1110,7 +1142,8 @@ def main(argv=None):
     tr = sub.add_parser("trace")
     tr.add_argument("id")
     sy = sub.add_parser("sync")
-    sy.add_argument("id")
+    sy.add_argument("id", nargs="?")
+    sy.add_argument("--all", action="store_true", help="refresh every use case")
     cu = sub.add_parser("check-upstream")
     cu.add_argument("id")
     dg = sub.add_parser("diagram")
@@ -1139,6 +1172,11 @@ def main(argv=None):
     if a.cmd == "trace":
         return cmd_trace(root, a.id)
     if a.cmd == "sync":
+        if a.all:
+            return cmd_sync_all(root)
+        if not a.id:
+            print("Give a use case id, or --all to refresh every use case.")
+            return 1
         return cmd_sync(root, a.id)
     if a.cmd == "diagram":
         return cmd_diagram(root, a.context, a.write, a.force)

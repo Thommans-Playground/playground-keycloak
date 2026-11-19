@@ -30,6 +30,7 @@ Uses only the standard library. This tool never edits the two requirements files
 """
 
 import argparse
+import collections
 import re
 import sys
 from pathlib import Path
@@ -41,8 +42,21 @@ import uc_tool as uc  # noqa: E402
 
 TESTS_DIR = "tests/acceptance"   # default; vbench.json tests_dirs overrides it
 DEFAULT_STACK = "pytest"
-TAG = re.compile(r"Verifies\s+(AC-\d+)(?:\s*\[reviewed\s+([0-9a-f]{7})\])?")
+TAG = re.compile(r"Verifies\s+((?:AC-\d+|RULE-[A-Z]\d+)(?:\s*,\s*(?:AC-\d+|RULE-[A-Z]\d+))*)(?:\s*\[reviewed\s+([0-9a-f]{7})\])?")
+# The pytest form: @pytest.mark.ac("AC-12") or @pytest.mark.ac("AC-12", reviewed="7a2439b"). One marker for each criterion.
+MARK = re.compile(r"""mark\.ac\(\s*["'](AC-\d+)["']\s*(?:,\s*reviewed\s*=\s*["']([0-9a-f]{7})["']\s*)?\)""")
 EXTENSIONS = {".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".py", ".java", ".kt", ".go", ".rb", ".cs", ".feature"}
+# Only a test file can prove a criterion: production code and helpers that happen to contain the words do not count.
+TEST_FILE = re.compile(r"(^test_.*\.py$|_test\.py$|\.(test|spec|it)\.[cm]?[jt]sx?$|\.feature$)")
+# Tests that need the whole stack run only with INTEGRATION=1: the report keeps them apart from the default run.
+STACK_PATH = re.compile(r"(^|/)(integration|acceptance|e2e)(/|$)|\.it\.[cm]?[jt]sx?$")
+# A line that starts a test (test(, it(, itest(, it.skip(, describe(): a tag counts in its title, or in a comment right above.
+TITLE = re.compile(r"^\s*(?:await\s+)?[\w.]*(?:test|it|describe)\w*(?:\.\w+)?\s*\(")
+SKIPPED = re.compile(r"\.skip\s*\(|\{\s*skip\s*:\s*true")
+RULE_TAG = re.compile(r"Verifies\s+((?:AC-\d+|RULE-[A-Z]\d+)(?:\s*,\s*(?:AC-\d+|RULE-[A-Z]\d+))*)")
+RULE_MARK = re.compile(r"""^\s*@pytest\.mark\.rule\(\s*["'](RULE-[A-Z]\d+)["']\s*\)""")
+AC_MARK_LINE = re.compile(r"""^\s*@pytest\.mark\.ac\(\s*["'](AC-\d+)["']\s*(?:,\s*reviewed\s*=\s*["']([0-9a-f]{7})["']\s*)?\)""")
+Tag = collections.namedtuple("Tag", "path line kind id hash listed stack")
 SKIP = {"node_modules", ".git", "__pycache__", ".next", "dist", "build"}
 STACKS = {
     "vitest": (".test.ts", "ac-{n}-{slug}"),
@@ -57,24 +71,81 @@ def criteria(root):
     return {r["id"]: r for r in rq.read_rows(root / rq.PATHS["ac"])}
 
 
-def scan(root, dirs):
-    """Every `Verifies AC-n` tag in the test folders: (path, line number, ac id, recorded hash or None)."""
+def _decorators_skip(lines, start):
+    """True if the decorators from `start` down to the next `def` include an unconditional pytest skip."""
+    for ln in lines[start:]:
+        if re.match(r"^\s*(async\s+)?def\s", ln):
+            return False
+        if re.match(r"^\s*@pytest\.mark\.skip\b(?!if)", ln):
+            return True
+    return False
+
+
+def scan_all(root, dirs):
+    """Every tag that really sits on a test, as Tag(path, line, kind, id, hash, listed, stack).
+    Python: a decorator line `@pytest.mark.ac("AC-n")` or `@pytest.mark.rule("RULE-X")`, and not under a skip.
+    Other languages: `Verifies AC-n` in the title of a test, or in a comment right above one, and not skipped.
+    Only test files count. `listed` is true when one tag names several ids: it cannot carry a review hash."""
     found = []
     for d in dirs:
         base = (root / d)
         if not base.is_dir():
             continue
         for p in sorted(base.rglob("*")):
-            if not p.is_file() or p.suffix not in EXTENSIONS or any(part in SKIP for part in p.parts):
+            if (not p.is_file() or p.suffix not in EXTENSIONS or any(part in SKIP for part in p.parts)
+                    or not TEST_FILE.search(p.name)):
                 continue
             try:
-                text = p.read_text(encoding="utf-8")
+                lines = p.read_text(encoding="utf-8").splitlines()
             except UnicodeDecodeError:
                 continue
-            for n, line in enumerate(text.splitlines(), 1):
-                for m in TAG.finditer(line):
-                    found.append((p, n, m.group(1), m.group(2)))
+            stack = bool(STACK_PATH.search(rel(root, p)))
+            for n, line in enumerate(lines, 1):
+                if p.suffix == ".py":
+                    m = AC_MARK_LINE.match(line)
+                    if m and not _decorators_skip(lines, n - 1):
+                        found.append(Tag(p, n, "ac", m.group(1), m.group(2), False, stack))
+                    m = RULE_MARK.match(line)
+                    if m and not _decorators_skip(lines, n - 1):
+                        found.append(Tag(p, n, "rule", m.group(1), None, False, stack))
+                    continue
+                target = line
+                if re.match(r"^\s*(//|#|\*|/\*)", line):  # a comment counts only right above a test
+                    k = n
+                    while k < len(lines) and (not lines[k].strip() or re.match(r"^\s*(//|#|\*|/\*)", lines[k])):
+                        k += 1
+                    if k >= len(lines) or not TITLE.match(lines[k]):
+                        continue
+                    target = lines[k] + " " + line
+                    if SKIPPED.search(lines[k]):
+                        continue
+                elif not TITLE.match(line) or SKIPPED.search(line):
+                    continue
+                for m in TAG.finditer(target):
+                    ids = re.findall(r"AC-\d+", m.group(1))
+                    for ac_id in ids:
+                        found.append(Tag(p, n, "ac", ac_id, m.group(2) if len(ids) == 1 else None, len(ids) > 1, stack))
+                for m in RULE_TAG.finditer(target):
+                    for rid in re.findall(r"RULE-[A-Z]\d+", m.group(1)):
+                        found.append(Tag(p, n, "rule", rid, None, False, stack))
     return found
+
+
+def scan(root, dirs):
+    """The criterion tags only: (path, line number, ac id, recorded hash or None)."""
+    return [(t.path, t.line, t.id, t.hash) for t in scan_all(root, dirs) if t.kind == "ac"]
+
+
+def rules_of(root):
+    """The ontology rules: {id: parked}. A rule whose file says 'Parked by decision' is not expected to have a test."""
+    out = {}
+    onto = root / "docs/domain/ontology"
+    if onto.is_dir():
+        for f in sorted(onto.glob("RULE-*.md")):
+            m = re.match(r"(RULE-[A-Z]\d+)", f.name)
+            if m:
+                out[m.group(1)] = "Parked by decision" in f.read_text(encoding="utf-8")
+    return out
 
 
 def in_release(row, reqs_by_id, release):
@@ -96,13 +167,16 @@ def rel(root, p):
 def cmd_report(root, dirs, release):
     acs = criteria(root)
     reqs_by_id = {r["id"]: r for r in rq.read_rows(root / rq.PATHS["req"])}
-    tags = scan(root, dirs)
+    all_tags = scan_all(root, dirs)
+    ac_tags = [t for t in all_tags if t.kind == "ac"]
+    tags = [(t.path, t.line, t.id, t.hash) for t in ac_tags]
     tested = {}
-    for p, n, ac, h in tags:
-        tested.setdefault(ac, []).append((p, n, h))
+    for t in ac_tags:
+        tested.setdefault(t.id, []).append(t)
 
     wanted = {i: r for i, r in acs.items()
               if r["test_level"] == "acceptance" and r["status"] != "retired" and in_release(r, reqs_by_id, release)}
+    deferred = [i for i, r in wanted.items() if r["notes"].strip().upper().startswith("R2") and i not in tested]
     existing_dirs = [d for d in dirs if (root / d).is_dir()]
     scope = f" for release {release}" if release else ""
     print(f"{len(wanted)} acceptance criteria{scope}; tests are looked for in {', '.join(dirs)}"
@@ -111,7 +185,7 @@ def cmd_report(root, dirs, release):
 
     problems, gaps = 0, 0
 
-    missing = [i for i in wanted if i not in tested]
+    missing = [i for i in wanted if i not in tested and i not in deferred]
     gaps += len(missing)
     print(f"ACCEPTANCE CRITERIA WITH NO TEST ({len(missing)})")
     if not missing:
@@ -122,6 +196,24 @@ def cmd_report(root, dirs, release):
     if len(missing) > 60:
         print(f"  ... and {len(missing) - 60} more")
     print()
+
+    print(f"DEFERRED TO R2 ({len(deferred)}): the notes of these criteria start with R2, so no test is expected yet")
+    for i in deferred:
+        print(f"  {i}: {wanted[i]['notes'].strip()[:90]}")
+    print()
+
+    stack_only = [i for i, ts in tested.items() if i in wanted and all(t.stack for t in ts)]
+    print(f"COVERED ONLY BY THE STACK RUN ({len(stack_only)}): the default test run does not execute these, INTEGRATION=1 does")
+    for i in stack_only:
+        print(f"  {i}")
+    print()
+
+    listed = [t for t in ac_tags if t.listed]
+    if listed:
+        print(f"TAGS THAT CANNOT CARRY A REVIEW HASH ({len(listed)}): one tag names several criteria, use one tag for each")
+        for t in listed:
+            print(f"  {rel(root, t.path)}:{t.line} {t.id}")
+        print()
 
     unknown = [(p, n, ac) for p, n, ac, _ in tags if ac not in acs]
     problems += len(unknown)
@@ -176,6 +268,26 @@ def cmd_report(root, dirs, release):
     print("\n".join(lines))
     print()
 
+    rules = rules_of(root)
+    if rules:
+        rule_tags = [t for t in all_tags if t.kind == "rule"]
+        bad = [t for t in rule_tags if t.id not in rules]
+        problems += len(bad)
+        print(f"RULE TAGS THAT NAME A RULE THAT DOES NOT EXIST ({len(bad)})")
+        if not bad:
+            print("  none")
+        for t in bad:
+            print(f"  {rel(root, t.path)}:{t.line} says {t.id}")
+        print()
+        covered = {t.id for t in rule_tags}
+        no_test = [i for i, parked in rules.items() if not parked and i not in covered]
+        print(f"RULES WITH NO TEST ({len(no_test)}): parked rules are not listed")
+        if not no_test:
+            print("  none")
+        for i in no_test:
+            print(f"  {i}")
+        print()
+
     print(f"{problems} problem(s), {gaps} criteria with no test")
     return 1 if problems else 0
 
@@ -222,16 +334,17 @@ def literal(s):
 def skeleton_text(stack, row):
     n = row["id"].split("-")[1]
     h = uc.ac_hash(row)
-    head = [f"Verifies {row['id']} [reviewed {h}]", "",
+    tag = f"Verifies {row['id']} [reviewed {h}]"
+    head = [row["id"], "",
             f"Given {row['given']}", f"When  {row['when']}", f"Then  {row['then']}", "",
             "Drafted by vbench-at from the criterion. The steps and the checks are for a person to write."]
-    title = f"{row['id']}: when {row['when']}, then {row['then']}"
+    title = f"{row['id']}: when {row['when']}, then {row['then']} ({tag})"
     if stack in ("vitest", "playwright"):
         comment = "\n".join(("// " + ln).rstrip() for ln in head)
         if stack == "vitest":
             body = (f'import {{ describe, it }} from "vitest";\n\n'
                     f"describe({literal(row['id'])}, () => {{\n"
-                    f"  it({literal('when ' + row['when'] + ', then ' + row['then'])}, async () => {{\n"
+                    f"  it({literal('when ' + row['when'] + ', then ' + row['then'] + ' (' + tag + ')')}, async () => {{\n"
                     f"    throw new Error({literal(row['id'] + ' is not written yet')});\n  }});\n}});\n")
         else:
             body = (f'import {{ test }} from "@playwright/test";\n\n'
@@ -239,7 +352,8 @@ def skeleton_text(stack, row):
                     f"  throw new Error({literal(row['id'] + ' is not written yet')});\n}});\n")
         return comment + "\n\n" + body
     comment = "\n".join(("# " + ln).rstrip() for ln in head)
-    body = (f"import pytest\n\n\ndef test_ac_{n}_{slug(row['when'], 6, '_')}():\n"
+    body = (f"import pytest\n\n\n@pytest.mark.ac({literal(row['id'])}, reviewed={literal(h)})\n"
+            f"def test_ac_{n}_{slug(row['when'], 6, '_')}():\n"
             f"    pytest.fail({literal(row['id'] + ' is not written yet')})\n")
     return comment + "\n\n" + body
 
@@ -286,15 +400,22 @@ def cmd_stamp(root, dirs, ac_id):
         print(f"No criterion {ac_id}.")
         return 1
     now = uc.ac_hash(r)
-    files = sorted({p for p, n, ac, h in scan(root, dirs) if ac == ac_id})
+    mine = [t for t in scan_all(root, dirs) if t.kind == "ac" and t.id == ac_id]
+    files = sorted({t.path for t in mine if not t.listed})
     if not files:
-        print(f"{ac_id}: no test carries this tag.")
+        if mine:
+            print(f"{ac_id}: its tag also names other criteria. Use one tag for each criterion, then stamp it.")
+        else:
+            print(f"{ac_id}: no test carries this tag.")
         return 1
-    pattern = re.compile(rf"Verifies\s+{re.escape(ac_id)}(?:\s*\[reviewed\s+[0-9a-f]{{7}}\])?")
+    # a whole id (AC-5 is not the start of AC-57), and never a tag that lists several ids
+    pattern = re.compile(rf"Verifies\s+{re.escape(ac_id)}(?!\d)(?!\s*,\s*AC-)(?:\s*\[reviewed\s+[0-9a-f]{{7}}\])?")
+    marker = re.compile(rf"""mark\.ac\(\s*["']{re.escape(ac_id)}["']\s*(?:,\s*reviewed\s*=\s*["'][0-9a-f]{{7}}["']\s*)?\)""")
     for p in files:
         with open(p, newline="", encoding="utf-8") as f:
             text = f.read()
         new = pattern.sub(f"Verifies {ac_id} [reviewed {now}]", text)
+        new = marker.sub(f'mark.ac("{ac_id}", reviewed="{now}")', new)
         if new != text:
             with open(p, "w", newline="", encoding="utf-8") as f:
                 f.write(new)

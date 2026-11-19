@@ -1,0 +1,121 @@
+# The same checks as `scripts/test-stack.sh all`, split into jobs so a failure says which part broke.
+# Branch protection (a required human review and these jobs as required checks) is set in the GitHub settings, not here.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  api:
+    name: API tests (SQLite and PostgreSQL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: playground
+          POSTGRES_PASSWORD: playground
+          POSTGRES_DB: playground_test      # always a *_test database: the tests drop every table
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U playground" --health-interval 5s --health-timeout 5s --health-retries 10
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --frozen
+      - name: Tests on SQLite
+        run: uv run pytest -q
+      - name: Tests on PostgreSQL
+        env:
+          TEST_DATABASE_URL: postgresql+psycopg://playground:playground@localhost:5432/playground_test
+        run: uv run pytest -q
+
+  web:
+    name: Web tests, lint, types, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run build
+
+  traceability:
+    name: Requirements and test tags
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Tests of the traceability tools
+        run: |
+          for d in .claude/skills/vbench-*/scripts; do
+            for t in "$d"/test_*.py; do
+              if [ -e "$t" ]; then (cd "$d" && python3 -m unittest "$(basename "${t%.py}")"); fi
+            done
+          done
+      - name: Requirements are well formed
+        run: python3 .claude/skills/vbench-req/scripts/req_tool.py validate
+      - name: Tag report (no tag may name a criterion or rule that does not exist)
+        run: python3 .claude/skills/vbench-at/scripts/at_tool.py report | tail -40
+      # Informational until a person has stamped the use cases and the criteria without tests are built.
+      - name: Use case check (informational)
+        continue-on-error: true
+        run: python3 .claude/skills/vbench-uc/scripts/uc_tool.py validate | tail -5
+      - name: The V cycle of every use case (informational)
+        continue-on-error: true
+        run: |
+          python3 .claude/skills/vbench-vcycle/scripts/vcycle.py --all
+          python3 .claude/skills/vbench-vcycle/scripts/vcycle.py --all --json > vcycle.json || true
+      - name: Keep the record of the V cycle run
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vcycle
+          path: vcycle.json
+          if-no-files-found: ignore
+
+  stack:
+    name: Fresh stack, integration and acceptance tests
+    needs: [api, web]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - name: Install the test runners
+        run: |
+          (cd apps/api && uv sync --frozen)
+          (cd apps/web && npm ci)
+      - name: Build and start the stack, run the tests, wipe it
+        run: scripts/test-stack.sh run

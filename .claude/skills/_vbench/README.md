@@ -69,6 +69,12 @@ Example:
 | `vbench-diagrams`, `vbench-mermaid`, `vbench-puml` | Diagrams |
 | `vbench-tdd` | Build a slice test first: red, green, refactor, with a pause for review after each step. Drives the three TDD agents below |
 
+A use case has an **analysis** sequence diagram (a system sequence: the person, the product as one box, outside systems,
+no design words; `UC-<id>-<slug>-analysis-sequence.puml`, frozen with the Analysis section) and a **design** sequence
+diagram (routes, use cases, ports, adapters; `UC-<id>-<slug>-design-sequence.puml`) beside the context class diagram. One
+system and no security flow: one `UC-<id>-<slug>-sequence.puml`. The link between the levels is the change log.
+`vbench-uc` teaches it, `vbench-puml` draws it and `vbench-spec-challenger` checks it.
+
 The standards the skills apply are in `_vbench/standards/`. Edit them to change a rule for your repo.
 Starter PlantUML style files for the diagram skills are in `_vbench/templates/`. Copy them next to your diagrams
 (`vbench-puml` says when).
@@ -81,10 +87,16 @@ with the skills. Agents load when a session starts, so restart or reload after a
 
 | Agent | Model | Job |
 | ----- | ----- | --- |
-| `tdd-red` | sonnet | One failing test for one behaviour, proved to fail for the right reason. Writes no production code |
-| `tdd-green` | sonnet | The minimum code that makes that test pass. Never edits the test |
-| `tdd-refactor` | sonnet | Tidies code on green only, running the tests after each change. Behaviour does not change |
-| `spec-challenger` | opus | Read-only adversarial review of a use case and its requirements, criteria and ontology. Reports gaps, decides nothing |
+| `vbench-tdd-red` | sonnet | One failing test for one behaviour, proved to fail for the right reason. Writes no production code |
+| `vbench-tdd-green` | sonnet | The minimum code that makes that test pass. Never edits the test |
+| `vbench-tdd-refactor` | sonnet | Tidies code on green only, running the tests after each change. Behaviour does not change |
+| `vbench-spec-challenger` | opus | Read-only adversarial review of a use case and its requirements, criteria and ontology. Reports gaps, decides nothing |
+| `vbench-security-reviewer` | opus | Read-only review of a use case, its diagrams and decisions against OWASP and the OAuth BCP, using the generic checklists in `_vbench/standards/security/` (web, API, GenAI) and the project overlay `docs/standards/security-checklist.md`. Teaches what is wrong, why and the options |
+| `vbench-design-reviewer` | opus | Read-only review of a use case's design against DDD, ports and adapters and the AWS target. Teaches what is wrong, why and the options |
+
+**The three reviewers run together** (they are read-only and independent) after a use case, its diagrams, a requirement
+or a decision is written or changed: `vbench-uc`, `vbench-req` and the decision records end by running them. Each
+finding says what is wrong, why it matters and up to three options. They do not edit, and a person decides.
 
 They read the test, typecheck and lint commands from the `stacks` block of `vbench.json`.
 

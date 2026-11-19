@@ -1,0 +1,35 @@
+@startuml UC-A3-register-and-wait-for-approval-analysis-sequence
+!include ../../domain/diagrams/_style.puml
+hide footbox
+title UC-A3 Register and wait for approval (analysis: system sequence)
+' Analysis level (decision 9): the person, Playground as one box, and Keycloak as an outside system.
+' No route, store, port, adapter, token or cookie. Step numbers are the main flow numbers of UC-A3.
+' Not drawn: the name or email changing at Keycloak, and two first requests at the same moment (open in UC-A3).
+
+actor "Person" as P
+participant "Playground" as PG #E6F0FB
+participant "Keycloak\n(outside system)" as K #ECECEC
+
+== Register ==
+P -> PG : 1 ask to create an account
+PG --> P : 1 go to Keycloak to register
+P -> K : 2 name, email and password
+K --> P : 2 you are registered and signed in, go back to Playground
+P -> PG : 3 here I am (signed in as in UC-A1)
+
+== First request ==
+P -> PG : 4 ask for something
+alt Playground already knows the person
+  PG --> PG : 5 nothing new is made, name and email refreshed
+else Playground does not know the person
+  PG -> PG : 6 make an account, waiting for approval
+  note right of PG : an administrator account, active at once, only if the\nemail is on the setup list and Keycloak says it is verified
+  PG -> PG : 7 record "register" in the audit
+end
+
+alt the account is waiting for approval and the request is not for its own status
+  PG --> P : 8 refused, waiting for approval
+else the request is for its own status
+  PG --> P : 9 "Waiting for approval"
+end
+@enduml

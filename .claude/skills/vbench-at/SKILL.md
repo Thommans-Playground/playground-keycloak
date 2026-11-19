@@ -50,6 +50,18 @@ A test says which criterion it runs, in a comment or its name:
 Verifies AC-12 [reviewed 7a2439b]
 ```
 
+In pytest, use a marker for each criterion, which also lets `pytest -m AC_12` run them:
+
+```
+@pytest.mark.ac("AC-12", reviewed="7a2439b")
+```
+
+Only test files count, and a tag counts only in a test's title or in a comment directly above a test (in pytest,
+only the marker). A skipped test does not count. Use one tag for each criterion: a list such as `Verifies AC-5, AC-63`
+cannot carry a review hash and `stamp` refuses it. `stamp AC-5` never touches `AC-57`. The report also shows
+criteria deferred to R2 (notes start with `R2`), criteria covered only by the stack run, and rule tags
+(`@pytest.mark.rule("RULE-A3")`, `(Verifies RULE-A3)`) that name no rule, and rules with no test.
+
 The hash is a short fingerprint of the criterion (given, when, then, level), the same one `vbench-uc` keeps.
 If the criterion changes, the test is **stale** until a person checks it and runs `stamp`. A change to the
 criterion's `notes` does not count. Stamping is the act of review, so never stamp to make a warning go away.

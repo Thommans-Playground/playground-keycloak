@@ -242,19 +242,19 @@ def test_help_lists_every_skill_by_its_long_and_short_name():
 
 def test_every_agent_names_a_model_and_a_reviewer_cannot_write():
     agents = sorted((Path(__file__).resolve().parent.parent / "plugin" / "agents").glob("*.md"))
-    assert {a.stem for a in agents} >= {"trace-checker", "uc-scaffolder", "spec-challenger"}
+    assert {a.stem for a in agents} >= {"vbench-trace-checker", "vbench-uc-scaffolder", "vbench-spec-challenger"}
     for a in agents:
         head = a.read_text().split("---")[1]
         fields = dict(line.split(": ", 1) for line in head.strip().splitlines() if ": " in line)
         assert fields["name"] == a.stem and fields["description"] and fields["model"] in {"haiku", "sonnet", "opus"}
-        if a.stem in {"trace-checker", "spec-challenger"}:
+        if a.stem in {"vbench-trace-checker", "vbench-spec-challenger"}:
             assert not {"Write", "Edit"} & set(fields["tools"].replace(" ", "").split(",")), a.stem
 
 
 def test_design_cuts_tasks_as_slices_through_the_sequence_steps():
     plugin = SKILLS.parent
     design = (plugin / "skills/v-2-design/SKILL.md").read_text().lower()
-    challenger = (plugin / "agents/spec-challenger.md").read_text().lower()
+    challenger = (plugin / "agents/vbench-spec-challenger.md").read_text().lower()
     assert "thin slice" in design and "step" in design and "slice" in challenger and "step" in challenger
 
 

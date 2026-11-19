@@ -1,0 +1,31 @@
+@startuml UC-P2-manage-project-members-analysis-sequence
+!include ../../domain/diagrams/_style.puml
+hide footbox
+title UC-P2 Manage project members (analysis: system sequence)
+' Analysis level (decision 9): the person and Playground as one box. No outside system takes part.
+' Alpha scope (decision 13): only an administrator changes members, members and administrators see inside,
+' anyone else gets the same answer as for a project that does not exist. No project roles.
+' No route, store, port, adapter, token or cookie. Step numbers are the main flow numbers of UC-P2.
+' Not drawn: the affected person's next request (step 8).
+
+actor "Caller" as U
+participant "Playground" as PG #E6F0FB
+
+U -> PG : 1 open a project\nand its members
+U -> PG : 2 add or remove\n3 (add) the person
+alt neither a member nor\nan administrator
+  PG --> U : 4 same answer as\na missing project
+else a member, not an administrator
+  PG --> U : 4 refused
+else an administrator
+  alt person to add not active
+    PG --> U : 5 refused, one answer
+  else person to remove is not a member
+    PG --> U : refused
+  else
+    PG -> PG : 6 apply the change
+    PG -> PG : 7 record who, what, whom
+    PG --> U : updated members
+  end
+end
+@enduml

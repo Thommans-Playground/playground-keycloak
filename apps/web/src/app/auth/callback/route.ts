@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { isSignInFailed } from "@/application/sign-in";
+import { signInFailureCode } from "@/application/sign-in";
 import { app } from "@/composition";
 import { env, LOGIN_COOKIE, SESSION_COOKIE } from "@/lib/auth/config";
 import { cookieOptions } from "@/lib/auth/session";
@@ -20,6 +20,6 @@ export async function GET(request: NextRequest) {
     res.cookies.delete(LOGIN_COOKIE);
     return res;
   } catch (e) {
-    return fail(isSignInFailed(e) ? e.code : "login_failed");
+    return fail(signInFailureCode(e));
   }
 }

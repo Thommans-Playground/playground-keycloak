@@ -21,7 +21,7 @@ rectangle "Access (BC-ACCESS)" #F2F6FC {
   usecase "UC-A2\nSign out" as UCA2 COLOR_BUILT
   usecase "UC-A5\nView my name\nand role" as UCA5 COLOR_BUILT
   usecase "UC-A6\nKeep the session\nalive" as UCA6 COLOR_BUILT
-  usecase "UC-A4\nApprove, deactivate\nand reinstate an account" as UCA4 COLOR_BUILT
+  usecase "UC-A4\nApprove, deactivate, reinstate,\npromote and demote an account" as UCA4 COLOR_BUILT
 }
 
 UCA1 -[hidden]right-> UCA3

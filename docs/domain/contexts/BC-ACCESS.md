@@ -10,14 +10,16 @@ owns:
   - SET-2
 refers_to:
   - context: BC-PROJECTS
-    how: answers one question for it, through the AccountStatus port: is this account active?
+    how: answers one question for it, through the AccountStatus port (is this account active?)
+  - context: BC-AUDIT
+    how: writes every account change to it, through the AuditLog port, which the Audit context answers
 ports_needed:
   - name: AccountRepository
     answers: Find, add, save and list accounts.
     status: built
   - name: AuditLog
-    answers: Record who did what and why.
-    status: built
+    answers: Record who did what and why. Answered by the Audit context (BC-AUDIT), which owns the audit table and its read. Access no longer owns it.
+    status: built, to be moved to the Audit context (decision 14)
   - name: IdentityProvider
     answers: Enable or disable a person in Keycloak, and end their sessions.
     status: built
@@ -43,11 +45,11 @@ satisfies:
 
 It decides **who may use the product, and with what role**. Keycloak proves who a person is. Access keeps what Keycloak
 cannot know: the person's **account**, its **role** (user or administrator) and its **status** (pending, active or
-deactivated), and an audit trail of every change.
+deactivated). Every change is written to the audit trail, which the Audit context (BC-AUDIT) keeps (decision 14).
 
 Roles are kept in Playground, not in Keycloak. The token carries who the person is, and the account says what they hold.
 This holds for any way of signing in: Keycloak's own login now, or a company single sign-on later only proves who the
-person is, and no company group is mapped to a role. A project manager is a role inside one project, held by
+person is, and no company group is mapped to a role. There are no project roles in the alpha (decision 13). A project membership is held by
 [Projects](BC-PROJECTS.md).
 
 ## Its boundary
@@ -78,7 +80,7 @@ administrator approves (decision 2). The first administrator comes from setup.
 | Holds the password and the sign-in | Holds the account, the role and the status |
 | Signs the person in and out, and ends sessions | Checks the token, then finds the account, on every request |
 | Can require a second factor for administrators | Decides what each role may do |
-| Disables a person when told to | Tells it to, only with a reason and an audit entry |
+| Disables a person when told to | Tells it to, only with a reason and an audit entry sent to the Audit context |
 
 ## The rules it holds
 
@@ -120,15 +122,19 @@ so a deactivation does not wait for a token to expire. How the tokens, cookies a
 For the product owner to decide.
 
 1. Should an administrator need a second factor, set up in Keycloak?
-2. How long does a session last? The proposal is 30 minutes idle and 8 hours at most.
-3. How is an account matched to a person who signs in through a company login: by email, then the Keycloak id is
-   stored? And if an administrator's action changes Keycloak but not our database, what happens (Keycloak is called first,
-   so nothing changes on a Keycloak failure)?
+2. Decided: the Keycloak single sign-on session lasts 30 minutes idle and 8 hours at most (as the build spec states). The web session ends with it.
+3. Decided (decision 10): a person is matched by the Keycloak `sub`, never by email, which is an attribute. A new `sub`
+   with a known email becomes a second pending account. If an administrator's action changes Keycloak but not our
+   database: for a deactivation our database changes first and the deactivation stands if Keycloak fails, for a
+   reinstatement Keycloak is first, so a failure locks the person out.
 
 ## Built, and not yet built
 
 Built: the account with its role and status, the pending account made on first sight, approve, deactivate and reinstate
 with a reason, the audit entry, the token check, and the session kept on the web server.
 
-Not built: an administrator promoting or demoting an account through the application (the API has the actions, no
-screen), time-limited access, and company single sign-on.
+Planned for the alpha, not built (decision 14): the audit entry moving to the Audit context (BC-AUDIT), a deactivation
+that changes our database first and then Keycloak, and the last administrator check and the change as one step.
+
+Not built: time-limited access and company single sign-on. Promoting and demoting an account is built, in the API and
+in the admin accounts table (UC-A4).

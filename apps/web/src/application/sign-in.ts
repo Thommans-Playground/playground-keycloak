@@ -10,7 +10,7 @@ export type SignInDeps = {
   newId: () => string;
 };
 
-export type SignInFailure = "login_expired" | "login_refused" | "login_failed";
+export type SignInFailure = "login_expired" | "login_refused" | "login_failed" | "identity_provider_unavailable";
 
 export class SignInFailed extends Error {
   readonly code: SignInFailure;
@@ -27,10 +27,20 @@ export function isSignInFailed(e: unknown): e is SignInFailed {
   return e instanceof Error && e.name === "SignInFailed" && typeof (e as { code?: unknown }).code === "string";
 }
 
+/** The code a page can show for any error raised while signing in. */
+export function signInFailureCode(e: unknown): SignInFailure {
+  return isSignInFailed(e) ? e.code : "login_failed";
+}
+
 /** Make a login attempt, remember it, and say where to send the person. */
 export async function startLogin(deps: SignInDeps, input: { returnTo: string | null | undefined; register: boolean }) {
   const returnTo = safeReturnTo(input.returnTo);
-  const begun = await deps.idp.beginLogin({ register: input.register });
+  let begun;
+  try {
+    begun = await deps.idp.beginLogin({ register: input.register });
+  } catch {
+    throw new SignInFailed("identity_provider_unavailable"); // AC-44: nothing is kept, no session is made
+  }
   const attemptId = deps.newId();
   await deps.attempts.save(attemptId, {
     state: begun.state,

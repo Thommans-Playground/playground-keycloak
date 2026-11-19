@@ -1,0 +1,32 @@
+@startuml UC-A2-sign-out-analysis-sequence
+!include ../../domain/diagrams/_style.puml
+hide footbox
+title UC-A2 Sign out (analysis: system sequence)
+' Analysis level (decision 9): the person, Playground as one box, and Keycloak as an outside system.
+' No route, store, port, adapter, token or cookie. Step numbers are the main flow numbers of UC-A2.
+' Not drawn: saying on screen that Keycloak could not be reached (open in UC-A2), and a copy of an earlier
+' access token still passing until it expires (open in UC-A2).
+
+actor "Person" as P
+participant "Playground" as PG #E6F0FB
+participant "Keycloak\n(outside)" as K #ECECEC
+
+P -> PG : 1 ask to sign out
+alt a link or image on another site
+  PG --> P : nothing happens
+else the person asked to sign out
+  PG -> PG : 2 end my sign in\nwith Playground
+  alt Keycloak cannot be reached
+    PG --> P : 5 signed out,\nhome page
+  else
+    PG --> P : 3 go to Keycloak\nto end your sign in
+    P -> K : 3 end my sign in
+    K -> K : 4 end my sign in
+    K --> P : 4 back to home page
+    P -> PG : 5 home page
+    PG --> P : 5 you are signed out
+  end
+end
+P -> PG : 6 ask for something
+PG --> P : 6 sign in again
+@enduml
