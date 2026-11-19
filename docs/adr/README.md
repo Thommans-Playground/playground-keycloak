@@ -17,3 +17,4 @@ what, accepted risk) stay in [docs/domain/decisions.md](../domain/decisions.md).
 | [0005](0005-tests-tagged-with-markers.md) | Tests name the criterion or rule they prove |
 | [0006](0006-test-pyramid-and-isolated-stack.md) | A test pyramid, and an isolated stack for the top |
 | [0007](0007-ci-on-github-actions.md) | CI on GitHub Actions, with a fresh stack job |
+| [0008](0008-vcycle-report.md) | One deterministic V cycle report, no model |
