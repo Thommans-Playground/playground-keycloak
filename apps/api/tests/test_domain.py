@@ -29,13 +29,20 @@ def test_rule_a2_nobody_deactivates_or_demotes_themselves():
 
 
 @pytest.mark.rule("RULE-A1")
-@pytest.mark.ac("AC-51")
 def test_rule_a1_last_administrator_is_kept():
     actor, last = acct("a", Role.administrator), acct("b", Role.administrator)
     for action in (Action.deactivate, Action.demote):
         with pytest.raises(LastAdministrator):
             decide(action, actor, last, active_admins=1)
     assert decide(Action.demote, actor, last, active_admins=2).role is Role.user
+
+
+@pytest.mark.ac("AC-51")
+def test_the_only_administrator_cannot_demote_themselves():
+    # The actor IS the last administrator and the target. Two rules refuse it (A2 first, A1 behind it): an administrator remains.
+    only = acct("a", Role.administrator)
+    with pytest.raises((CannotChangeSelf, LastAdministrator)):
+        decide(Action.demote, only, only, active_admins=1)
 
 
 @pytest.mark.ac("AC-66")

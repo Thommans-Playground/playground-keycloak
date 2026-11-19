@@ -8,7 +8,7 @@ guardStack();
 
 const path = (location: string) => new URL(location, config.appUrl);
 
-itest("a new person signs in and lands on /dashboard with a session cookie that holds no token (Verifies AC-1, AC-41)", async () => {
+itest("a new person signs in and lands on /dashboard with a session cookie that holds no token (Verifies AC-1) (Verifies AC-41)", async () => {
   const user = await throwaway();
   const s = await signIn(user);
   assert.equal(path(s.location).origin, config.appUrl);
@@ -24,7 +24,62 @@ itest("a new person signs in and lands on /dashboard with a session cookie that 
   }
 });
 
-itest("a new person is one pending account, and everything but /me is refused (Verifies AC-3, AC-4)", async () => {
+itest("a pending person who signs in lands on the waiting page (Verifies AC-47)", async () => {
+  const user = await throwaway();
+  const s = await signIn(user);
+  const page = await http(`${config.appUrl}/dashboard`, { jar: s.jar });
+  assert.equal(page.status, 200);
+  assert.match(await page.text(), /Waiting for approval/);
+});
+
+// Not tagged AC-41: that criterion says the browser holds no token, not which flags the cookie has.
+itest("the session cookie is HttpOnly, SameSite=Lax and for the whole site", async () => {
+  const user = await throwaway();
+  // A sign in by hand, to read the raw Set-Cookie lines of the callback.
+  const login = new CookieJar();
+  const begin = await http(`${config.appUrl}/auth/login`, { jar: login });
+  const kc = await loginAtKeycloak(begin.headers.get("location")!, login, user);
+  assert.equal(kc.kind, "callback");
+  if (kc.kind !== "callback") return;
+  const back = await http(kc.url, { jar: login });
+  const lines = back.headers.getSetCookie();
+  const session = lines.find((l) => l.startsWith("playground_session="));
+  assert.ok(session, "the callback sets the session cookie");
+  assert.match(session, /;\s*HttpOnly/i);
+  assert.match(session, /;\s*SameSite=Lax/i);
+  assert.match(session, /;\s*Path=\//i);
+  assert.doesNotMatch(session, /;\s*Secure/i, "http://localhost: Secure follows an https APP_URL only");
+});
+
+// Not a criterion: the one use login cookie must not outlive the callback.
+itest("the callback deletes the login cookie", async () => {
+  const user = await throwaway();
+  const jar = new CookieJar();
+  const begin = await http(`${config.appUrl}/auth/login`, { jar });
+  assert.ok(jar.cookie(config.appUrl, "playground_login"), "the login cookie was set");
+  const kc = await loginAtKeycloak(begin.headers.get("location")!, jar, user);
+  assert.equal(kc.kind, "callback");
+  if (kc.kind !== "callback") return;
+  const back = await http(kc.url, { jar });
+  const gone = back.headers.getSetCookie().find((l) => l.startsWith("playground_login="));
+  assert.ok(gone, "the callback answers with a Set-Cookie for the login cookie");
+  const value = gone.split(";")[0].split("=")[1];
+  const expires = gone.match(/expires=([^;]+)/i)?.[1];
+  assert.ok(value === "" || (expires !== undefined && Date.parse(expires) < Date.now()) || /max-age=0/i.test(gone), `cleared: ${gone}`);
+  assert.equal(jar.cookie(config.appUrl, "playground_login"), undefined);
+});
+
+// Not a criterion: the quick gate in proxy.ts. The page also redirects when it has no session, but it forgets the query:
+// only the gate keeps "?x=1" in returnTo, so this fails if the gate is off.
+itest("the dashboard with no session cookie redirects to the login page, keeping the query (the proxy gate)", async () => {
+  const res = await http(`${config.appUrl}/dashboard?x=1`);
+  assert.ok(res.status >= 300 && res.status < 400, `got ${res.status}`);
+  const to = new URL(res.headers.get("location")!, config.appUrl);
+  assert.equal(to.pathname, "/auth/login");
+  assert.equal(to.searchParams.get("returnTo"), "/dashboard?x=1");
+});
+
+itest("a new person is one pending account, and everything but /me is refused (Verifies AC-3) (Verifies AC-4)", async () => {
   const user = await throwaway();
   const { jar } = await signIn(user);
   const first = await backend(jar, "GET", "me");

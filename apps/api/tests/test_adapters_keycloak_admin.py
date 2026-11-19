@@ -41,8 +41,7 @@ def calls(kc):
     return [(r.method, r.url.path) for r in kc.requests]
 
 
-# the person is disabled at Keycloak
-@pytest.mark.ac("AC-6")
+# the person is disabled at Keycloak: the Keycloak half of AC-6, proved end to end in integration/test_keycloak_admin_real.py
 def test_disable_gets_the_user_then_puts_the_whole_user_with_enabled_false():
     kc = Kc()
     kc.admin().disable_user("sub-1")
@@ -54,8 +53,7 @@ def test_disable_gets_the_user_then_puts_the_whole_user_with_enabled_false():
     assert kc.requests[1].headers["Authorization"] == "Bearer tok-1"
 
 
-# the person is enabled again at Keycloak
-@pytest.mark.ac("AC-7")
+# the person is enabled again at Keycloak: the Keycloak half of AC-7, proved end to end in integration/test_keycloak_admin_real.py
 def test_enable_puts_the_whole_user_with_enabled_true():
     kc = Kc()
     kc.admin().enable_user("sub-1")

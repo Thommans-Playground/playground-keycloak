@@ -49,9 +49,33 @@ def test_name_and_email_follow_the_token_but_identity_is_the_link(client):
     assert new["id"] == old["id"] and new["email"] == "renamed@x.test" and new["name"] == "New"
 
 
+# FR-4: an approved ordinary user is refused all five commands, and the target stays as it was
+@pytest.mark.ac("AC-63")
+def test_an_ordinary_user_is_refused_all_five_commands(client, admin, idp):
+    actor, actor_id = register(client, "sub-actor", "actor@x.test")
+    assert client.post(f"/accounts/{actor_id}/approve", headers=admin).status_code == 200
+    _, target_id = register(client, "sub-target", "target@x.test")
+    idp.calls.clear()
+    for action in ("approve", "deactivate", "reinstate", "promote", "demote"):
+        r = client.post(f"/accounts/{target_id}/{action}", headers=actor, json={"reason": "Not allowed to"})
+        assert r.status_code == 403, action
+    shown = next(a for a in client.get("/accounts", headers=admin).json() if a["id"] == target_id)
+    assert (shown["status"], shown["role"]) == ("pending", "user")
+    assert idp.calls == [], "nothing reached Keycloak"
+
+
+# decision 10: identity is the sub, never the email. No criterion; this kills the mutation "match by email".
+def test_a_known_email_with_a_new_sub_does_not_take_over_the_account(client):
+    first = client.get("/me", headers=auth("sub-one", "same@x.test", name="First")).json()
+    second = client.get("/me", headers=auth("sub-two", "same@x.test", name="Second")).json()
+    assert second["id"] != first["id"], "a second account, not the first one"
+    assert second["status"] == "pending" and second["role"] == "user"
+    again = client.get("/me", headers=auth("sub-one", "same@x.test", name="First")).json()
+    assert again == first, "the first account is unchanged"
+
+
 # approving does not call Keycloak, and a user cannot approve
 @pytest.mark.ac("AC-5")
-@pytest.mark.ac("AC-63")
 def test_administrator_approves_and_member_cannot(client, admin, idp):
     maya, maya_id = register(client, "sub-maya", "maya@x.test")
     bob, bob_id = register(client, "sub-bob", "bob@x.test")

@@ -34,7 +34,6 @@ def test_a_new_person_gets_a_pending_account(api, throwaway_user):
     assert body["email"] == throwaway_user.email
 
 
-@pytest.mark.ac("AC-63")
 def test_a_non_administrator_cannot_list_accounts(api, throwaway_user):
     r = api.get("/accounts", headers=bearer(login(throwaway_user)))
     assert r.status_code == 403
@@ -52,6 +51,23 @@ def test_no_token_or_a_garbage_token_is_401(api, headers):
 def test_the_administrator_can_list_accounts(api, admin_token):
     r = api.get("/accounts", headers=bearer(admin_token))
     assert r.status_code == 200
+
+
+@pytest.mark.ac("AC-63")
+def test_an_ordinary_user_is_refused_all_five_commands(api, admin_token, throwaway_user):
+    actor_token = login(throwaway_user)
+    actor_id = api.get("/me", headers=bearer(actor_token)).json()["id"]
+    assert api.post(f"/accounts/{actor_id}/approve", headers=bearer(admin_token), json={"reason": "integration test"}).status_code == 200
+    target = helpers.create_user()
+    try:
+        target_id = api.get("/me", headers=bearer(login(target))).json()["id"]
+        for action in ("approve", "deactivate", "reinstate", "promote", "demote"):
+            r = api.post(f"/accounts/{target_id}/{action}", headers=bearer(actor_token), json={"reason": "integration test"})
+            assert r.status_code == 403, action
+        shown = next(a for a in api.get("/accounts", headers=bearer(admin_token)).json() if a["id"] == target_id)
+        assert (shown["status"], shown["role"]) == ("pending", "user")
+    finally:
+        helpers.delete_user(target.id)
 
 
 @pytest.mark.ac("AC-5")

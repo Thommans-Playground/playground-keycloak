@@ -54,6 +54,12 @@ itest("a callback with another state is refused (Verifies AC-39)", async () => {
   await assert.rejects(idp.completeLogin(callbackUrl, attempt));
 });
 
+itest("a callback for another nonce is refused", async () => {
+  const idp = newIdp();
+  const { attempt, callbackUrl } = await realCallback(idp);
+  await assert.rejects(idp.completeLogin(callbackUrl, { ...attempt, nonce: "not-the-nonce" }));
+});
+
 itest("the same code used twice is refused the second time (Verifies AC-39)", async () => {
   const idp = newIdp();
   const { attempt, callbackUrl } = await realCallback(idp);

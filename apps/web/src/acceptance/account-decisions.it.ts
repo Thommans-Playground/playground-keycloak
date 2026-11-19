@@ -26,7 +26,7 @@ async function activePerson() {
   return { ...p, admin };
 }
 
-itest("an administrator approves a pending account: the next request is active, with no change in Keycloak (Verifies AC-5, AC-47)", async () => {
+itest("an administrator approves a pending account: the next request is active, with no change in Keycloak (Verifies AC-5)", async () => {
   const p = await pendingPerson();
   const admin = await adminSignIn();
   const before = await backend(p.jar, "GET", "accounts");
@@ -54,9 +54,14 @@ itest("a user who is not an administrator is refused every decision and the acco
   const me = await backend(target.jar, "GET", "me");
   assert.equal(me.json.status, "pending");
   assert.equal(me.json.role, "user");
+  // and the administrator sees the same: the target is as it was
+  const admin = await adminSignIn();
+  const list = await backend(admin, "GET", "accounts");
+  const shown = list.json.find((a: { id: string }) => a.id === target.id);
+  assert.deepEqual([shown.status, shown.role], ["pending", "user"]);
 });
 
-itest("deactivate: no reason is refused; with a reason the person is refused at once and cannot sign in (Verifies AC-6, AC-64)", async () => {
+itest("deactivate: no reason is refused; with a reason the person is refused at once and cannot sign in (Verifies AC-6) (Verifies AC-64)", async () => {
   const p = await activePerson();
   for (const body of [undefined, {}, { reason: "" }, { reason: "   " }]) {
     const res = await backend(p.admin, "POST", `accounts/${p.id}/deactivate`, body);
@@ -82,7 +87,19 @@ itest("deactivate: no reason is refused; with a reason the person is refused at 
   }
 });
 
-itest("reinstate: no reason is refused; with a reason the person can use the product again (Verifies AC-57, AC-7)", async () => {
+itest("a deactivated person with a still valid session opens the dashboard: refused, and the page says so (Verifies AC-67)", async () => {
+  const p = await activePerson();
+  assert.equal((await backend(p.admin, "POST", `accounts/${p.id}/deactivate`, { reason: REASON })).status, 200);
+  // the session cookie in p.jar is untouched: the person still holds it
+  const page = await http(`${config.appUrl}/dashboard`, { jar: p.jar });
+  assert.equal(page.status, 200);
+  assert.match(await page.text(), /Your account is deactivated/);
+  const me = await backend(p.jar, "GET", "me");
+  assert.equal(me.status, 403);
+  assert.equal(me.code, "account_deactivated");
+});
+
+itest("reinstate: no reason is refused; with a reason the person can use the product again (Verifies AC-57) (Verifies AC-7)", async () => {
   const p = await activePerson();
   assert.equal((await backend(p.admin, "POST", `accounts/${p.id}/deactivate`, { reason: REASON })).status, 200);
 
