@@ -2,7 +2,7 @@
 id: RULE-P1
 type: rule
 name: A project always has a manager
-status: draft
+status: draft  # parked by decision 13: not in the alpha
 object: OBJ-P1
 statement: "A change that would leave a project with no project manager is refused."
 proved_by: []
@@ -10,6 +10,8 @@ satisfies:
   - id: FR-7
   - id: FR-10
 ```
+
+> Parked by decision 13: not in the alpha. Brought back with role based access in a later release.
 
 # A project always has a manager
 

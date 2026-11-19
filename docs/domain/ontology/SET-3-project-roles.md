@@ -2,7 +2,7 @@
 id: SET-3
 type: set
 name: Project roles
-status: draft
+status: draft  # parked by decision 13: not in the alpha
 ordered: false
 comment: What a person is in one project. Names only in the first cut.
 values:
@@ -11,8 +11,7 @@ values:
 meanings:
   project manager: Does everything an engineer does in the project, and also keeps its members.
   engineer: Works with the project's files, endpoints and evaluations.
-used_by:
-  - OBJ-P2
+used_by: []  # OBJ-P2 does not use it in the alpha
 questions:
   - Who keeps the members of this project?
   - Is this person a manager of any project?
@@ -20,6 +19,8 @@ satisfies:
   - id: FR-9
   - id: FR-12
 ```
+
+> Parked by decision 13: not in the alpha. Brought back with role based access in a later release.
 
 # Project roles
 

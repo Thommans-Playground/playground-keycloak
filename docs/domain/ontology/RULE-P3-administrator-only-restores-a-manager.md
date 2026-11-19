@@ -2,7 +2,7 @@
 id: RULE-P3
 type: rule
 name: An administrator only restores a manager
-status: draft
+status: draft  # parked by decision 13: not in the alpha
 object: OBJ-P2
 statement: "An administrator may add a project manager to a project that has no active project manager, and may change its members in no other way."
 proved_by: []
@@ -10,6 +10,8 @@ satisfies:
   - id: FR-8
   - id: FR-11
 ```
+
+> Parked by decision 13: not in the alpha. Brought back with role based access in a later release.
 
 # An administrator only restores a manager
 

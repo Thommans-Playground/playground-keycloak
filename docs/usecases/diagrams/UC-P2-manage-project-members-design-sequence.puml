@@ -3,31 +3,26 @@
 hide footbox
 title UC-P2 Manage project members (design sequence, planned)
 ' Design level (decision 9). The analysis level is UC-P2-manage-project-members-analysis-sequence.puml.
+' Alpha scope (decision 13): administrator changes members, no project roles.
 ' Step ids are the main flow numbers of UC-P2. Not built yet.
-' An administrator may only add a manager to a project with no active manager, and never themselves.
 
 actor "Caller" as U
 participant "API" as A #E6F0FB
 participant "Projects" as P #E7F4EA
-participant "Account\n(Access)" as C #E7F4EA
+participant "Access" as C #E7F4EA
 
-U -> A : 2 add, change or remove
-A -> P : 4 caller's role in this project
-alt caller is not a manager here
-  alt administrator adds a manager, none is active,\nperson is not the caller
-    A -> C : 5 active account?
-    A -> P : 7 add the manager + 8 audit
-    A --> U : updated member list
-  else anything else
-    A --> U : refused
-  end
-else
-  A -> C : 5 active account? (add only)
-  A -> P : 6 would a manager remain?
-  alt not active, or last manager lost
+U -> A : 2 add or remove
+A -> P : 4 member?\nrole?
+alt neither a member nor an administrator
+  A --> U : 4 same answer as\na missing project
+else a member, not an administrator
+  A --> U : 4 refused
+else an administrator
+  A -> C : 5 active account?\n(add only)
+  alt not active, or not a member (remove)
     A --> U : refused
   else
-    A -> P : 7 apply + 8 audit entry
+    A -> P : 6 apply\n7 audit entry
     A --> U : updated member list
   end
 end

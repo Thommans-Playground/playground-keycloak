@@ -3,34 +3,30 @@
 hide footbox
 title UC-P1 Create a project (design sequence, planned)
 ' Design level (decision 9). The analysis level is UC-P1-create-a-project-analysis-sequence.puml.
+' Alpha scope (decision 13): administrator only, no project roles.
 ' Step ids are the main flow numbers of UC-P1. Not built yet.
 
-actor "Administrator\nor manager" as U
+actor "Administrator" as U
 participant "API" as A #E6F0FB
-participant "Account\n(Access)" as C #E7F4EA
+participant "Access" as C #E7F4EA
 participant "Projects" as P #E7F4EA
-database "Database" as D #ECECEC
+database "DB" as D #ECECEC
 
-U -> A : 1 create project (name, manager)
-A -> C : 2 caller's account and role
-A -> P : 2 does the caller manage a project?
-alt not an administrator and no project managed
-  A --> U : refused
+U -> A : 1 create project\n(name, members)
+A -> C : 2 caller's\nrole
+alt not an administrator
+  A --> U : 2 refused
+else name empty or over 100
+  A --> U : 3 refused
 else
-  alt name is empty
-    A --> U : 3 refused
-  else administrator
-    A -> C : 4 manager has an active account?
-    alt no manager named or not active
-      A --> U : 4 refused
-    else
-      A -> P : 5 create project, manager = named person
-    end
-  else project manager
-    A -> P : 5 create project, manager = caller
+  A -> C : 4 members\nactive?
+  alt a first member is not active
+    A --> U : 4 refused
+  else
+    A -> P : 5 create project
+    P -> D : 5 save
+    A -> D : 6 audit entry
+    A --> U : 7 the new project
   end
 end
-P -> D : 5 save project and its manager
-A -> D : 6 audit entry
-A --> U : 7 the new project
 @enduml

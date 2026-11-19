@@ -2,13 +2,15 @@
 id: RULE-P2
 type: rule
 name: An administrator never joins a project by being an administrator
-status: draft
+status: draft  # parked by decision 13: not in the alpha
 object: OBJ-P2
 statement: "An administrator does not become a member of a project they create, and cannot add themselves to one."
 proved_by: []
 satisfies:
   - id: FR-8
 ```
+
+> Parked by decision 13: not in the alpha. Brought back with role based access in a later release.
 
 # An administrator never joins a project by being an administrator
 
