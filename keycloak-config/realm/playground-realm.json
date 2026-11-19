@@ -32,7 +32,7 @@
       "webOrigins": [],
       "attributes": {
         "pkce.code.challenge.method": "S256",
-        "post.logout.redirect.uris": "http://localhost:3000/*"
+        "post.logout.redirect.uris": "http://localhost:3000/"
       },
       "defaultClientScopes": ["web-origins", "acr", "profile", "roles", "basic", "email"],
       "protocolMappers": [
