@@ -54,15 +54,15 @@ evolved_from: [MK3 UC-A3]
 
 **FR-8**: The system shall not give an administrator access to a project's contents by their role.
 
-**FR-9**: The system shall let a project manager add, change the role of and remove members of their project, adding only people with an active account.
+**FR-9**: The system shall let an administrator add and remove members of a project, adding only people with an active account.
 
 **FR-10**: The system shall refuse a removal or demotion that would leave a project with no active project manager.
 
 **FR-11**: The system shall let an administrator add a project manager to a project that has no active project manager, with a reason, and only a person with an active account who is not an administrator.
 
-**FR-12**: The system shall show a project's contents and member list only to its members, and answer anyone else as for a project that does not exist.
+**FR-12**: The system shall show a project's contents and member list only to its members and to administrators, and answer anyone else as for a project that does not exist.
 
-**FR-13**: The system shall record an audit entry for every project creation, every change to a project's members, and every refused attempt by an administrator to change them.
+**FR-13**: The system shall record an audit entry for every project creation and every change to a project's members.
 
 ## Acceptance criteria it runs
 
@@ -74,14 +74,14 @@ evolved_from: [MK3 UC-A3]
 
 **AC-17** (acceptance, proves FR-9)
 
-- Given a manager and an active account
-- When the manager adds that person as an engineer
-- Then they are a member with that role
+- Given an administrator and an active account
+- When the administrator adds that person to a project
+- Then they are a member
 
 **AC-18** (acceptance, proves FR-9)
 
-- Given a manager and an account that is pending, deactivated or unknown
-- When the manager adds it
+- Given an administrator and an account that is pending, deactivated or unknown
+- When the administrator adds it
 - Then it is refused, with one answer for all three
 
 **AC-19** (acceptance, proves FR-9)
@@ -93,7 +93,7 @@ evolved_from: [MK3 UC-A3]
 **AC-20** (acceptance, proves FR-9)
 
 - Given a member of a project
-- When their manager removes them
+- When an administrator removes them
 - Then they are out, and their next request gets the same answer as for a missing project
 
 **AC-21** (unit, proves FR-10)
@@ -132,11 +132,11 @@ evolved_from: [MK3 UC-A3]
 - When a non-member asks about, or changes the members of, either
 - Then the answer is the same for both
 
-**AC-30** (acceptance, proves FR-13; FR-11)
+**AC-30** (acceptance, proves FR-13)
 
 - Given a project
-- When a member is added, changed or removed, or a manager is restored with a reason
-- Then each has an entry saying who, what and whom, and the reason for a restore
+- When a member is added or removed
+- Then each has an entry saying who, what and whom
 
 **AC-31** (acceptance, proves FR-13)
 

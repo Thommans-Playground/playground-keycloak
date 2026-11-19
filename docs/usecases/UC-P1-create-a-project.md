@@ -40,29 +40,29 @@ evolved_from: []
 
 ## What this serves
 
-**FR-7**: The system shall let an administrator or a project manager create a project, which has a manager from the start.
+**FR-7**: The system shall let an administrator create a project and name its first members.
 
 **FR-8**: The system shall not give an administrator access to a project's contents by their role.
 
-**FR-13**: The system shall record an audit entry for every project creation, every change to a project's members, and every refused attempt by an administrator to change them.
+**FR-13**: The system shall record an audit entry for every project creation and every change to a project's members.
 
 ## Acceptance criteria it runs
 
 **AC-9** (acceptance, proves FR-7)
 
 - Given an administrator and an active account
-- When they create a project naming that account as manager
-- Then the project exists and that person is its manager
+- When they create a project naming that account as a first member
+- Then the project exists and that person is a member
 
 **AC-10** (acceptance, proves FR-7)
 
-- Given a person who manages a project
-- When they create a project
-- Then it exists and they are its manager
+- Given an administrator
+- When they create a project naming themselves as a first member
+- Then it exists and they are a member
 
 **AC-11** (acceptance, proves FR-7)
 
-- Given a person who manages no project and is not an administrator
+- Given a user who is not an administrator
 - When they try to create a project
 - Then it is refused
 
@@ -75,8 +75,8 @@ evolved_from: []
 **AC-13** (acceptance, proves FR-7)
 
 - Given an administrator
-- When they create a project naming no manager, or one who is not active or does not exist
-- Then it is refused, with one answer for an account that cannot be a manager
+- When they create a project naming a first member who is not active or does not exist
+- Then it is refused, with one answer for an account that cannot be a member
 
 **AC-14** (acceptance, proves FR-8)
 
@@ -94,7 +94,7 @@ evolved_from: []
 
 - Given a project
 - When it is created
-- Then an audit entry says who created it and who its manager is
+- Then an audit entry says who created it and who its first members are
 
 **AC-32** (acceptance, proves NFR-1)
 
