@@ -11,7 +11,7 @@
 | AC-5 | FR-4 | a pending account | an administrator approves it | the person's next request to a protected route succeeds, with no change made in Keycloak | acceptance | draft |  |
 | AC-6 | FR-4 | an active account | an administrator deactivates it, with a reason | the person cannot sign in at Keycloak, and their next request is refused even with a valid token | acceptance | draft |  |
 | AC-7 | FR-4 | a deactivated account | an administrator reinstates it, with a reason | the person can use the product again, with their data and memberships, and is enabled in Keycloak | acceptance | draft |  |
-| AC-8 | FR-5 | a signed-in person | they open their profile | it shows their name and role | acceptance | draft |  |
+| AC-8 | FR-5 | a signed-in person | they open the dashboard | it shows their name and role | acceptance | draft |  |
 | AC-9 | FR-7 | an administrator and an active account | they create a project naming that account as a first member | the project exists and that person is a member | acceptance | draft |  |
 | AC-10 | FR-7 | an administrator | they create a project naming themselves as a first member | it exists and they are a member | acceptance | draft |  |
 | AC-11 | FR-7 | a user who is not an administrator | they try to create a project | it is refused | acceptance | draft |  |
@@ -66,3 +66,11 @@
 | AC-60 | FR-9 | a member of a project who is not an administrator | they try to add or remove a member | it is refused | acceptance | draft |  |
 | AC-61 | FR-3 | an active administrator exists, and a new person whose email is the setup email, verified | they make their first request | they get a pending account, not an administrator account | acceptance | draft |  |
 | AC-62 | FR-14 | two administrators | each demotes the other at the same moment | one is refused and an administrator remains | acceptance | draft |  |
+| AC-63 | FR-4 | a user who is not an administrator | they try to approve, deactivate, reinstate, promote or demote an account | each is refused and the account stays as it was | acceptance | draft |  |
+| AC-64 | FR-4 | an administrator | they deactivate, promote or demote an account without a reason | it is refused and the account stays as it was | acceptance | draft |  |
+| AC-65 | FR-4 | an administrator | they try to deactivate their own account, or the last active administrator | it is refused | acceptance | draft |  |
+| AC-66 | FR-4 | an account in the wrong state | an administrator approves a non-pending one, promotes a non-user, demotes a non-administrator or reinstates a non-deactivated one | it is refused | unit | draft |  |
+| AC-67 | FR-4 | a deactivated account whose person holds a valid token | they open the dashboard | the request is refused and the page says the account is deactivated | acceptance | draft |  |
+| AC-68 | FR-17 | a user who is not an administrator | they ask for the audit trail | it is refused | acceptance | draft |  |
+| AC-69 | FR-17 | no account or project change yet | an administrator opens the audit trail | it is empty and is not an error | acceptance | draft |  |
+| AC-70 | FR-17 | a person who was renamed after a change they made | an administrator opens the audit trail | the entry still shows the name they had at the time | acceptance | draft |  |
