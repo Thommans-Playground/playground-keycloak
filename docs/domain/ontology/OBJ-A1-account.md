@@ -27,7 +27,7 @@ properties:
   - name: status
     type: SET-2
     required: true
-    comment: Pending, active or deactivated. A new account starts pending, except the first administrator.
+    comment: Pending, active or deactivated. A new account starts pending, except the first administrator, and only while no active administrator exists.
   - name: created
     type: date
     required: true
@@ -102,7 +102,13 @@ stateDiagram-v2
 
 An account is never deleted. It is made the first time Playground sees a person who has signed in at Keycloak,
 and it waits as **pending** until an administrator approves it (decision 2). Registering is Keycloak's. The first
-administrator comes from the setup and starts active.
+administrator comes from the setup and starts active. That setup rule applies **only while no active administrator
+exists** (decision 14): after that, a person with the setup email is a pending account like anyone else.
+
+Every change of an account (approve, deactivate, reinstate, promote, demote) is written as an audit entry to the Audit
+context ([BC-AUDIT](../contexts/BC-AUDIT.md)) through the AuditLog port. The account does not keep the audit itself.
+Deactivating and reinstating need a reason, and so do promoting and demoting; an approval does not
+([RULE-A3](RULE-A3-account-change-needs-a-reason.md)).
 
 ## Good to know
 

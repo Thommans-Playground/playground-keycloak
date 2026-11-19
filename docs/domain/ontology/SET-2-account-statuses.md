@@ -37,7 +37,9 @@ stateDiagram-v2
 ```
 
 The first administrator is the exception: an email named in the setup becomes an **active** administrator on its
-first request, if Keycloak says the email is verified.
+first request, if Keycloak says the email is verified, and only while no active administrator exists (decision 14). Once one exists, the same email makes a pending account.
+
+A reinstatement needs a reason, like a deactivation (RULE-A3). An approval does not.
 
 Deactivating also disables the person in Keycloak and ends their sessions, so a token they already hold stops
 working at their very next request. What deactivation leaves alone is in
