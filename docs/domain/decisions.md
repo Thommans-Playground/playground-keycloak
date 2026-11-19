@@ -428,6 +428,8 @@ supersedes decision 3 where they differ.
 - **Accounts arrive in two ways.** A person signs up and waits as pending until an administrator approves. Or an
   administrator creates the account in Keycloak with a temporary password and the "update password" action, and the
   person changes it at first sign in. The second way needs no code of ours.
+- **Administrators can promote a user to administrator and demote another administrator.** The last administrator
+  is protected (RULE-A1: there is always one), and an administrator does not change themselves (RULE-A2).
 - **Projects, endpoints and evaluations stay as the structure of the product.**
 
 **Superseded from decision 3.** Two project roles (manager and engineer), "a project always has a manager",
@@ -451,8 +453,6 @@ criteria to R2, rework UC-P1 and UC-P2 (create a project, manage members) for th
 "promote to administrator" to UC-A4 or a new use case, and update OBJ-P1, OBJ-P2, SET-3, RULE-P4 and BC-PROJECTS.
 
 **Still open.**
-- Whether an administrator can demote another administrator, and whether the last administrator is protected
-  (RULE-A1 already says there is always one).
 - Whether promoting to administrator needs a reason and an audit entry, as RULE-A3 asks for account changes.
 - Whether a project must keep at least one member.
 - Whether the superuser also runs evaluations in every project, or only reads.
