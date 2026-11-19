@@ -16,7 +16,7 @@ properties:
   - name: added by
     type: Account
     required: true
-    comment: The administrator who added them. Open what it holds for a first member named when the project is created.
+    comment: The administrator who added them. For a first member named when the project is created it is the creator (decision 14).
 links:
   - domain: Membership
     property: is of
@@ -88,4 +88,4 @@ The change takes effect at the person's next request, because membership is read
 
 ## Not yet a file
 
-Whether removing a member needs a reason is open. For now only an audit entry is required. Also open: what `added by` holds for a first member named when a project is created (the administrator, or empty).
+Removing or adding a member needs no reason, only an audit entry (decision 14). For a first member named when a project is created, `added by` is the creator.

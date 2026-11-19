@@ -1,29 +1,58 @@
 @startuml UC-P2-manage-project-members-design-sequence
 !include ../../domain/diagrams/_style.puml
 hide footbox
+skinparam sequenceMessageAlign left
+skinparam maxMessageSize 100
+skinparam ParticipantPadding 6
 title UC-P2 Manage project members (design sequence, planned)
-' Design level (decision 9). The analysis level is UC-P2-manage-project-members-analysis-sequence.puml.
-' Alpha scope (decision 13): administrator changes members, no project roles.
-' Step ids are the main flow numbers of UC-P2. Not built yet.
+' Design level (decision 9), drawn against docs/domain/diagrams/projects-design.puml (decisions 13 and 14).
+' The analysis level is UC-P2-manage-project-members-analysis-sequence.puml.
+' Step ids are the main flow numbers of UC-P2. PLANNED, NOT BUILT.
+' Before step 2 the composition root runs the full check (token, account found, not deactivated, not pending)
+' and builds the Caller. That check is the account routes' check and is not drawn.
+' Order: may see (404), then may change (403), then the input (422). Authorisation comes before validation.
+' Opening the member list (step 1) is UC-P3. Not drawn: adding a person who is already a member, which changes
+' nothing and writes no entry.
+' Steps 6 and 7 are one transaction: SqlProjects and the AuditLog adapter share one database session.
+' Answers are mapped to HTTP in main.py: ProjectNotFound 404, NotAnAdministrator 403, MemberNotEligible 422.
 
-actor "Caller" as U
-participant "API" as A #E6F0FB
-participant "Projects" as P #E7F4EA
-participant "Access" as C #E7F4EA
+actor "Caller\n(person)" as U
+participant "Projects-\nService" as S #E7F4EA
+participant "Project-\nRepository" as R #EEE7F7
+participant "Project-\nRules" as PR #FFE6CC
+participant "Project" as J #FFE6CC
+participant "Account-\nStatus" as AS #EEE7F7
+participant "AuditLog" as AL #EEE7F7
 
-U -> A : 2 add or remove
-A -> P : 4 member?\nrole?
-alt neither a member nor an administrator
-  A --> U : 4 same answer as\na missing project
-else a member, not an administrator
-  A --> U : 4 refused
-else an administrator
-  A -> C : 5 active account?\n(add only)
-  alt not active, or not a member (remove)
-    A --> U : refused
-  else
-    A -> P : 6 apply\n7 audit entry
-    A --> U : updated member list
+U -> S : 2 add_member or remove_member\n(caller, project_id, account_id)
+S -> R : 4 get(project_id)
+R --> S : the project, or none
+S -> PR : 4 may_see(caller, project)
+alt no project, or neither a member\nnor an administrator
+  S --> U : 4 ProjectNotFound (404, the same for both)
+else
+  S -> PR : 4 may_change_members(caller)
+  alt a member, not an administrator
+    S --> U : 4 NotAnAdministrator (403)
+  else add
+    S -> AS : 5 active_among({account_id})
+    alt not active, or unknown
+      S --> U : 5 MemberNotEligible (422)
+    else
+      S -> J : 6 add_member(account_id, added_by)
+      S -> R : 6 save(project)
+      S -> AL : 7 record(who, member added, whom)
+      S --> U : updated member list
+    end
+  else remove
+    S -> J : 6 remove_member(account_id)
+    alt not a member (a Projects rule,\nAccountStatus is not asked)
+      S --> U : 6 MemberNotEligible (422)
+    else
+      S -> R : 6 save(project)
+      S -> AL : 7 record(who, member removed, whom)
+      S --> U : updated member list
+    end
   end
 end
 @enduml

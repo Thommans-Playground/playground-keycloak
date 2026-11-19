@@ -1,0 +1,119 @@
+@startuml projects-design
+!include _style.puml
+title Playground Projects: ports and adapters (planned, not built)
+' palette: boundary=blue · service=green · domain=amber · port=lavender · adapter/infra=gray
+' PLANNED, NOT BUILT: every box on this page. Written from decisions 13 and 14, before any code (apps/api/app/projects/).
+' Same shape as access-design.puml: domain/ is pure, ports.py holds the ports, service.py the use cases,
+' adapters/ the SQL one. main.py (the composition root) builds the Caller and wires the three adapters.
+' It is the design shared by UC-P1, UC-P2 and UC-P3.
+' Projects imports neither Access nor Audit. The AccountStatus adapter and the AuditLog adapter are wired in the
+' composition root to Access (BC-ACCESS) and Audit (BC-AUDIT), so no context imports another (decision 14).
+' Not drawn: the route functions, and the full check (token, account found, not deactivated, not pending) that runs
+' in main.py before a Caller exists. HTTP statuses are mapped there: ProjectNotFound 404, NotAnAdministrator 403,
+' MemberNotEligible and InvalidProjectName 422.
+' Everything is under the Project aggregate: files, endpoints and evaluations are other contexts, not drawn.
+
+top to bottom direction
+
+class "«value object»\nCaller" as CAL #D5E8D4 {
+  account_id
+  is_administrator
+}
+
+class "«root entity»\nProject" as PRJ #FFE6CC {
+  id
+  name : ProjectName
+  created
+  created_by
+  memberships
+}
+
+class "«entity»\nMembership" as MEM #FFF2CC {
+  account_id
+  added
+  added_by
+}
+
+class "«value object»\nProjectName" as NAM #D5E8D4 {
+  trimmed, 1 to 100
+}
+
+class "«domain rules»\nProjectRules" as RUL #FFE6CC {
+  +may_see(caller, project)
+  +may_change_members(caller)
+}
+
+class "«domain errors»\nProjectErrors" as ERR #FFE6CC {
+  ProjectNotFound
+  NotAnAdministrator
+  MemberNotEligible
+  InvalidProjectName
+}
+
+class "«service»\nProjectsService" as SVC #E7F4EA {
+  +create(caller, name, first_members)
+  +add_member(caller, project_id, account_id)
+  +remove_member(caller, project_id, account_id)
+  +list_for(caller)
+  +open(caller, project_id)
+}
+
+class "«port»\nProject-\nRepository" as PPR #EEE7F7 {
+  +get(project_id)
+  +add(project)
+  +save(project)
+  +list_all()
+  +list_for_member(account_id)
+}
+class "«port»\nAccountStatus" as PAS #EEE7F7 {
+  +active_among(account_ids)
+}
+class "«port»\nAuditLog" as PAL #EEE7F7 {
+  +record(entry)
+}
+
+class "«adapter»\nSqlProjects" as SQL #EEE7F7
+class "«adapter»\nAccountStatus-\nAdapter" as ASA #EEE7F7
+class "«adapter»\nAuditLog-\nAdapter" as ALA #EEE7F7
+
+class "API database\n(PostgreSQL,\nAmazon RDS)" as DB #ECECEC
+class "Access\n(BC-ACCESS)" as ACC #ECECEC
+class "Audit\n(BC-AUDIT)" as AUD #ECECEC
+
+PRJ *-- MEM
+PRJ --> NAM
+SVC ..> RUL : asks
+SVC ..> PRJ
+RUL ..> ERR
+RUL ..> CAL
+SVC ..> CAL : receives
+SVC --> PPR
+SVC --> PAS
+SVC --> PAL
+PPR <|.. SQL
+PAS <|.. ASA
+PAL <|.. ALA
+SQL --> DB
+ASA ..> ACC : composition root
+ALA ..> AUD : composition root
+
+CAL -[hidden]right-> NAM
+PRJ -[hidden]right-> MEM
+RUL -[hidden]right-> ERR
+PPR -[hidden]right-> PAS
+PAS -[hidden]right-> PAL
+SQL -[hidden]right-> ASA
+ASA -[hidden]right-> ALA
+DB -[hidden]right-> ACC
+ACC -[hidden]right-> AUD
+CAL -[hidden]down-> PRJ
+PRJ -[hidden]down-> RUL
+RUL -[hidden]down-> SVC
+
+note bottom of AUD
+  The Caller is built by main.py after the full check.
+  Projects never looks a role up.
+  SqlProjects and the audit write share one database
+  session: the change and its entry are one transaction.
+end note
+@enduml

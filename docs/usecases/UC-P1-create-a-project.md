@@ -104,13 +104,13 @@ A project is where files, endpoints and evaluations live. Only an administrator 
 
 ## Preconditions
 
-- The person asking is signed in and their account is active.
+- The person asking is signed in, and the same full check as for the account routes passes: the token is valid, the account is found, and it is not deactivated and not pending (decision 14).
 - They are an administrator.
 
 ## Main flow
 
 1. The administrator asks to create a project, gives it a name and names its first members. (FR-7)
-2. The system checks that the person's account is active and that they are an administrator. (FR-7, AC-11)
+2. The system checks, as for every request, the person's token and account, and then that they are an administrator. This is checked before the input is. (FR-7, AC-11)
 3. The system removes the spaces at both ends of the name and checks that it has 1 to 100 characters. (FR-7, AC-12)
 4. The system checks that each named first member has an active account. The administrator may be one of them, and there may be none. (FR-7, AC-9, AC-10, AC-13)
 5. The system creates the project, and the named people are its members. (FR-7, AC-9, AC-10)
@@ -119,9 +119,9 @@ A project is where files, endpoints and evaluations live. Only an administrator 
 
 ## Other flows
 
-- The person is not an administrator: refused. The project is not created. (AC-11)
-- The name is empty, only spaces, or longer than 100 characters: refused. (AC-12)
-- A named first member has an account that is pending, deactivated or unknown: refused, with the same answer for each, and the project is not created. (AC-13)
+- The person is not an administrator: refused with a 403. The project is not created, and the name and the members are not looked at. (AC-11)
+- The name is empty, only spaces, or longer than 100 characters: refused with a 422. (AC-12)
+- A named first member has an account that is pending, deactivated or unknown: refused with a 422, with the same answer for each, and the project is not created. (AC-13)
 - Any role, and a person who is not a member, makes a command or read it may not, even if the screen hides it: the server refuses it. (AC-32) AC-32 moved here from UC-A1 (decision 10). UC-P1 proves it for creating a project and UC-P2 for managing members. The rest of "every command and read" is proven by later use cases.
 
 ## Postconditions
@@ -133,24 +133,23 @@ A project is where files, endpoints and evaluations live. Only an administrator 
 
 For the product owner to decide.
 
-1. Must each refusal at creation be distinguishable, and in which order do the checks apply?
-2. Is the audit entry made together with the project (all or nothing), and are refused creations audited?
-3. Must a project name be unique, and within what? (Still open from decision 3.)
+1. Are refused creations audited? Not in the plan for the alpha. (The order of the checks is settled: administrator, then name, then first members, by decision 14. The audit entry and the project are one transaction.)
+2. Must a project name be unique, and within what? (Still open from decision 3.)
 
 ## Overview
 
-The high level picture. The analysis sequence is in [UC-P1-create-a-project-analysis-sequence.puml](diagrams/UC-P1-create-a-project-analysis-sequence.puml) and the design sequence, with the contexts and ports, in [UC-P1-create-a-project-design-sequence.puml](diagrams/UC-P1-create-a-project-design-sequence.puml). Both use the step numbers of the main flow.
+The high level picture. The analysis sequence is in [UC-P1-create-a-project-analysis-sequence.puml](diagrams/UC-P1-create-a-project-analysis-sequence.puml) and the design sequence, with the contexts and ports, in [UC-P1-create-a-project-design-sequence.puml](diagrams/UC-P1-create-a-project-design-sequence.puml). The class diagram is [projects-design.puml](../domain/diagrams/projects-design.puml). All use the step numbers of the main flow.
 
 ```mermaid
 sequenceDiagram
     actor U as Administrator
-    participant A as API
-    participant P as Projects
-    U->>A: create project (name, first members)
-    A->>A: check the caller is an administrator
-    A->>P: create the project with its members
-    P-->>A: project
-    A-->>U: the new project
+    participant S as ProjectsService
+    participant R as ProjectRepository
+    U->>S: create (caller, name, first members)
+    S->>S: the caller is an administrator? name valid? members active?
+    S->>R: add the project with its members
+    S->>S: record the audit entry, in the same transaction
+    S-->>U: the new project
 ```
 
 ## Analysis
@@ -177,35 +176,51 @@ Rewritten for the alpha scope (decision 13): the administrator is the only actor
 
 ## Design
 
-A plan, not built yet: the diagram is [UC-P1-create-a-project-design-sequence.puml](diagrams/UC-P1-create-a-project-design-sequence.puml),
-marked planned. It keeps to the ports of decision 3 and BC-PROJECTS (`AccountStatus`, `AuditLog`). There is no
-class diagram of the Projects context yet.
+A plan, not built yet. The class diagram is [projects-design.puml](../domain/diagrams/projects-design.puml) and the design sequence is [UC-P1-create-a-project-design-sequence.puml](diagrams/UC-P1-create-a-project-design-sequence.puml), both marked planned (decisions 13 and 14). Every step lands on a class of that diagram: `Caller`, `ProjectsService`, `ProjectName`, `Project`, `AccountStatus`, `ProjectRepository` and `AuditLog`. There is no "API" or "Access" box: the composition root runs the full check (token, account found, not deactivated, not pending) before any of it and builds the `Caller`, and Access and Audit answer through adapters it wires to the ports.
+
+Decided here, within decisions 13 and 14: an administrator may name themselves as a first member, a project may have none, and `added by` of every first member is the creator. Creating the project and writing its audit entry are one transaction (`SqlProjects` and the `AuditLog` adapter share one database session).
+
+What each refusal answers (decision 14). Authorisation is checked before the input is validated.
+
+| Case | Error | Answer |
+|---|---|---|
+| A bad token, or an account that is deactivated or pending | the account routes' own | 401 or 403, before the role is looked at |
+| A user who is not an administrator creates a project (AC-11, AC-32) | `NotAnAdministrator` | 403 |
+| A name that is empty, only spaces, or over 100 characters (AC-12) | `InvalidProjectName` | 422 |
+| A first member who is pending, deactivated or unknown (AC-13) | `MemberNotEligible` | 422, one answer for every reason |
+
+There is no 404 on this route: no project exists yet.
 
 - D1 (route): The create project route, kept thin
-- D2 (use case): The create project use case of the API, which checks the caller is an administrator
-- D3 (aggregate): Project, which holds its memberships
-- D4 (domain rule): Project name trimmed and 1 to 100 characters
-- D5 (port): AccountStatus, answered by Access
-- D6 (port): AuditLog
-- D7 (port): A project repository for Projects (name to be settled when it is built)
+- D2 (value object): Caller, built by the composition root after the full check
+- D3 (use case): ProjectsService.create(caller, name, first_members), which checks the caller is an administrator, then the name, then the members, then saves and audits
+- D4 (aggregate): Project, which holds its Memberships
+- D5 (value object): ProjectName, trimmed and 1 to 100 characters
+- D6 (port): ProjectRepository
+- D7 (port): AccountStatus, which answers for the set of first members at once
+- D8 (port): AuditLog
+- D9 (adapter): SqlProjects, over the API database (Amazon RDS on AWS)
+- D10 (adapter): AccountStatusAdapter and AuditLogAdapter, wired in the composition root to Access and to Audit (BC-AUDIT)
+- D11 (domain error): NotAnAdministrator, InvalidProjectName and MemberNotEligible
+- D12 (domain rule): First members: the administrator may name themselves, there may be none, and `added by` is the creator
 
 ## Changes from analysis to design
 
 ```
-A1 became -> D1, D2
-A2 became -> D2, D5
-A3 became -> D4
-A4 became -> D2, D5
-A5 became -> D2, D3, D7
-A6 became -> D2, D6
+A1 became -> D1, D3
+A2 became -> D2, D3
+A3 became -> D3, D5
+A4 became -> D3, D7, D10
+A5 became -> D3, D4, D6, D9
+A6 became -> D3, D8, D10
 A7 became -> D1
-A8 became -> D2
-A9 became -> D2, D3, D5
-A10 became -> D2
-A11 became -> D4
-A12 became -> D2, D5
-A13 became -> D3
-A14 became -> D3
+A8 became -> D2, D3, D11
+A9 became -> D4, D7, D12
+A10 became -> D3, D11
+A11 became -> D5, D11
+A12 became -> D7, D11
+A13 became -> D4
+A14 became -> D4
 ```
 
 ## Slices
