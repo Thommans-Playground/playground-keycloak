@@ -43,6 +43,17 @@ wait_for() {
   return 1
 }
 
+# On exit: if anything failed, print the stack's logs first (they are gone once the volumes are deleted), then wipe it.
+cleanup() {
+  local code=$?
+  if [ "$code" -ne 0 ]; then
+    echo "== the run failed (exit $code): the last lines of each service's log"
+    "${COMPOSE[@]}" logs --no-color --tail=120 || true
+  fi
+  "${COMPOSE[@]}" down -v --remove-orphans || true
+  exit "$code"
+}
+
 start() {
   "${COMPOSE[@]}" up -d --build --wait --wait-timeout 300
   wait_for keycloak "$KEYCLOAK_URL/realms/playground/.well-known/openid-configuration"
@@ -83,14 +94,14 @@ case "${1:-}" in
   down) "${COMPOSE[@]}" down -v --remove-orphans ;;
   run)
     check_ports
-    trap '"${COMPOSE[@]}" down -v --remove-orphans' EXIT
+    trap cleanup EXIT
     start
     stack_tests
     ;;
   all)
     unit_tests
     check_ports
-    trap '"${COMPOSE[@]}" down -v --remove-orphans' EXIT
+    trap cleanup EXIT
     start
     stack_tests
     ;;

@@ -86,7 +86,8 @@ def test_deactivate_then_reinstate_over_real_http_and_real_keycloak(api, admin_t
     token = login(throwaway_user)
     account_id = api.get("/me", headers=bearer(token)).json()["id"]
     admin = bearer(admin_token)
-    assert api.post(f"/accounts/{account_id}/approve", headers=admin, json={"reason": "it"}).status_code == 200
+    r = api.post(f"/accounts/{account_id}/approve", headers=admin, json={"reason": "it"})
+    assert r.status_code == 200, r.text
 
     # deactivate: the old, still valid token is refused, and Keycloak shows the user disabled
     r = api.post(f"/accounts/{account_id}/deactivate", headers=admin, json={"reason": "integration test"})

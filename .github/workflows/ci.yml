@@ -119,6 +119,3 @@ jobs:
           (cd apps/web && npm ci)
       - name: Build and start the stack, run the tests, wipe it
         run: scripts/test-stack.sh run
-      - name: Stack logs (only when something failed)
-        if: failure()
-        run: docker compose -p playground-test -f docker-compose.yml logs --no-color --tail=200 || true
