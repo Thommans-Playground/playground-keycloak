@@ -75,7 +75,9 @@ jobs:
       - name: Tests of the traceability tools
         run: |
           for d in .claude/skills/vbench-*/scripts; do
-            (cd "$d" && for t in test_*.py; do [ -e "$t" ] && python3 -m unittest "${t%.py}"; done)
+            for t in "$d"/test_*.py; do
+              if [ -e "$t" ]; then (cd "$d" && python3 -m unittest "$(basename "${t%.py}")"); fi
+            done
           done
       - name: Requirements are well formed
         run: python3 .claude/skills/vbench-req/scripts/req_tool.py validate

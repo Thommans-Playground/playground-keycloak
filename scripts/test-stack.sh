@@ -67,7 +67,9 @@ unit_tests() {
   (cd apps/web && npm test && npm run lint && npm run typecheck)
   echo "== traceability tools and the tag report"
   for d in .claude/skills/vbench-*/scripts; do
-    (cd "$d" && for t in test_*.py; do [ -e "$t" ] && python3 -m unittest "${t%.py}"; done) || true
+    for t in "$d"/test_*.py; do
+      if [ -e "$t" ]; then (cd "$d" && python3 -m unittest "$(basename "${t%.py}")"); fi
+    done
   done
   python3 .claude/skills/vbench-req/scripts/req_tool.py validate
   python3 .claude/skills/vbench-at/scripts/at_tool.py report | tail -3
