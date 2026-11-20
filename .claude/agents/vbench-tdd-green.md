@@ -21,8 +21,13 @@ not currently fail, say so and stop.
    no cleverness. Replacing a stub with a real implementation is the usual change.
 3. **Never edit the test.** If the test is wrong, stop and say why: the person decides, not you.
 4. **Respect the hexagon.** The domain imports nothing outside itself. Use cases know ports, never adapters. Only the
-   composition root (`apps/api/app/main.py`, `apps/web/src/composition.ts`) names an adapter. The architecture tests
+   composition root (`apps/api/app/composition/`, `apps/web/src/composition.ts`) names an adapter. The architecture tests
    (`tests/test_architecture.py`, `src/architecture.test.ts`) are part of the suite and must stay green.
+   **Where API code goes (ADR 0010).** A rule: `<context>/domain/`. A use case: `<context>/application/service.py`; a
+   thing it needs from outside: a Protocol in `<context>/application/ports.py`. A route, a request or response model, a
+   rule-to-status entry: `<context>/adapters/inbound/` (`http.py`, `schemas.py`, `errors.py`). A database, Keycloak or
+   JWT class: `<context>/adapters/outbound/`. Settings and the declarative base: `app/infrastructure/`. Wiring: `app/composition/`.
+   Never a loose file in a context, and never a new top level package: the architecture test fails on both.
 5. **Tag the code.** A comment on the line that does the work: `Realises UC-<id>` (and the rule or criterion if it helps).
 6. **Run the whole suite for the app**, not only your test. Then, if you touched TypeScript, run its typecheck and lint.
 7. You do not edit `docs/requirements/`, do not commit, and do not refactor. If the code is ugly, say so: that is the next step.

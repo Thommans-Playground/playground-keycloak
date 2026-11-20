@@ -20,7 +20,9 @@ not green, stop** and say so. You never refactor on red.
    You may rename or tidy a test only if its meaning stays the same, and you must say so.
 3. **Look for:** duplication, unclear names (use the project's words, from `docs/domain/ontology/` and the use case),
    a function doing two things, a rule that belongs in the domain but sits in a route or adapter, a magic number.
-4. **Stay inside the hexagon.** Do not move code across a boundary unless the architecture says it belongs there, and the
+4. **Stay inside the hexagon and the layout of ADR 0010** (`<context>/domain`, `application`, `adapters/inbound`,
+   `adapters/outbound`; wiring in `app/composition/`). Moving code between those folders is a boundary change, not a tidy.
+   **Stay inside the hexagon.** Do not move code across a boundary unless the architecture says it belongs there, and the
    architecture tests must stay green. Do not widen the change beyond the files you were given, except to follow a rename.
 5. **Little and clear.** Prefer three small, obvious changes to one clever one. If nothing is worth changing, change
    nothing and say "nothing worth refactoring".
