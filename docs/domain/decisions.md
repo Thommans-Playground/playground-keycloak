@@ -631,3 +631,15 @@ so a person could stay enabled in Keycloak with no way to fix it. It matters onc
 records the technical side (commit order, locking).
 
 **Still open.** Whether UC-A3 (register) writes an audit entry (decision 17).
+
+## 19. Keycloak owns the name; the application does not edit it (20 Nov 2026)
+
+**Decided.** By the owner, after weighing three options (Keycloak owns it and we link to it; our own display name; writing the name back to Keycloak).
+- **Name, email and password are changed in Keycloak's account page.** The dashboard links to it (AC-78). The application has no way to edit them.
+- A name changed in Keycloak shows from the next token renewal or sign in, not at once (UC-A5).
+
+**Why.** One owner for the name avoids edits that the next token overwrites, avoids giving our API power over every user's profile, and fits the company single sign-on in the beta (UC-A7), where names come from the company directory.
+
+**Changes.** AC-78 added, UC-A5 text corrected (when a changed name shows), the dashboard link built test first.
+
+**Still open.** Nothing for the alpha.

@@ -9,6 +9,7 @@ satisfies:
   - id: FR-5
 criteria:
   - id: AC-8
+  - id: AC-78
 parameters: []
 objects: [OBJ-A1]
 rules: []
@@ -22,7 +23,7 @@ evolved_from: [MK3 UC-A4]
 <!-- vbench-uc:begin mirror (generated from the requirements files, do not edit here: change the row, then run sync) -->
 
 <details>
-<summary>The requirements and criteria it runs, copied from docs/requirements (1 requirement, 1 criterion). Do not edit.</summary>
+<summary>The requirements and criteria it runs, copied from docs/requirements (1 requirement, 2 criteria). Do not edit.</summary>
 
 ## What this serves
 
@@ -36,9 +37,15 @@ evolved_from: [MK3 UC-A4]
 - When they open the dashboard
 - Then it shows their name and role
 
+**AC-78** (acceptance, proves FR-5)
+
+- Given a signed-in person
+- When they open the dashboard
+- Then it links to their Keycloak account page, where they change their name, email or password, and our application offers no way to change them
+
 ## How it is verified
 
-- acceptance: AC-8
+- acceptance: AC-8, AC-78
 
 Each criterion is run by a test tagged `Verifies AC-<n>`.
 
@@ -51,7 +58,7 @@ Each criterion is run by a test tagged `Verifies AC-<n>`.
 
 ## Description
 
-The person sees who the product thinks they are. The name comes from the Keycloak token, and the role and status come from the Playground account. Changing the name, the email or the password is not done here: Keycloak has its own account page for that.
+The person sees who the product thinks they are. The name comes from the Keycloak token the session holds, and the role and status come from the Playground account. Changing the name, the email or the password is not done here: Keycloak has its own account page for that.
 
 ## What changed from MK3
 
@@ -72,10 +79,10 @@ This use case is a good one to learn from because it shows the **split in one re
 1. The person opens the dashboard. (FR-5)
 2. The web server asks the API for `/me` with the access token. (FR-5)
 3. The API checks the token. (NFR-1)
-4. The API finds the account by the Keycloak id, and refreshes the name and email if they changed. (FR-5)
+4. The API finds the account by the Keycloak id, and copies in the name and email from the token if they changed. The token is the one the session holds, so a name changed in Keycloak shows from the next token renewal (UC-A6, a few minutes) or the next sign in. (FR-5)
 5. The API refuses a deactivated account. (FR-5)
 6. The API answers with name, email, role and status. (FR-5)
-7. The page shows the name and the role. (FR-5, AC-8)
+7. The page shows the name and the role, and a link to Keycloak's account page, where the person changes their name, email or password. The application has no way to change them (decision 19). (FR-5, AC-8, AC-78)
 
 ## Other flows
 
@@ -83,7 +90,8 @@ This use case is a good one to learn from because it shows the **split in one re
 - The account is pending: the answer is the same, with status pending, and the page shows "Waiting for approval". (AC-4)
 - The account is deactivated: 403 "Your account is deactivated." and the dashboard shows that notice. (FR-5)
 - The access token has expired: the web server refreshes it first (UC-A6). If Keycloak refuses, the session ends and the person signs in again.
-- The person wants to change their password or email: the page links to Keycloak's account page. Nothing here changes them.
+- The person wants to change their name, password or email: the page links to Keycloak's account page. Nothing here changes them. (AC-78, decision 19)
+- The name was changed in Keycloak a moment ago: the page still shows the old name until the session's token is renewed or the person signs in again. (AC-8)
 
 ## Postconditions
 
@@ -120,6 +128,7 @@ What the person and Playground say to each other, with no route, store, port or 
 - A8 (refusal): A request with no valid proof is refused
 - A9 (refusal): A deactivated account is refused
 - A10 (object): Account
+- A11 (step): Playground shows a link to the person's Keycloak account page, where the name, email and password are changed
 
 ## Design
 
@@ -148,9 +157,11 @@ A7 became -> D2
 A8 became -> D3
 A9 became -> D8
 A10 became -> D9
+A11 became -> D1
 ```
 
 ## Slices
 
 1. TSK-A5.1: Return the account for /me (AC-8)
 2. TSK-A5.2: Show it on the page (AC-8)
+3. TSK-A5.3: Link to Keycloak's account page, nothing to edit here (AC-78)

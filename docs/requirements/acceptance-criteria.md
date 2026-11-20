@@ -81,3 +81,4 @@
 | AC-75 | FR-3 | a new person whose email is the setup email, not verified | they make their first request | they get a pending account, like anyone else | acceptance | draft |  |
 | AC-76 | FR-4 | an administrator | they approve an account that does not exist, or one that is not pending | it is refused with a clear answer and nothing changes | acceptance | draft |  |
 | AC-77 | FR-4 | a deactivated account whose Keycloak user is still enabled | an administrator deactivates it again, with a reason | only the Keycloak calls are sent again, our account does not change, and the administrator is told whether Keycloak was updated | acceptance | draft |  |
+| AC-78 | FR-5 | a signed-in person | they open the dashboard | it links to their Keycloak account page, where they change their name, email or password, and our application offers no way to change them | acceptance | draft | Decision 19: Keycloak owns the name; the application does not edit it. |
