@@ -59,3 +59,28 @@ itest("the name shown follows Keycloak: after the name changes there, the next s
   assert.match(text, new RegExp(`Hello, ${newFirst} ${p.user.lastName}`), "the new name");
   assert.doesNotMatch(text, new RegExp(`Hello, ${p.user.firstName}`), "not the old one");
 });
+
+const ACCOUNT_PAGE = `${config.issuer}/account`;
+const anchorHrefs = (html: string) => [...html.matchAll(/<a\b[^>]*\bhref="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi)].map((m) => ({ href: m[1].replace(/&amp;/g, "&"), text: stripTags(m[2]).trim() }));
+
+itest("the dashboard links to the person's Keycloak account page and offers no way to edit the name or email (Verifies AC-78)", async () => {
+  const p = await approvedPerson();
+  const html = await dashboardOf(p.jar);
+  const link = anchorHrefs(html).find((a) => a.href === ACCOUNT_PAGE);
+  assert.ok(link, `a link to ${ACCOUNT_PAGE}`);
+  assert.match(link.text, /Change your name, email or password in Keycloak/);
+  // the header's sign out button is a form of the layout; the dashboard itself (inside <main>) has none
+  const main = html.match(/<main\b[\s\S]*<\/main>/i)?.[0];
+  assert.ok(main, "the page has a main area");
+  assert.doesNotMatch(main, /<form\b/i, "no form on the dashboard");
+  assert.doesNotMatch(main, /<(input|textarea|select)\b/i, "no field on the dashboard");
+  assert.doesNotMatch(html, /<(input|textarea)\b[^>]*\bname="(name|email|firstName|lastName|password)"/i, "no field that edits name, email or password anywhere on the page");
+  const forms = [...html.matchAll(/<form\b[^>]*\baction="([^"]*)"/gi)].map((m) => m[1]);
+  assert.deepEqual(forms, ["/auth/logout"], "the only form is sign out");
+});
+
+itest("the address the dashboard links to is served by Keycloak (Verifies AC-78)", async () => {
+  const res = await http(ACCOUNT_PAGE);
+  await res.body?.cancel();
+  assert.ok(res.status === 200 || (res.status >= 300 && res.status < 400), `the account page answered ${res.status}`);
+});

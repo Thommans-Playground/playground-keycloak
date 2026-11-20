@@ -4,6 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getMe } from "@/lib/api";
+import { accountPageUrl } from "@/domain/account-page";
+import { env } from "@/lib/auth/config";
 
 export default async function Dashboard() {
   const me = await getMe();
@@ -50,6 +52,10 @@ export default async function Dashboard() {
         <CardContent className="space-y-3 text-sm">
           <Row label="Name">{account.name}</Row>
           <Row label="Email">{account.email}</Row>
+          <p className="text-muted-foreground">Keycloak holds your name, email and password. This application does not change them.</p>
+          <a href={accountPageUrl(env.issuer)} className={buttonVariants({ variant: "outline" })}>
+            Change your name, email or password in Keycloak
+          </a>
         </CardContent>
       </Card>
 
