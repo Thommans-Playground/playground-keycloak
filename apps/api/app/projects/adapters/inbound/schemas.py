@@ -2,7 +2,7 @@
 
 from pydantic import BaseModel, ConfigDict
 
-from app.projects.domain.project import Project
+from app.projects.application.view import ProjectView
 
 
 class CreateProjectIn(BaseModel):
@@ -18,15 +18,21 @@ class AddMemberIn(BaseModel):
     account_id: str
 
 
+class MemberOut(BaseModel):
+    id: str
+    name: str | None  # None when Access does not know the id: the page then shows the id (ADR 0016)
+
+
 class ProjectOut(BaseModel):
     id: str
     name: str
     created_by: str
-    members: list[str]
+    members: list[MemberOut]
     files: list[str] = []
     endpoints: list[str] = []
     evaluations: list[str] = []
 
     @classmethod
-    def of(cls, p: Project) -> "ProjectOut":
-        return cls(id=p.id, name=p.name, created_by=p.created_by, members=sorted(p.members))
+    def of(cls, v: ProjectView) -> "ProjectOut":
+        members = [MemberOut(id=i, name=n) for i, n in sorted(v.names.items())]
+        return cls(id=v.id, name=v.name, created_by=v.created_by, members=members)

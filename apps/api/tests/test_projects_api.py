@@ -60,7 +60,8 @@ def test_an_administrator_creates_a_project_naming_an_active_account(api, admin,
     assert r.status_code == 201
     body = r.json()
     assert str(uuid.UUID(body["id"])) == body["id"]
-    assert (body["name"], body["created_by"], body["members"]) == ("Alpha", me_id(api, admin), [maya_id])
+    assert (body["name"], body["created_by"]) == ("Alpha", me_id(api, admin))
+    assert body["members"] == [{"id": maya_id, "name": "maya"}]  # the name as Access has it now (ADR 0016)
     assert {k: body[k] for k in PLACEHOLDERS} == PLACEHOLDERS
     assert set(body) == {"id", "name", "created_by", "members", *PLACEHOLDERS}
     project = stored(engine, body["id"])  # a later read through the repository
@@ -71,7 +72,7 @@ def test_an_administrator_creates_a_project_naming_an_active_account(api, admin,
 def test_an_administrator_naming_themselves_is_a_member(api, admin, engine):
     ada_id = me_id(api, admin)
     r = api.post("/projects", headers=admin, json={"name": "Alpha", "members": [ada_id]})
-    assert (r.status_code, r.json()["members"]) == (201, [ada_id])
+    assert (r.status_code, r.json()["members"]) == (201, [{"id": ada_id, "name": "Ada"}])
     assert stored(engine, r.json()["id"]).members == {ada_id}
 
 
@@ -282,6 +283,6 @@ def test_one_active_and_one_inactive_member_refuses_all_and_writes_nothing(api, 
 def test_naming_the_same_active_person_twice_makes_one_membership(api, admin, engine):
     _, maya_id = active_user(api, admin, "sub-maya", "maya@x.test")
     r = api.post("/projects", headers=admin, json={"name": "Alpha", "members": [maya_id, maya_id]})
-    assert (r.status_code, r.json()["members"]) == (201, [maya_id])
+    assert (r.status_code, r.json()["members"]) == (201, [{"id": maya_id, "name": "maya"}])
     with Session(engine) as s:
         assert s.execute(text("SELECT count(*) FROM memberships")).scalar_one() == 1

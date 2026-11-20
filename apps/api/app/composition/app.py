@@ -96,8 +96,9 @@ def create_app(
         audit: AuditService = Depends(audit_service),
     ) -> ProjectsService:
         # the request's session, so the project, its members and its audit entry commit together
+        people = PeopleBridge(access)
         return ProjectsService(
-            SqlProjects(session), AccountStatusBridge(access), ProjectsAuditBridge(audit, PeopleBridge(access))
+            SqlProjects(session), AccountStatusBridge(access), ProjectsAuditBridge(audit, people), people
         )
 
     def project_caller(account=Depends(guards.active_account)):

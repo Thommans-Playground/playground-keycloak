@@ -71,7 +71,7 @@ def world(api, admin):
 
 
 def members(api, admin, project_id):
-    return sorted(api.get(f"/projects/{project_id}", headers=admin).json()["members"])
+    return sorted(m["id"] for m in api.get(f"/projects/{project_id}", headers=admin).json()["members"])
 
 
 def add(api, headers, project_id, account_id):
@@ -95,7 +95,8 @@ def test_an_administrator_adds_an_active_person_and_the_answer_is_the_project(ap
     alpha, (_, maya), (_, bob) = world["alpha"], world["maya"], world["bob"]
     r = add(api, admin, alpha["id"], bob)
     assert r.status_code == 200
-    assert (r.json()["id"], sorted(r.json()["members"])) == (alpha["id"], sorted([maya, bob]))
+    assert (r.json()["id"], sorted(m["id"] for m in r.json()["members"])) == (alpha["id"], sorted([maya, bob]))
+    assert {m["id"]: m["name"] for m in r.json()["members"]} == {maya: "maya", bob: "bob"}  # ADR 0016
     assert r.json() == api.get(f"/projects/{alpha['id']}", headers=admin).json()
     assert api.get(f"/projects/{alpha['id']}", headers=world["bob"][0]).status_code == 200  # in at their next request
 
@@ -147,7 +148,7 @@ def test_adding_an_existing_member_changes_nothing_writes_no_entry_and_answers_s
     alpha, (_, maya) = world["alpha"], world["maya"]
     before, lines = counts(engine), len(log.events)
     r = add(api, admin, alpha["id"], maya)
-    assert (r.status_code, r.json()["members"]) == (200, [maya])
+    assert (r.status_code, r.json()["members"]) == (200, [{"id": maya, "name": "maya"}])
     assert counts(engine) == before
     assert log.events[lines:] == []
 

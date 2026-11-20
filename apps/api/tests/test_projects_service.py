@@ -6,7 +6,7 @@ from app.projects.application.ports import ProjectEvent
 from app.projects.application.service import ProjectsService
 from app.projects.domain.caller import Caller
 from app.projects.domain.errors import InvalidProjectName, InvalidRequest, MemberNotEligible, NotAnAdministrator
-from tests.fakes import FakeAccountStatus, FakeProjects, FakeProjectsAudit
+from tests.fakes import FakeAccountStatus, FakePeople, FakeProjects, FakeProjectsAudit
 
 ADMIN = Caller("acc-ada", is_administrator=True)
 USER = Caller("acc-maya", is_administrator=False)
@@ -19,13 +19,13 @@ def projects():
 
 @pytest.fixture
 def service(projects):
-    return ProjectsService(projects, FakeAccountStatus(), FakeProjectsAudit())
+    return ProjectsService(projects, FakeAccountStatus(), FakeProjectsAudit(), FakePeople())
 
 
 @pytest.mark.ac("AC-9")
 def test_create_saves_the_project_with_its_first_members_and_returns_it(service, projects):
     p = service.create(ADMIN, "Alpha", ["acc-maya"])
-    assert projects.by_id(p.id) is p
+    assert projects.by_id(p.id) is p.project
     assert (p.name, p.created_by, p.members) == ("Alpha", "acc-ada", {"acc-maya"})
 
 
@@ -60,7 +60,7 @@ def test_create_checks_the_role_before_the_input(service, projects):
 
 def service_with(active):
     projects, status = FakeProjects(), FakeAccountStatus(set(active))
-    return ProjectsService(projects, status, FakeProjectsAudit()), projects, status
+    return ProjectsService(projects, status, FakeProjectsAudit(), FakePeople()), projects, status
 
 
 @pytest.mark.ac("AC-13")
@@ -99,7 +99,7 @@ def test_naming_the_same_active_person_twice_makes_one_membership_and_asks_about
     service, projects, status = service_with({"acc-maya"})
     p = service.create(ADMIN, "Alpha", ["acc-maya", "acc-maya"])
     assert len(p.memberships) == 1 and p.members == {"acc-maya"}
-    assert projects.by_id(p.id) is p
+    assert projects.by_id(p.id) is p.project
     assert status.asked == [{"acc-maya"}]
 
 
@@ -116,7 +116,7 @@ def test_no_first_member_asks_nobody_and_is_accepted():
 def audited(active=None):
     projects = FakeProjects()
     audit = FakeProjectsAudit(projects)
-    return ProjectsService(projects, FakeAccountStatus(active), audit), projects, audit
+    return ProjectsService(projects, FakeAccountStatus(active), audit, FakePeople()), projects, audit
 
 
 @pytest.mark.ac("AC-29")
@@ -131,7 +131,7 @@ def test_create_writes_one_event_with_the_actor_the_project_and_the_first_member
 def test_the_event_is_written_after_the_project_is_saved_and_carries_the_trimmed_name():
     service, _, audit = audited()
     p = service.create(ADMIN, "  Alpha  ", [])
-    assert audit.held_when_recorded == [p]
+    assert audit.held_when_recorded == [p.project]
     assert (audit.events[0].project_name, audit.events[0].member_ids) == ("Alpha", ())
 
 
@@ -195,8 +195,8 @@ def test_a_user_in_no_project_gets_an_empty_list_not_an_error(service, three):
 @pytest.mark.ac("AC-26")
 def test_a_member_and_an_administrator_open_a_project(service, three):
     alpha, _, _ = three
-    assert service.open_project(Caller("acc-maya", False), alpha.id) is alpha
-    assert service.open_project(Caller("acc-other", True), alpha.id) is alpha
+    assert service.open_project(Caller("acc-maya", False), alpha.id).project is alpha.project
+    assert service.open_project(Caller("acc-other", True), alpha.id).project is alpha.project
 
 
 @pytest.mark.rule("RULE-P4")
@@ -220,7 +220,7 @@ def test_a_project_the_person_may_not_see_is_project_not_found_too(service, thre
 
 def test_reading_changes_nothing_and_writes_no_audit_entry(projects):
     audit = FakeProjectsAudit()
-    svc = ProjectsService(projects, FakeAccountStatus(), audit)
+    svc = ProjectsService(projects, FakeAccountStatus(), audit, FakePeople())
     p = svc.create(ADMIN, "Alpha", ["acc-maya"])
     audit.events.clear()
     svc.list_projects(USER)
@@ -235,7 +235,7 @@ def member_world(active=None, known=None):
     """A project of Maya's, made by Ada, and a service over fakes. Returns (service, project, projects, status, audit)."""
     projects, status = FakeProjects(), FakeAccountStatus(active)
     audit = FakeProjectsAudit(projects)
-    service = ProjectsService(projects, status, audit)
+    service = ProjectsService(projects, status, audit, FakePeople())
     project = service.create(ADMIN, "Alpha", ["acc-maya"])
     audit.events.clear()
     audit.held_when_recorded.clear()
@@ -356,3 +356,108 @@ def test_the_loser_of_a_race_is_treated_as_already_a_member_and_writes_no_event(
     got = service.add_member(ADMIN, project.id, "acc-bob")
     assert "acc-bob" in got.members
     assert audit.events == []
+
+
+# ADR 0016: the answers carry the names of the members, looked up once for each answer
+
+KNOWN = {"acc-maya": ("Maya", "maya@x.test"), "acc-bob": ("Bob", "bob@x.test"), "acc-ada": ("Ada", "ada@x.test")}
+
+
+def named_world(known=None):
+    projects, people = FakeProjects(), FakePeople(dict(KNOWN if known is None else known))
+    service = ProjectsService(projects, FakeAccountStatus(), FakeProjectsAudit(), people)
+    return service, people
+
+
+@pytest.mark.ac("AC-9")
+def test_create_returns_the_project_with_the_names_of_its_first_members_from_one_lookup():
+    service, people = named_world()
+    view = service.create(ADMIN, "Alpha", ["acc-maya", "acc-bob"])
+    assert view.names == {"acc-maya": "Maya", "acc-bob": "Bob"}
+    assert people.asked == [{"acc-maya", "acc-bob"}]
+
+
+@pytest.mark.ac("AC-10")
+def test_create_with_no_first_member_looks_up_nobody():
+    service, people = named_world()
+    assert service.create(ADMIN, "Alpha", []).names == {}
+    assert people.asked == []
+
+
+@pytest.mark.ac("AC-28")
+def test_an_id_with_no_known_name_keeps_the_id_and_has_a_null_name():
+    service, _ = named_world({"acc-maya": ("Maya", "maya@x.test")})
+    view = service.create(ADMIN, "Alpha", ["acc-maya", "acc-bob"])
+    assert view.names == {"acc-maya": "Maya", "acc-bob": None}
+
+
+@pytest.mark.ac("AC-55")
+def test_the_list_looks_names_up_once_for_the_members_of_all_the_projects():
+    service, people = named_world()
+    service.create(ADMIN, "Alpha", ["acc-maya"])
+    service.create(ADMIN, "Beta", ["acc-maya", "acc-bob"])
+    service.create(ADMIN, "Gamma", [])
+    people.asked.clear()
+    views = service.list_projects(ADMIN)
+    assert len(views) == 3
+    assert people.asked == [{"acc-maya", "acc-bob"}]  # one call for the union, not one for each project
+    assert all(set(v.names) == set(v.members) for v in views)
+
+
+@pytest.mark.ac("AC-86")
+def test_an_empty_list_has_no_names_and_needs_no_lookup():
+    service, people = named_world()
+    assert service.list_projects(USER) == []
+    assert people.asked == []
+
+
+@pytest.mark.ac("AC-26")
+def test_open_returns_the_project_with_the_names_of_its_members_from_one_lookup():
+    service, people = named_world()
+    made = service.create(ADMIN, "Alpha", ["acc-maya", "acc-bob"])
+    people.asked.clear()
+    view = service.open_project(ADMIN, made.id)
+    assert view.names == {"acc-maya": "Maya", "acc-bob": "Bob"} and people.asked == [{"acc-maya", "acc-bob"}]
+
+
+@pytest.mark.ac("AC-26")
+def test_a_renamed_person_shows_the_new_name_at_the_next_read():
+    service, people = named_world()
+    made = service.create(ADMIN, "Alpha", ["acc-maya"])
+    people.known["acc-maya"] = ("Maya Lopez", "maya@x.test")
+    assert service.open_project(ADMIN, made.id).names == {"acc-maya": "Maya Lopez"}
+
+
+@pytest.mark.ac("AC-27")
+def test_a_refused_open_looks_nobody_up():
+    from app.projects.domain.errors import ProjectNotFound
+
+    service, people = named_world()
+    with pytest.raises(ProjectNotFound):
+        service.open_project(ADMIN, "not-a-uuid")
+    assert people.asked == []
+
+
+@pytest.mark.ac("AC-17")
+def test_add_member_returns_the_project_with_the_names_after_the_change():
+    service, people = named_world()
+    made = service.create(ADMIN, "Alpha", ["acc-maya"])
+    people.asked.clear()
+    view = service.add_member(ADMIN, made.id, "acc-bob")
+    assert view.names == {"acc-maya": "Maya", "acc-bob": "Bob"} and people.asked == [{"acc-maya", "acc-bob"}]
+
+
+@pytest.mark.ac("AC-88")
+def test_adding_an_existing_member_returns_the_names_too():
+    service, _ = named_world()
+    made = service.create(ADMIN, "Alpha", ["acc-maya"])
+    assert service.add_member(ADMIN, made.id, "acc-maya").names == {"acc-maya": "Maya"}
+
+
+@pytest.mark.ac("AC-20")
+def test_remove_member_returns_the_project_with_the_names_of_who_is_left():
+    service, people = named_world()
+    made = service.create(ADMIN, "Alpha", ["acc-maya", "acc-bob"])
+    people.asked.clear()
+    view = service.remove_member(ADMIN, made.id, "acc-maya")
+    assert view.names == {"acc-bob": "Bob"} and people.asked == [{"acc-bob"}]

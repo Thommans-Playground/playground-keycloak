@@ -141,6 +141,7 @@ def test_two_administrators_adding_the_same_person_at_once_leave_one_membership_
                 MeetBeforeInserting(s),
                 FakeAccountStatus(),
                 ProjectsAuditBridge(AuditService(SqlAuditEntries(s)), FakePeople()),
+                FakePeople(),
             )
             try:
                 got = svc.add_member(caller, project.id, "acc-maya")

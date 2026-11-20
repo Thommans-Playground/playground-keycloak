@@ -116,7 +116,9 @@ def test_a_member_and_an_administrator_open_a_project_and_see_its_members(api, a
         assert r.status_code == 200
         body = r.json()
         assert (body["id"], body["name"], body["created_by"]) == (beta["id"], "Beta", me_id(api, admin))
-        assert sorted(body["members"]) == sorted([maya, bob])
+        assert sorted(body["members"], key=lambda m: m["id"]) == sorted(
+            [{"id": maya, "name": "maya"}, {"id": bob, "name": "bob"}], key=lambda m: m["id"]
+        )
         assert {k: body[k] for k in PLACEHOLDERS} == PLACEHOLDERS
         assert set(body) == {"id", "name", "created_by", "members", *PLACEHOLDERS}
 
@@ -211,3 +213,56 @@ def test_the_read_routes_are_served_by_the_projects_context(api):
     assert ("/projects", ("GET",)) in got and ("/projects/{project_id}", ("GET",)) in got
     modules = {r.endpoint.__module__ for r in _api_routes(api.app) if r.path.startswith("/projects")}
     assert modules == {"app.projects.adapters.inbound.http"}
+
+
+# ADR 0016: every project answer shows its members as {id, name}
+
+
+def member_pairs(project):
+    return {m["id"]: m["name"] for m in project["members"]}
+
+
+@pytest.mark.ac("AC-55")
+@pytest.mark.ac("AC-28")
+def test_the_list_shows_the_names_of_the_members_of_every_project(api, admin, world):
+    maya, bob, _ = world["ids"]
+    listed = {p["name"]: p for p in api.get("/projects", headers=admin).json()}
+    assert member_pairs(listed["Alpha"]) == {maya: "maya"}
+    assert member_pairs(listed["Beta"]) == {maya: "maya", bob: "bob"}
+    assert listed["Gamma"]["members"] == []
+    mine = {p["name"]: p for p in api.get("/projects", headers=world["maya"]).json()}
+    assert member_pairs(mine["Beta"]) == {maya: "maya", bob: "bob"}
+
+
+@pytest.mark.ac("AC-26")
+def test_a_person_who_changed_their_name_shows_with_the_new_name_at_the_next_read(api, admin, world):
+    maya, _, _ = world["ids"]
+    renamed = auth("sub-maya", "maya@x.test", name="Maya Lopez")
+    assert api.get("/me", headers=renamed).json()["name"] == "Maya Lopez"
+    alpha = world["projects"][0]
+    assert member_pairs(api.get(f"/projects/{alpha['id']}", headers=admin).json()) == {maya: "Maya Lopez"}
+
+
+@pytest.mark.ac("AC-28")
+def test_a_deactivated_member_keeps_showing_with_the_name(api, admin, world):
+    maya, _, _ = world["ids"]
+    assert api.post(f"/accounts/{maya}/deactivate", headers=admin, json={"reason": "Left"}).status_code == 200
+    alpha = world["projects"][0]
+    assert member_pairs(api.get(f"/projects/{alpha['id']}", headers=admin).json()) == {maya: "maya"}
+
+
+@pytest.mark.ac("AC-28")
+def test_a_member_id_that_access_does_not_know_keeps_its_id_and_has_a_null_name(api, admin, world, engine):
+    alpha = world["projects"][0]
+    ghost = str(uuid.uuid4())
+    with Session(engine) as s:
+        s.execute(
+            text("INSERT INTO memberships (project_id, account_id, added_by) VALUES (:p, :a, :b)"),
+            {"p": alpha["id"], "a": ghost, "b": me_id(api, admin)},
+        )
+        s.commit()
+    maya, _, _ = world["ids"]
+    opened = api.get(f"/projects/{alpha['id']}", headers=admin).json()
+    assert member_pairs(opened) == {maya: "maya", ghost: None}
+    listed = {p["name"]: p for p in api.get("/projects", headers=admin).json()}
+    assert member_pairs(listed["Alpha"]) == {maya: "maya", ghost: None}
