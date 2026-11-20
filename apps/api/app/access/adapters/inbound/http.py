@@ -5,6 +5,7 @@ the two things this module must not build itself: how to get an AccessService, a
 """
 
 from collections.abc import Callable
+from dataclasses import dataclass
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 
@@ -19,11 +20,17 @@ from app.access.application.service import AccessService
 from app.access.domain.account import Account, Action, Role, Status
 
 
-def build_router(
-    service: Callable[..., AccessService], verifier: TokenVerifier
-) -> APIRouter:
-    router = APIRouter()
+@dataclass(frozen=True)
+class Guards:
+    """The guard chain as dependencies, so composition can hand the same chain to another context's routes."""
 
+    any_account: Callable[..., Account]
+    not_deactivated: Callable[..., Account]
+    active_account: Callable[..., Account]
+    administrator: Callable[..., Account]
+
+
+def build_guards(service: Callable[..., AccessService], verifier: TokenVerifier) -> Guards:
     def principal(authorization: str | None = Header(default=None)) -> Principal:
         scheme, _, token = (authorization or "").partition(" ")
         if scheme.lower() != "bearer" or not token:
@@ -76,6 +83,13 @@ def build_router(
             )
         return a
 
+    return Guards(any_account, not_deactivated, active_account, administrator)
+
+
+def build_router(service: Callable[..., AccessService], guards: Guards) -> APIRouter:
+    router = APIRouter()
+    not_deactivated, administrator = guards.not_deactivated, guards.administrator
+
     @router.get("/health")
     def health():
         return {"status": "ok"}
@@ -122,11 +136,5 @@ def build_router(
             response_model_exclude_none=True,
             name=action.value,
         )
-
-    @router.get("/audit")
-    def audit(
-        _: Account = Depends(administrator), svc: AccessService = Depends(service)
-    ):
-        return svc.audit.entries()
 
     return router

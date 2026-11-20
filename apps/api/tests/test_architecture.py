@@ -65,8 +65,8 @@ def outside(path: Path, allowed_prefixes: list[str], libraries: set[str] = froze
     return sorted(bad)
 
 
-def test_there_is_at_least_the_access_context():
-    assert "access" in contexts()
+def test_there_is_at_least_the_access_and_audit_contexts():
+    assert {"access", "audit"} <= set(contexts())
 
 
 def test_only_known_packages_sit_next_to_the_contexts():
@@ -168,6 +168,28 @@ def test_migrations_import_only_infrastructure_and_the_table_definitions():
             f"{f.relative_to(MIGRATIONS.parent)} imports {bad}: a migration sees the tables only, "
             "never a domain or application module, or the schema would follow the rules of the day (ADR 0012)"
         )
+
+
+def test_migrations_may_import_the_table_definition_of_the_audit_context(tmp_path):
+    f = tmp_path / "m.py"
+    f.write_text("import app.audit.adapters.outbound.sql\nimport app.access.adapters.outbound.sql\n", encoding="utf-8")
+    assert migration_violations(f) == []
+    f.write_text("from app.audit.application.service import AuditService\n", encoding="utf-8")
+    assert migration_violations(f) == ["app.audit.application.service"]
+
+
+def test_the_alembic_environment_sees_the_tables_of_every_context():
+    imported = imports_of(MIGRATIONS / "env.py")
+    for c in contexts():
+        assert f"app.{c}.adapters.outbound.sql" in imported, f"migrations/env.py must import the tables of {c}, or Alembic drops them"
+
+
+def test_the_audit_port_has_no_way_to_change_an_entry():
+    # AC-79 (the part that is cheap now; the routes and the rest are TSK-L1.7). The port has add and list_newest_first only.
+    from app.audit.application.ports import AuditEntries
+
+    public = {n for n in vars(AuditEntries) if not n.startswith("_")}
+    assert public == {"add", "list_newest_first"}
 
 
 def test_the_migration_rule_refuses_a_domain_or_an_application_import(tmp_path):

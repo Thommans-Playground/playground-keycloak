@@ -8,7 +8,10 @@ import threading
 from datetime import datetime
 
 import pytest
-from app.access.adapters.outbound.sql import SqlAccounts, SqlAudit, SqlUnitOfWork
+from app.audit.adapters.outbound.sql import SqlAuditEntries
+from app.audit.application.service import AuditService
+from app.composition.bridges import AccessAuditBridge
+from app.access.adapters.outbound.sql import SqlAccounts, SqlUnitOfWork
 from app.access.domain.account import Account, Action, LastAdministrator, Role, Status
 from app.access.application.service import AccessService
 from sqlalchemy.orm import sessionmaker
@@ -69,7 +72,7 @@ def test_two_administrators_demoting_each_other_at_once_leave_exactly_one():
         with sessions() as s:
             repo = Repo(s)
             svc = AccessService(
-                repo, SqlAudit(s), None, set(), now=lambda: NOW, uow=SqlUnitOfWork(s)
+                repo, AccessAuditBridge(AuditService(SqlAuditEntries(s))), None, set(), now=lambda: NOW, uow=SqlUnitOfWork(s)
             )
             actor = repo.by_id(ids[actor_key])
             try:

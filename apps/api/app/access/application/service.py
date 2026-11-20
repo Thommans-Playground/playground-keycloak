@@ -18,7 +18,14 @@ from app.access.domain.account import (
     is_repeat_deactivation,
     new_account,
 )
-from app.access.application.ports import AccountRepository, AuditLog, IdentityProvider, UnitOfWork
+from app.access.application.ports import (
+    AccountEvent,
+    AccountRef,
+    AccountRepository,
+    AuditLog,
+    IdentityProvider,
+    UnitOfWork,
+)
 
 
 class IdentityProviderUnavailable(DomainError):
@@ -75,13 +82,12 @@ class AccessService:
         )
         self.accounts.add(account)
         self.audit.record(
-            None,
-            "register"
-            if account.status is Status.pending
-            else "create_bootstrap_admin",
-            account.id,
-            None,
-            self._now(),
+            AccountEvent(
+                None,
+                "register" if account.status is Status.pending else "create_bootstrap_admin",
+                AccountRef.of(account),
+                None,
+            )
         )
         return account
 
@@ -116,18 +122,14 @@ class AccessService:
             # Realises UC-A4 AC-58 (ADR 0009): commit the deactivation first, then call Keycloak, and report a failure.
             if not is_repeat_deactivation(action, target):
                 self.accounts.save(updated)
-            self.audit.record(
-                actor.id, action.value, target.id, cleaned, self._now()
-            )
+            self._audit(actor, action.value, target, cleaned)
             self.uow.commit()
             try:
                 self.idp.disable_user(target.identity)
                 self.idp.end_sessions(target.identity)
             except Exception:  # noqa: BLE001 - any adapter failure means "not updated"
                 # Realises UC-L1 RULE-L3: a failure is a new entry, the first is never edited.
-                self.audit.record(
-                    actor.id, "keycloak_not_updated", target.id, cleaned, self._now()
-                )
+                self._audit(actor, "keycloak_not_updated", target, cleaned)
                 return ChangeResult(updated, keycloak_updated=False)
             return ChangeResult(updated)
 
@@ -141,8 +143,12 @@ class AccessService:
             ) from exc
 
         self.accounts.save(updated)
-        self.audit.record(actor.id, action.value, target.id, cleaned, self._now())
+        self._audit(actor, action.value, target, cleaned)
         return ChangeResult(updated)
+
+    def _audit(self, actor: Account, action: str, target: Account, reason: str | None) -> None:
+        """The names are copied now, from the accounts as this request holds them (decision 14)."""
+        self.audit.record(AccountEvent(AccountRef.of(actor), action, AccountRef.of(target), reason))
 
 
 def _utc_now() -> datetime:

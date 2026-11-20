@@ -2,7 +2,7 @@
 The tests run as the API role, and as the owner role for the control. PostgreSQL only: SQLite has no roles."""
 
 import os
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from sqlalchemy import text
@@ -20,9 +20,10 @@ PERMISSION_DENIED = "42501"
 
 SEQUENCE = "pg_get_serial_sequence('public.audit_entries', 'id')"
 
+# The API names neither the id nor the time: the database sets both (RULE-L2, ADR 0011 amendments).
 INSERT = (
-    "INSERT INTO audit_entries (at, actor_id, action, target_id, reason) "
-    "VALUES (:at, 'actor-1', 'deactivated', 'target-1', 'first')"
+    "INSERT INTO audit_entries (kind, actor_id, action, target_id, reason) "
+    "VALUES ('account', 'actor-1', 'deactivated', 'target-1', 'first')"
 )
 
 
@@ -32,7 +33,7 @@ def roles():
     api = make_engine()  # migrated as the owner; connects as the API role
     owner = owner_engine()
     with api.begin() as connection:
-        connection.execute(text(INSERT), {"at": datetime(2026, 1, 1)})
+        connection.execute(text(INSERT))
     yield api, owner
     drop_everything(owner)
     api.dispose()
@@ -83,18 +84,20 @@ def test_the_api_role_cannot_change_the_audit_trail_and_the_owner_can(roles, sta
 def test_the_api_role_can_still_add_and_read_entries(roles):
     api, _ = roles
     with api.begin() as connection:
-        connection.execute(text(INSERT), {"at": datetime(2026, 1, 2)})
+        connection.execute(text(INSERT))
     assert [r.reason for r in rows(api)] == ["first", "first"]
 
 
 TABLE_PRIVILEGES = ["SELECT", "INSERT", "UPDATE", "DELETE", "TRUNCATE", "REFERENCES", "TRIGGER"]
 EXPECTED_TABLES = {
     "accounts": {"SELECT", "INSERT", "UPDATE"},
-    "audit_entries": {"SELECT", "INSERT"},  # L1.4 narrows INSERT to chosen columns
+    "audit_entries": {"SELECT"},  # INSERT is on chosen columns only, below
     "alembic_version": set(),
 }
-# L1.4 turns id into an identity column and this grant goes.
-EXPECTED_SEQUENCES = {"audit_entries_id_seq": {"USAGE"}}
+# id is an identity column: the sequence exists and the API role holds nothing on it.
+EXPECTED_SEQUENCES = {"audit_entries_id_seq": set()}
+# INSERT on every column but these two: the database sets them.
+DATABASE_SET = {"id", "at"}
 
 
 @pytest.mark.ac("AC-80")
@@ -118,7 +121,61 @@ def test_the_api_role_holds_exactly_the_privileges_on_the_allow_list(roles):
             p for p in ("USAGE", "CREATE") if connection.execute(text("SELECT has_schema_privilege(:u, 'public', :p)"), {"u": user, "p": p}).scalar_one()
         }
         any_column_update = connection.execute(text("SELECT has_any_column_privilege(:u, 'public.audit_entries', 'UPDATE')"), {"u": user}).scalar_one()
+        columns = connection.execute(text(
+            "SELECT attname FROM pg_attribute WHERE attrelid = 'public.audit_entries'::regclass AND attnum > 0 AND NOT attisdropped"
+        )).scalars().all()
+        insertable = {c for c in columns if connection.execute(text("SELECT has_column_privilege(:u, 'public.audit_entries', :c, 'INSERT')"), {"u": user, "c": c}).scalar_one()}
+        selectable = {c for c in columns if connection.execute(text("SELECT has_column_privilege(:u, 'public.audit_entries', :c, 'SELECT')"), {"u": user, "c": c}).scalar_one()}
+    assert insertable == set(columns) - DATABASE_SET
+    assert selectable == set(columns)
     assert held_tables == EXPECTED_TABLES
     assert held_sequences == EXPECTED_SEQUENCES
     assert held_schema == {"USAGE"}
     assert not any_column_update
+
+
+@pytest.mark.ac("AC-80")
+@pytest.mark.rule("RULE-L2")
+@pytest.mark.parametrize("column", ["at", "id"])
+def test_an_insert_that_names_the_time_or_the_id_is_refused(roles, column):
+    api, owner = roles
+    before = rows(owner)
+    value = "'2020-01-01 00:00:00'" if column == "at" else "999"
+    with pytest.raises(DBAPIError) as refused:
+        with api.begin() as connection:
+            connection.execute(text(
+                f"INSERT INTO audit_entries ({column}, kind, action, target_id) VALUES ({value}, 'account', 'approve', 't')"
+            ))
+    # A named id is refused twice over: by the column grant (42501) and by GENERATED ALWAYS (428C9). PostgreSQL
+    # reports the second first, for a plain insert. The time has only the grant.
+    assert refused.value.orig.sqlstate in ({PERMISSION_DENIED, "428C9"} if column == "id" else {PERMISSION_DENIED})
+    assert rows(owner) == before
+    if column == "id":  # forcing it past GENERATED ALWAYS still meets the grant
+        with pytest.raises(DBAPIError) as forced:
+            with api.begin() as connection:
+                connection.execute(text(
+                    "INSERT INTO audit_entries (id, kind, action, target_id) OVERRIDING SYSTEM VALUE "
+                    "VALUES (999, 'account', 'approve', 't')"
+                ))
+        assert forced.value.orig.sqlstate == PERMISSION_DENIED
+    # the control: the owner may name them (the owner can still edit rows, which is accepted for the alpha)
+    with owner.connect() as connection:
+        transaction = connection.begin()
+        connection.execute(text(
+            f"INSERT INTO audit_entries ({column}, kind, action, target_id) OVERRIDING SYSTEM VALUE "
+            f"VALUES ({value}, 'account', 'approve', 't')"
+        ))
+        transaction.rollback()
+
+
+@pytest.mark.ac("AC-80")
+@pytest.mark.rule("RULE-L2")
+def test_an_insert_without_the_time_works_and_the_database_sets_it(roles):
+    api, owner = roles
+    with api.begin() as connection:
+        connection.execute(text(INSERT))
+    with owner.connect() as connection:
+        stored = connection.execute(text("SELECT at FROM audit_entries ORDER BY id DESC LIMIT 1")).scalar_one()
+        database_now = connection.execute(text("SELECT now() AT TIME ZONE 'utc'")).scalar_one()
+    assert stored <= database_now and database_now - stored < timedelta(seconds=30)
+    assert abs(stored - datetime.now(UTC).replace(tzinfo=None)) < timedelta(seconds=30)  # UTC, as the app reads it

@@ -10,6 +10,7 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine, make_url
 
 import app.access.adapters.outbound.sql  # noqa: F401 - registers the tables on Base
+import app.audit.adapters.outbound.sql  # noqa: F401 - registers the audit table on Base
 from app.infrastructure.db import Base
 from tests.safety import check_test_database
 

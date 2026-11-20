@@ -7,7 +7,7 @@ import pytest
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.access.adapters.outbound.sql import SqlAccounts, SqlAudit
+from app.access.adapters.outbound.sql import SqlAccounts
 from app.access.domain.account import Account, Role, Status
 from tests.conftest import make_engine
 from tests.migrations_support import drop_everything, owner_engine
@@ -30,11 +30,6 @@ def session():
 @pytest.fixture
 def accounts(session):
     return SqlAccounts(session)
-
-
-@pytest.fixture
-def audit(session):
-    return SqlAudit(session)
 
 
 def acct(n: int, role=Role.user, status=Status.active, created=None, created_by=None) -> Account:
@@ -119,36 +114,3 @@ def test_save_of_an_unknown_account_fails(accounts):
     # The port does not say; the adapter raises AttributeError (None has no attributes). Pinned here.
     with pytest.raises(AttributeError):
         accounts.save(acct(1))
-
-
-def test_audit_records_an_entry_with_all_its_fields(audit):
-    audit.record("actor-1", "deactivate", "target-1", "left the company", T0)
-    assert audit.entries() == [{"id": audit.entries()[0]["id"], "at": T0, "actor_id": "actor-1",
-                                "action": "deactivate", "target_id": "target-1", "reason": "left the company"}]
-
-
-def test_audit_returns_newest_first(audit):
-    audit.record("a", "approve", "t1", None, T0)
-    audit.record("a", "deactivate", "t1", "reason one", T0 + timedelta(minutes=1))
-    audit.record("a", "reinstate", "t1", "reason two", T0 + timedelta(minutes=2))
-    assert [e["action"] for e in audit.entries()] == ["reinstate", "deactivate", "approve"]
-
-
-def test_audit_reason_and_actor_of_none_round_trip(audit):
-    audit.record(None, "approve", "t1", None, T0)
-    e = audit.entries()[0]
-    assert e["reason"] is None and e["actor_id"] is None
-
-
-def test_audit_with_nothing_recorded_is_empty(audit):
-    assert audit.entries() == []
-
-
-@pytest.mark.ac("AC-58")
-@pytest.mark.rule("RULE-L3")
-def test_audit_keeps_a_deactivation_and_its_keycloak_not_updated_entry_as_two_entries_in_order(audit):
-    audit.record("a", "deactivate", "t1", "left the team", T0)
-    audit.record("a", "keycloak_not_updated", "t1", "left the team", T0 + timedelta(seconds=1))
-    entries = audit.entries()  # newest first
-    assert [e["action"] for e in reversed(entries)] == ["deactivate", "keycloak_not_updated"]
-    assert all(e["target_id"] == "t1" and e["actor_id"] == "a" for e in entries)

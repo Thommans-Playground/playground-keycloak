@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from datetime import datetime
 from typing import Protocol
 
 from app.access.domain.account import Account
@@ -29,16 +28,33 @@ class UnitOfWork(Protocol):
     def commit(self) -> None: ...
 
 
+@dataclass(frozen=True)
+class AccountRef:
+    """An account as it is named at the moment of the change (copied, so a later rename does not rewrite it)."""
+
+    id: str
+    name: str
+    email: str
+
+    @classmethod
+    def of(cls, account: Account) -> "AccountRef":
+        return cls(account.id, account.name, account.email)
+
+
+@dataclass(frozen=True)
+class AccountEvent:
+    """What Access did: who (nobody for a first request), what, to which account, and why where a reason was asked."""
+
+    actor: AccountRef | None
+    action: str
+    target: AccountRef
+    reason: str | None
+
+
 class AuditLog(Protocol):
-    def record(
-        self,
-        actor_id: str | None,
-        action: str,
-        target_id: str,
-        reason: str | None,
-        at: datetime,
-    ) -> None: ...
-    def entries(self) -> list[dict]: ...
+    """Where Access says what it changed, in its own words. It cannot read the trail, edit an entry or set the time."""
+
+    def record(self, event: AccountEvent) -> None: ...
 
 
 @dataclass(frozen=True)

@@ -8,11 +8,16 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.access.adapters.inbound.errors import register_error_handlers
-from app.access.adapters.inbound.http import build_router
+from app.access.adapters.inbound.http import build_guards, build_router
 from app.access.adapters.outbound.keycloak_admin import KeycloakAdmin
-from app.access.adapters.outbound.sql import SqlAccounts, SqlAudit, SqlUnitOfWork
+from app.access.adapters.outbound.sql import SqlAccounts, SqlUnitOfWork
 from app.access.adapters.outbound.token_verifier import JwtTokenVerifier
 from app.access.application.service import AccessService
+from app.audit.adapters.inbound.errors import register_error_handlers as register_audit_error_handlers
+from app.audit.adapters.inbound.http import build_router as build_audit_router
+from app.audit.adapters.outbound.sql import SqlAuditEntries
+from app.audit.application.service import AuditService
+from app.composition.bridges import AccessAuditBridge, audit_caller
 from app.infrastructure.config import Settings, get_settings
 from app.infrastructure.role_check import check_start
 
@@ -38,6 +43,7 @@ def create_app(
 
     app = FastAPI(title="Playground API", lifespan=lifespan)
     register_error_handlers(app)
+    register_audit_error_handlers(app)
 
     def db() -> Iterator[Session]:
         with sessions() as session:
@@ -48,14 +54,23 @@ def create_app(
                 session.rollback()
                 raise
 
-    def service(session: Session = Depends(db)) -> AccessService:
+    def audit_service(session: Session = Depends(db)) -> AuditService:
+        return AuditService(SqlAuditEntries(session))  # the request's session: a change and its entry commit together
+
+    def service(session: Session = Depends(db), audit: AuditService = Depends(audit_service)) -> AccessService:
         return AccessService(
             SqlAccounts(session),
-            SqlAudit(session),
+            AccessAuditBridge(audit),
             idp,
             settings.bootstrap_admins,
             uow=SqlUnitOfWork(session),
         )
 
-    app.include_router(build_router(service, verifier))
+    guards = build_guards(service, verifier)
+
+    def caller(account=Depends(guards.active_account)):
+        return audit_caller(account)  # the guard chain refuses 401, pending and deactivated; Audit decides administrator
+
+    app.include_router(build_router(service, guards))
+    app.include_router(build_audit_router(audit_service, caller))
     return app
