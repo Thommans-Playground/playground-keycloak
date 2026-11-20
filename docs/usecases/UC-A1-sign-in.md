@@ -185,7 +185,7 @@ What is new in the design language: **a login attempt is a short-lived, single-u
 - The return address is not a path of ours (another site, `//host`, `/\host`, or an encoded form of those): it is replaced by the person's own page, so a sign in link cannot send a person elsewhere. The address is kept in the login attempt and never read again from the callback. (AC-40)
 - A request reaches the API with no token, an expired token, a token from another issuer, a token for another audience, or a token signed with an algorithm we do not allow: the API answers 401 and creates nothing. (AC-33)
 - A deactivated person is normally refused on Keycloak's own page and never comes back to us. If they get through anyway, for example when they were re-enabled in Keycloak by hand, they see "Your account is deactivated" and the API refuses their requests (alpha). R2, decision 13: both their session and Keycloak's end, so they are not signed straight back in (the loop, both sessions). (AC-45)
-- R2, decision 13: every refusal above, every 401, and every session that starts or ends writes a server log line: the event, the result, the person's id when it is known and a hash of the session id. Never a token or a code. A deactivated person who gets through also raises a line that Keycloak and Playground disagree. (NFR-5, AC-48)
+- Alpha, decision 17: every refusal above, every 401, and every session that starts or ends writes a server log line: the event, the result, the person's id when it is known and a hash of the session id. Never a token or a code. A deactivated person who gets through also raises a line that Keycloak and Playground disagree. (NFR-5, AC-48)
 
 ## Postconditions
 
@@ -305,7 +305,7 @@ A22 became -> D16
 5. TSK-A1.5: Say so when Keycloak cannot be reached (AC-44)
 6. TSK-A1.6: The API checks the token on every protected route (AC-33)
 7. TSK-A1.7: R2, decision 13: A deactivated person who still signs in sees why and is signed out everywhere. Alpha: the notice and the API refusal are what the person gets (AC-45)
-8. TSK-A1.8: R2, decision 13: Log each refusal and each session that starts or ends (AC-48)
+8. TSK-A1.8: Alpha, decision 17: Log each refusal and each session that starts or ends (AC-48)
 
 ## Not in this use case
 

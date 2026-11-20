@@ -33,7 +33,6 @@ None set aside yet. Add a line here, with the decision, when an item does not ap
   network (as decisions 10 and 13). Revisit all of it at beta, or before the product is reachable from outside the
   corporate network, whichever comes first:
   - the CSRF check (`Sec-Fetch-Site` or `Origin`) on state changing requests;
-  - the extra logging, NFR-5 and AC-48 (release R2);
   - the algorithm allow list as a criterion (part of AC-33);
   - the cookie prefix (`__Host-`) and attributes beyond `HttpOnly`, `Secure` and `SameSite=Lax`;
   - the two tab rule (AC-46);

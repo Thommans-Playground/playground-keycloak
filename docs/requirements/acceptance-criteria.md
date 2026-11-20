@@ -51,7 +51,7 @@
 | AC-45 | FR-4 | a deactivated account whose person still signs in, for example re-enabled in Keycloak by hand | they sign in | they see that the account is deactivated, and both their session and Keycloak's end | acceptance | draft | R2 hardening: deferred by decision 13. |
 | AC-46 | FR-1 | a sign in started in two tabs of one browser | the older one finishes | it is refused, and the newer one can still finish | acceptance | draft | R2 hardening: deferred by decision 13. |
 | AC-47 | FR-3 | a pending account | its person signs in | they land on the waiting page | acceptance | draft |  |
-| AC-48 | NFR-5 | a refused sign in, a refused request, and a session that starts and ends | each happens | each writes one log line, and none holds a token or a code | acceptance | draft | R2 hardening: deferred by decision 13, with NFR-5. |
+| AC-48 | NFR-5 | a refused sign in, a refused request, and a session that starts and ends | each happens | each writes one log line, and none holds a token or a code | acceptance | draft | Alpha, by decision 17 (deferred by decision 13, now brought back with NFR-5). |
 | AC-49 | FR-14 | an administrator and a user | the administrator promotes the user, with a reason | they are an administrator, and an audit entry says who, whom and why | acceptance | draft |  |
 | AC-50 | FR-14 | two administrators | one demotes the other, with a reason | the other is a user, and an audit entry says who, whom and why | acceptance | draft |  |
 | AC-51 | FR-14 | the only administrator | they try to demote themselves | it is refused and an administrator remains | acceptance | draft |  |

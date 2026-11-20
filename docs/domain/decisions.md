@@ -592,3 +592,23 @@ duplicate emails; the diagrams, RULE-A5 and UC-A3 corrected; the config default 
 guards, not in the domain. They move when Projects needs the Caller (ADR 0002). The loser of a first request race gets
 a 500 (accepted, beta list). Two administrators approving at once leave two audit entries (accepted).
 
+## 17. Basic audit trail and basic logging are part of the alpha (20 Nov 2026)
+
+**Decided.** By the owner.
+- **The audit trail is in the alpha** (FR-13, FR-17, UC-L1). It was already release R1. This confirms it: account
+  changes and project changes are written to one trail that an administrator reads. Recording stays the last step of
+  UC-A4, UC-P1 and UC-P2 (no use case of its own), through each context's `AuditLog` port and a bridge (decision 14).
+- **Basic logging is in the alpha.** NFR-5 and AC-48 move from R2 to R1: a log line for every refused sign in, every
+  refused request and every session that starts or ends, with no token or code in it. This reverses the deferral in
+  decision 13 for this one item.
+- **Logs go to stdout as JSON lines**, so that on AWS the ECS `awslogs` driver sends them to CloudWatch with no code
+  change. The technical choices (formatter, request id, the `SecurityLog` port) go in an ADR.
+
+**Why.** Without a trail and logs, nobody can say who changed what or why a request was refused, and moving to AWS
+would mean adding them under pressure.
+
+**Changes.** NFR-5 and AC-48 release R1; the note on NFR-5 and the security overlay's beta list must follow.
+
+**Still open.** Should UC-A3 (register) write an audit entry? Should a refused change or a read be recorded?
+Metrics and tracing stay out of the alpha.
+
