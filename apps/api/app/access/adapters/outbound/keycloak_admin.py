@@ -2,7 +2,7 @@ import time
 
 import httpx
 
-from app.config import Settings
+from app.infrastructure.config import Settings
 
 
 class KeycloakAdmin:

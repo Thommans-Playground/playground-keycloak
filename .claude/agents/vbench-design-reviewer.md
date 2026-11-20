@@ -13,6 +13,7 @@ what could be done.
 A use case id (for example `UC-A1`) or a decision number. Read:
 - the use case's Analysis, Design and Changes sections, and its design sequence diagram in `docs/usecases/diagrams/`;
 - the class diagram of its context under `docs/domain/diagrams/` (for example `access-design.puml`), where it exists;
+- `docs/adr/0010-context-folder-layout.md`, the folder layout every API context must have;
 - `CLAUDE.md` ("Target and way of working"), decisions 4, 5 and 9 in `docs/domain/decisions.md`, the context page in
   `docs/domain/contexts/`, and the architecture tests (`apps/api/tests/test_architecture.py` and
   `apps/web/src/architecture.test.ts` when they exist).
@@ -33,6 +34,10 @@ A use case id (for example `UC-A1`) or a decision number. Read:
 8. **The diagrams say what is built and what is planned.** A diagram that claims "built" for something that is not.
 9. **The change log is honest.** A design element with no source, a dropped analysis element with no reason, a
    renamed thing that is really a new thing.
+10. **Every class sits where ADR 0010 says.** Check that the design places each class in `domain/`, `application/`,
+    `adapters/inbound/` or `adapters/outbound/` of its context (or in `composition/` or `infrastructure/`), that a
+    context's port is owned by the context that needs it, and that cross-context needs are bridged in `composition/`,
+    never imported. A class with no home in that table is a finding.
 
 ## Report
 Reply with findings only, most serious first, in plain words.

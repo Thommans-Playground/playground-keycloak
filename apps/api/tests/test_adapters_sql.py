@@ -6,7 +6,7 @@ import pytest
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.access.adapters.sql import Base, SqlAccounts, SqlAudit
+from app.access.adapters.outbound.sql import Base, SqlAccounts, SqlAudit
 from app.access.domain.account import Account, Role, Status
 from tests.conftest import make_engine
 

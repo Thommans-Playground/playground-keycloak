@@ -43,6 +43,10 @@ Two more checks for ports and the hexagon:
    provides it.
 8. **Does the domain import anything else?** It must not. If a rule needs a database or a
    framework to be tested, the rule is in the wrong layer.
+9. **Does a new context get the standard shape?** In the API every context is `domain/`, `application/`,
+   `adapters/inbound/` and `adapters/outbound/` (ADR 0010), wired only in `app/composition/`. Settings and the
+   declarative base live in `app/infrastructure/`, not in a context. If a proposed context needs a different shape,
+   that is a finding to bring to the owner, and the ADR and `tests/test_architecture.py` change first.
 
 ## How to run it
 

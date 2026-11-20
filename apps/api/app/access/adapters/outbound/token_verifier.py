@@ -1,30 +1,19 @@
 """Check the Keycloak access token: signature, expiry, issuer, audience (NFR-1, NFR-1)."""
 
-from dataclasses import dataclass
 from typing import Callable
 
 import jwt
 from jwt import PyJWKClient
 
-
-@dataclass(frozen=True)
-class Principal:
-    identity: str
-    name: str
-    email: str
-    email_verified: bool
+from app.access.application.ports import InvalidToken, Principal
 
 
-class InvalidToken(Exception):
-    pass
-
-
-class TokenVerifier:
+class JwtTokenVerifier:
     def __init__(self, issuer: str, audience: str, signing_key: Callable[[str], object]):
         self.issuer, self.audience, self._signing_key = issuer, audience, signing_key
 
     @classmethod
-    def from_jwks(cls, issuer: str, audience: str, realm_url: str | None = None) -> "TokenVerifier":
+    def from_jwks(cls, issuer: str, audience: str, realm_url: str | None = None) -> "JwtTokenVerifier":
         # Keys are fetched from where we can reach Keycloak. The issuer checked is the public one.
         client = PyJWKClient(f"{realm_url or issuer}/protocol/openid-connect/certs", cache_keys=True)
         return cls(issuer, audience, lambda token: client.get_signing_key_from_jwt(token).key)

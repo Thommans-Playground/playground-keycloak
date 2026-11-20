@@ -3,7 +3,7 @@
 import httpx
 import pytest
 
-from app.access.adapters.keycloak_admin import KeycloakAdmin
+from app.access.adapters.outbound.keycloak_admin import KeycloakAdmin
 from tests.integration import helpers
 from tests.integration.helpers import LoginRefused, login
 

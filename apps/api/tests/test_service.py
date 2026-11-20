@@ -10,7 +10,7 @@ from app.access.domain.account import (
     Role,
     Status,
 )
-from app.access.service import AccessService, IdentityProviderUnavailable
+from app.access.application.service import AccessService, IdentityProviderUnavailable
 
 from tests.fakes import FakeAccounts, FakeAudit, FakeIdp, FakeUnitOfWork
 

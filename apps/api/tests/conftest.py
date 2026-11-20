@@ -8,9 +8,9 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
 
-from app.access.adapters.sql import Base
-from app.auth import TokenVerifier
-from app.config import Settings
+from app.access.adapters.outbound.sql import Base
+from app.access.adapters.outbound.token_verifier import JwtTokenVerifier
+from app.infrastructure.config import Settings
 from tests.fakes import FakeIdp
 from tests.safety import check_test_database
 from app.main import create_app
@@ -51,7 +51,7 @@ def make_engine():
 def client(idp):
     settings = Settings(keycloak_url="http://kc.test", bootstrap_admin_emails="ada@x.test")
     engine = make_engine()
-    verifier = TokenVerifier(ISSUER, AUDIENCE, lambda _t: KEY.public_key())
+    verifier = JwtTokenVerifier(ISSUER, AUDIENCE, lambda _t: KEY.public_key())
     return TestClient(create_app(settings, verifier, idp, engine))
 
 

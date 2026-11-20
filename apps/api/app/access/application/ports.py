@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Protocol
 
@@ -40,3 +41,21 @@ class AuditLog(Protocol):
     ) -> None: ...
     def set_outcome(self, target_id: str, action: str, outcome: str) -> None: ...
     def entries(self) -> list[dict]: ...
+
+
+@dataclass(frozen=True)
+class Principal:
+    """Who the token says the caller is. What they may do is decided from our own database, never from this."""
+
+    identity: str
+    name: str
+    email: str
+    email_verified: bool
+
+
+class InvalidToken(Exception):
+    """The token is not acceptable. The reason is for the server's log; the caller only learns it was refused."""
+
+
+class TokenVerifier(Protocol):
+    def verify(self, token: str) -> Principal: ...

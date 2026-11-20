@@ -1,4 +1,4 @@
-"""TokenVerifier with a real JWKS served over HTTP by a local server, built as create_app builds it."""
+"""JwtTokenVerifier with a real JWKS served over HTTP by a local server, built as create_app builds it."""
 
 import base64
 import json
@@ -10,7 +10,8 @@ import jwt
 import pytest
 from cryptography.hazmat.primitives import serialization
 
-from app.auth import InvalidToken, TokenVerifier
+from app.access.adapters.outbound.token_verifier import JwtTokenVerifier
+from app.access.application.ports import InvalidToken
 from tests.conftest import AUDIENCE, ISSUER, KEY, OTHER_KEY, make_token
 
 KID = "key-1"
@@ -63,7 +64,7 @@ def jwks():
 @pytest.fixture
 def verifier(jwks):
     # As create_app builds it: the issuer is the public one, the keys come from realm_url.
-    return TokenVerifier.from_jwks(ISSUER, AUDIENCE, jwks.realm_url)
+    return JwtTokenVerifier.from_jwks(ISSUER, AUDIENCE, jwks.realm_url)
 
 
 def signed(claims_over=None, key=KEY, kid=KID, alg="RS256", drop=()):
@@ -97,7 +98,7 @@ def test_the_keys_are_fetched_from_the_certs_path_of_the_realm_url():
     httpd = HTTPServer(("127.0.0.1", 0), H)
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
     try:
-        v = TokenVerifier.from_jwks(ISSUER, AUDIENCE, f"http://127.0.0.1:{httpd.server_address[1]}/realms/playground")
+        v = JwtTokenVerifier.from_jwks(ISSUER, AUDIENCE, f"http://127.0.0.1:{httpd.server_address[1]}/realms/playground")
         v.verify(signed())
     finally:
         httpd.shutdown()
@@ -146,7 +147,7 @@ def test_a_jwks_server_that_is_down_gives_invalid_token():
     s = JwksServer({KID: KEY})
     url = s.realm_url
     s.stop()  # the port now refuses connections
-    v = TokenVerifier.from_jwks(ISSUER, AUDIENCE, url)
+    v = JwtTokenVerifier.from_jwks(ISSUER, AUDIENCE, url)
     with pytest.raises(InvalidToken):
         v.verify(signed())
 
@@ -156,7 +157,7 @@ def test_a_down_jwks_server_is_a_401_through_the_api():
     from fastapi.testclient import TestClient
     from sqlalchemy import create_engine
     from sqlalchemy.pool import StaticPool
-    from app.config import Settings
+    from app.infrastructure.config import Settings
     from app.main import create_app
     from tests.fakes import FakeIdp
 
@@ -164,7 +165,7 @@ def test_a_down_jwks_server_is_a_401_through_the_api():
     url = s.realm_url
     s.stop()
     engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
-    app = create_app(Settings(keycloak_url="http://kc.test"), TokenVerifier.from_jwks(ISSUER, AUDIENCE, url),
+    app = create_app(Settings(keycloak_url="http://kc.test"), JwtTokenVerifier.from_jwks(ISSUER, AUDIENCE, url),
                      FakeIdp(), engine)
     r = TestClient(app).get("/me", headers={"Authorization": f"Bearer {signed()}"})
     assert r.status_code == 401
