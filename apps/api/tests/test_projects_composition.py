@@ -39,3 +39,65 @@ def test_the_account_status_bridge_answers_through_accesss_own_is_active_rule():
     assert bridge.active_among({"a", "p", "d", "unknown"}) == {"a"}
     assert bridge.active_among(set()) == set()
     assert isinstance(bridge.active_among({"a"}), set)
+
+
+# TSK-P1.7: the bridges that answer Projects' People and AuditLog ports
+
+
+def access_with(*people):
+    from app.access.application.service import AccessService
+    from tests.fakes import FakeAccounts, FakeAudit, FakeIdp, FakeUnitOfWork
+
+    accounts = FakeAccounts()
+    for acc_id, name, email in people:
+        accounts.add(
+            Account(acc_id, f"sub-{acc_id}", name, email, Role.user, Status.active, datetime(2026, 1, 1), None)
+        )
+    return AccessService(accounts, FakeAudit(), FakeIdp(), set(), uow=FakeUnitOfWork())
+
+
+@pytest.mark.ac("AC-29")
+def test_the_people_bridge_answers_through_accesss_people_and_leaves_out_the_unknown():
+    from app.composition.bridges import PeopleBridge
+
+    bridge = PeopleBridge(access_with(("a", "Ada", "ada@x.test"), ("m", "Maya", "maya@x.test")))
+    assert bridge.names_of(["a", "m", "ghost"]) == {"a": ("Ada", "ada@x.test"), "m": ("Maya", "maya@x.test")}
+    assert bridge.names_of([]) == {}
+
+
+@pytest.mark.ac("AC-29")
+def test_the_audit_bridge_turns_a_project_event_into_a_project_entry_with_the_names_now():
+    from app.audit.application.service import AuditService
+    from app.audit.domain.entry import Kind, Person
+    from app.composition.bridges import ProjectsAuditBridge
+    from app.projects.application.ports import ProjectEvent
+    from tests.fakes import FakeAuditEntries, FakePeople
+
+    port = FakeAuditEntries()
+    people = FakePeople({"a": ("Ada", "ada@x.test"), "m": ("Maya", "maya@x.test")})
+    ProjectsAuditBridge(AuditService(port), people).record(
+        ProjectEvent("create_project", "a", "p-1", "Alpha", ("m", "a"))
+    )
+    (stored,) = port.stored
+    e = stored.entry
+    assert (e.kind, e.action, e.reason) == (Kind.project, "create_project", None)
+    assert e.actor == Person("a", "Ada", "ada@x.test")
+    assert e.target == Person("p-1", "Alpha", None)
+    assert e.details == (Person("m", "Maya", "maya@x.test"), Person("a", "Ada", "ada@x.test"))
+    assert people.asked == [{"a", "m"}]  # one question, for the actor and the members together
+
+
+@pytest.mark.ac("AC-29")
+def test_the_audit_bridge_keeps_an_id_it_has_no_name_for():
+    from app.audit.application.service import AuditService
+    from app.audit.domain.entry import Person
+    from app.composition.bridges import ProjectsAuditBridge
+    from app.projects.application.ports import ProjectEvent
+    from tests.fakes import FakeAuditEntries, FakePeople
+
+    port = FakeAuditEntries()
+    ProjectsAuditBridge(AuditService(port), FakePeople()).record(
+        ProjectEvent("create_project", "a", "p", "Alpha", ("m",))
+    )
+    e = port.stored[0].entry
+    assert (e.actor, e.details) == (Person("a"), (Person("m"),))

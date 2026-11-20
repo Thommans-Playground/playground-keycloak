@@ -145,3 +145,29 @@ class FakeAccountStatus:
     def active_among(self, ids):
         self.asked.append(set(ids))
         return set(ids) if self.active is None else set(ids) & self.active
+
+
+class FakeProjectsAudit:
+    """Stands in for Projects' AuditLog port: keeps the events, and what the repository held when each came."""
+
+    def __init__(self, projects=None):
+        self.events: list = []
+        self.held_when_recorded: list = []
+        self._projects = projects
+
+    def record(self, event):
+        self.events.append(event)
+        if self._projects is not None:
+            self.held_when_recorded.append(self._projects.by_id(event.project_id))
+
+
+class FakePeople:
+    """Stands in for Projects' People port: {id: (name, email)} for the known ids, nothing for the others."""
+
+    def __init__(self, known: dict[str, tuple[str, str]] | None = None):
+        self.known = known or {}
+        self.asked: list[set[str]] = []
+
+    def names_of(self, ids):
+        self.asked.append(set(ids))
+        return {i: self.known[i] for i in ids if i in self.known}

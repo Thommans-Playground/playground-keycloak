@@ -17,7 +17,14 @@ from app.audit.adapters.inbound.errors import register_error_handlers as registe
 from app.audit.adapters.inbound.http import build_router as build_audit_router
 from app.audit.adapters.outbound.sql import SqlAuditEntries
 from app.audit.application.service import AuditService
-from app.composition.bridges import AccessAuditBridge, AccountStatusBridge, audit_caller, projects_caller
+from app.composition.bridges import (
+    AccessAuditBridge,
+    AccountStatusBridge,
+    PeopleBridge,
+    ProjectsAuditBridge,
+    audit_caller,
+    projects_caller,
+)
 from app.infrastructure.config import Settings, get_settings
 from app.infrastructure.role_check import check_start
 from app.infrastructure.security_log import JsonStdoutSecurityLog
@@ -53,7 +60,7 @@ def create_app(
     app = FastAPI(title="Playground API", lifespan=lifespan)
     register_error_handlers(app, security_log)
     register_audit_error_handlers(app, security_log)
-    register_projects_error_handlers(app)
+    register_projects_error_handlers(app, security_log)
 
     def db() -> Iterator[Session]:
         with sessions() as session:
@@ -83,9 +90,15 @@ def create_app(
             account
         )  # the guard chain refuses 401, pending and deactivated; Audit decides administrator
 
-    def projects_service(session: Session = Depends(db), access: AccessService = Depends(service)) -> ProjectsService:
-        # the request's session, so the project and its members commit together
-        return ProjectsService(SqlProjects(session), AccountStatusBridge(access))
+    def projects_service(
+        session: Session = Depends(db),
+        access: AccessService = Depends(service),
+        audit: AuditService = Depends(audit_service),
+    ) -> ProjectsService:
+        # the request's session, so the project, its members and its audit entry commit together
+        return ProjectsService(
+            SqlProjects(session), AccountStatusBridge(access), ProjectsAuditBridge(audit, PeopleBridge(access))
+        )
 
     def project_caller(account=Depends(guards.active_account)):
         return projects_caller(account)  # the same guard chain as every route: 401, pending and deactivated are refused

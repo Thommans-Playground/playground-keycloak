@@ -7,7 +7,7 @@ from app.projects.domain.caller import Caller
 from app.projects.domain.errors import InvalidProjectName, InvalidRequest, NotAnAdministrator
 from app.projects.domain.name import clean_name
 from app.projects.domain.project import Project
-from tests.fakes import FakeAccountStatus, FakeProjects
+from tests.fakes import FakeAccountStatus, FakeProjects, FakeProjectsAudit
 
 ADMIN = Caller("acc-ada", is_administrator=True)
 USER = Caller("acc-maya", is_administrator=False)
@@ -54,7 +54,7 @@ def test_a_project_is_stored_with_the_trimmed_name():
 def test_the_service_refuses_a_bad_name_and_saves_nothing():
     repo = FakeProjects()
     with pytest.raises(InvalidProjectName):
-        ProjectsService(repo, FakeAccountStatus()).create(ADMIN, "   ", [])
+        ProjectsService(repo, FakeAccountStatus(), FakeProjectsAudit()).create(ADMIN, "   ", [])
     assert repo.rows == {}
 
 
@@ -69,19 +69,23 @@ class ExplodingRepo:
 @pytest.mark.ac("AC-92")
 def test_more_than_50_first_members_is_refused_before_the_repository_is_asked():
     with pytest.raises(InvalidRequest):
-        ProjectsService(ExplodingRepo(), FakeAccountStatus()).create(ADMIN, "Alpha", [f"acc-{i}" for i in range(51)])
+        ProjectsService(ExplodingRepo(), FakeAccountStatus(), FakeProjectsAudit()).create(
+            ADMIN, "Alpha", [f"acc-{i}" for i in range(51)]
+        )
 
 
 @pytest.mark.ac("AC-92")
 def test_50_first_members_are_accepted():
     repo = FakeProjects()
-    p = ProjectsService(repo, FakeAccountStatus()).create(ADMIN, "Alpha", [f"acc-{i}" for i in range(50)])
+    p = ProjectsService(repo, FakeAccountStatus(), FakeProjectsAudit()).create(
+        ADMIN, "Alpha", [f"acc-{i}" for i in range(50)]
+    )
     assert len(p.members) == 50 and repo.by_id(p.id) is p
 
 
 @pytest.mark.ac("AC-92")
 def test_duplicates_are_not_an_error_and_the_cap_counts_distinct_ids():
-    p = ProjectsService(FakeProjects(), FakeAccountStatus()).create(
+    p = ProjectsService(FakeProjects(), FakeAccountStatus(), FakeProjectsAudit()).create(
         ADMIN, "Alpha", [f"acc-{i % 50}" for i in range(80)]
     )
     assert len(p.members) == 50
@@ -90,4 +94,6 @@ def test_duplicates_are_not_an_error_and_the_cap_counts_distinct_ids():
 @pytest.mark.ac("AC-11")
 def test_the_role_is_checked_before_the_name_and_the_cap():
     with pytest.raises(NotAnAdministrator):
-        ProjectsService(ExplodingRepo(), FakeAccountStatus()).create(USER, "\u202e", [f"acc-{i}" for i in range(51)])
+        ProjectsService(ExplodingRepo(), FakeAccountStatus(), FakeProjectsAudit()).create(
+            USER, "\u202e", [f"acc-{i}" for i in range(51)]
+        )

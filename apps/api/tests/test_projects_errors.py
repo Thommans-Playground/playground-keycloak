@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 
 from app.projects.adapters.inbound.errors import register_error_handlers
 from app.projects.domain.errors import NotAnAdministrator, ProjectsError
+from tests.fakes import FakeSecurityLog
 
 
 def test_a_projects_refusal_is_answered_with_its_code_and_message():
@@ -13,7 +14,7 @@ def test_a_projects_refusal_is_answered_with_its_code_and_message():
         code = "odd"
 
     app = FastAPI()
-    register_error_handlers(app)
+    register_error_handlers(app, FakeSecurityLog())
 
     @app.get("/x")
     def x():
@@ -25,7 +26,7 @@ def test_a_projects_refusal_is_answered_with_its_code_and_message():
 
 def test_not_an_administrator_is_answered_with_a_403_and_the_forbidden_body():
     app = FastAPI()
-    register_error_handlers(app)
+    register_error_handlers(app, FakeSecurityLog())
 
     @app.get("/x")
     def x():

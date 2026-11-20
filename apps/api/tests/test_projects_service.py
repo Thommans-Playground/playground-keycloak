@@ -2,10 +2,11 @@
 
 import pytest
 
+from app.projects.application.ports import ProjectEvent
 from app.projects.application.service import ProjectsService
 from app.projects.domain.caller import Caller
 from app.projects.domain.errors import InvalidProjectName, InvalidRequest, MemberNotEligible, NotAnAdministrator
-from tests.fakes import FakeAccountStatus, FakeProjects
+from tests.fakes import FakeAccountStatus, FakeProjects, FakeProjectsAudit
 
 ADMIN = Caller("acc-ada", is_administrator=True)
 USER = Caller("acc-maya", is_administrator=False)
@@ -18,7 +19,7 @@ def projects():
 
 @pytest.fixture
 def service(projects):
-    return ProjectsService(projects, FakeAccountStatus())
+    return ProjectsService(projects, FakeAccountStatus(), FakeProjectsAudit())
 
 
 @pytest.mark.ac("AC-9")
@@ -59,7 +60,7 @@ def test_create_checks_the_role_before_the_input(service, projects):
 
 def service_with(active):
     projects, status = FakeProjects(), FakeAccountStatus(set(active))
-    return ProjectsService(projects, status), projects, status
+    return ProjectsService(projects, status, FakeProjectsAudit()), projects, status
 
 
 @pytest.mark.ac("AC-13")
@@ -107,3 +108,52 @@ def test_no_first_member_asks_nobody_and_is_accepted():
     service, _, status = service_with(set())
     assert service.create(ADMIN, "Alpha", []).members == frozenset()
     assert all(not asked for asked in status.asked)
+
+
+# AC-29, AC-89: creating a project writes one audit entry, after saving, and only when it was created (TSK-P1.7)
+
+
+def audited(active=None):
+    projects = FakeProjects()
+    audit = FakeProjectsAudit(projects)
+    return ProjectsService(projects, FakeAccountStatus(active), audit), projects, audit
+
+
+@pytest.mark.ac("AC-29")
+def test_create_writes_one_event_with_the_actor_the_project_and_the_first_members():
+    service, _, audit = audited()
+    p = service.create(ADMIN, "Alpha", ["acc-maya", "acc-bob"])
+    assert audit.events == [ProjectEvent("create_project", "acc-ada", p.id, "Alpha", ("acc-maya", "acc-bob"))]
+    assert audit.events[0].reason is None
+
+
+@pytest.mark.ac("AC-29")
+def test_the_event_is_written_after_the_project_is_saved_and_carries_the_trimmed_name():
+    service, _, audit = audited()
+    p = service.create(ADMIN, "  Alpha  ", [])
+    assert audit.held_when_recorded == [p]
+    assert (audit.events[0].project_name, audit.events[0].member_ids) == ("Alpha", ())
+
+
+@pytest.mark.ac("AC-89")
+def test_a_person_named_twice_is_in_the_event_once():
+    service, _, audit = audited()
+    service.create(ADMIN, "Alpha", ["acc-maya", "acc-maya", "acc-bob"])
+    assert audit.events[0].member_ids == ("acc-maya", "acc-bob")
+
+
+@pytest.mark.ac("AC-29")
+@pytest.mark.parametrize(
+    "caller,name,members",
+    [
+        (USER, "Alpha", []),
+        (ADMIN, "", []),
+        (ADMIN, "Alpha", [f"acc-{i}" for i in range(51)]),
+        (ADMIN, "Alpha", ["acc-gone"]),
+    ],
+)
+def test_a_refused_creation_writes_no_event(caller, name, members):
+    service, projects, audit = audited(active={"acc-maya"})
+    with pytest.raises(Exception):  # noqa: B017 - which refusal is proven in the tests above
+        service.create(caller, name, members)
+    assert audit.events == [] and projects.rows == {}
