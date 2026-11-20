@@ -15,7 +15,7 @@ COMPOSE=(docker compose -p "$PROJECT" -f docker-compose.yml)
 KEYCLOAK_URL=${KEYCLOAK_URL:-http://localhost:8080}
 API_URL=${API_URL:-http://localhost:8000}
 APP_URL=${APP_URL:-http://localhost:3000}
-PORTS=(8080 8000 3000 5433)
+PORTS=(8080 8000 3000 5433 6380)
 TEST_DB_URL=${TEST_DATABASE_URL:-postgresql+psycopg://playground:playground@localhost:5433/playground_test}
 
 # A port that is already taken means the dev stack (or something else) is running: stop here, with a clear message.
