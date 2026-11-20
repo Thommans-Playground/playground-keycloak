@@ -11,3 +11,11 @@ class ProjectsError(Exception):
 
 class NotAnAdministrator(ProjectsError):
     code = "forbidden"
+
+
+class InvalidProjectName(ProjectsError):
+    code = "invalid_project_name"
+
+
+class InvalidRequest(ProjectsError):
+    code = "invalid_request"

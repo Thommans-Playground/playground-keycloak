@@ -173,3 +173,74 @@ def test_every_projects_route_passes_the_guard_chain(api, admin):
                 assert r.status_code == status, f"{who}: {method} {route.path}"
                 if code:
                     assert r.json()["detail"]["code"] == code, f"{who}: {method} {route.path}"
+
+
+def refused(r, code):
+    assert (r.status_code, r.json()["detail"]["code"]) == (422, code)
+    assert set(r.json()["detail"]) == {"code", "message"}
+
+
+@pytest.mark.ac("AC-12")
+@pytest.mark.parametrize("bad", ["", "   ", "x" * 101])
+def test_a_bad_name_is_refused_with_422_and_nothing_is_created(api, admin, engine, bad):
+    refused(api.post("/projects", headers=admin, json={"name": bad, "members": []}), "invalid_project_name")
+    assert project_count(engine) == 0
+
+
+@pytest.mark.ac("AC-12")
+def test_a_name_of_100_emoji_is_accepted_and_a_padded_name_is_stored_trimmed(api, admin, engine):
+    r = api.post("/projects", headers=admin, json={"name": "\U0001f600" * 100, "members": []})
+    assert (r.status_code, r.json()["name"]) == (201, "\U0001f600" * 100)
+    r = api.post("/projects", headers=admin, json={"name": "  Alpha  ", "members": []})
+    assert (r.status_code, r.json()["name"], stored(engine, r.json()["id"]).name) == (201, "Alpha", "Alpha")
+
+
+@pytest.mark.ac("AC-12")
+def test_a_name_that_is_not_text_is_refused_with_422(api, admin, engine):
+    refused(api.post("/projects", headers=admin, json={"name": 12, "members": []}), "invalid_request")
+    refused(api.post("/projects", headers=admin, json={"members": []}), "invalid_request")
+    assert project_count(engine) == 0
+
+
+@pytest.mark.ac("AC-91")
+@pytest.mark.parametrize("bad", ["Al\npha", "Al\tpha", "Al\u202epha", "Al\u2066pha"])
+def test_a_name_with_a_control_or_override_character_is_refused_and_not_echoed(api, admin, engine, bad):
+    r = api.post("/projects", headers=admin, json={"name": bad, "members": []})
+    refused(r, "invalid_project_name")
+    assert "pha" not in r.text and "Al" not in r.text
+    assert project_count(engine) == 0
+
+
+@pytest.mark.ac("AC-92")
+def test_51_first_members_are_refused_and_50_are_accepted(api, admin, engine):
+    ids = [f"acc-{i}" for i in range(51)]
+    refused(api.post("/projects", headers=admin, json={"name": "Alpha", "members": ids}), "invalid_request")
+    assert project_count(engine) == 0
+    r = api.post("/projects", headers=admin, json={"name": "Alpha", "members": ids[:50]})
+    assert (r.status_code, len(r.json()["members"])) == (201, 50)
+
+
+@pytest.mark.ac("AC-93")
+@pytest.mark.parametrize(
+    "field,value",
+    [("id", "p-1"), ("created_by", "acc-x"), ("added_by", "acc-x"), ("created_at", "2020-01-01"), ("files", ["f"])],
+)
+def test_an_unknown_field_is_refused_not_ignored_and_not_echoed(api, admin, engine, field, value):
+    r = api.post("/projects", headers=admin, json={"name": "Alpha", "members": [], field: value})
+    refused(r, "invalid_request")
+    assert str(value) not in r.text and "Alpha" not in r.text
+    assert project_count(engine) == 0
+
+
+@pytest.mark.ac("AC-93")
+def test_the_known_fields_still_work(api, admin):
+    assert api.post("/projects", headers=admin, json={"name": "Alpha", "members": []}).status_code == 201
+    assert api.post("/projects", headers=admin, json={"name": "Beta"}).status_code == 201
+
+
+@pytest.mark.ac("AC-11")
+def test_the_role_is_checked_before_unknown_fields_and_before_a_bad_name(api, admin, engine):
+    maya_h, _ = active_user(api, admin, "sub-maya", "maya@x.test")
+    r = api.post("/projects", headers=maya_h, json={"name": "", "members": [], "id": "p-1"})
+    assert (r.status_code, r.json()["detail"]["code"]) == (403, "forbidden")
+    assert project_count(engine) == 0

@@ -1,11 +1,13 @@
 """What goes over HTTP for a project. The lists files, endpoints and evaluations are empty placeholders (decision 23)."""
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from app.projects.domain.project import Project
 
 
 class CreateProjectIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")  # mass assignment: an unknown field is refused, not ignored (AC-93)
+
     name: str
     members: list[str] = []  # the first members, as account ids
 
