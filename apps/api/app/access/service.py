@@ -14,6 +14,7 @@ from app.access.domain.account import (
     clean_reason,
     decide,
     duplicates_by_email,
+    is_repeat_deactivation,
     new_account,
 )
 from app.access.ports import AccountRepository, AuditLog, IdentityProvider, UnitOfWork
@@ -109,7 +110,8 @@ class AccessService:
 
         if action is Action.deactivate:
             # Realises UC-A4 AC-58 (ADR 0009): commit the deactivation first, then call Keycloak, and report a failure.
-            self.accounts.save(updated)
+            if not is_repeat_deactivation(action, target):
+                self.accounts.save(updated)
             self.audit.record(
                 actor.id, action.value, target.id, cleaned, self._now(), "done"
             )

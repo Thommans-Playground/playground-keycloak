@@ -4,7 +4,7 @@ from datetime import datetime
 
 import pytest
 
-from app.access.domain.account import Action, Role, Status
+from app.access.domain.account import Action, InvalidTransition, Role, Status
 from app.access.service import AccessService, IdentityProviderUnavailable
 
 from tests.fakes import FakeAccounts, FakeAudit, FakeIdp, FakeUnitOfWork
@@ -121,3 +121,66 @@ def test_deactivating_commits_first_and_a_keycloak_failure_still_leaves_it_deact
     assert events == ["commit", "disable_user"]
     entries = [o for r, o in zip(audit.rows, audit.outcomes) if r[1] == "deactivate"]
     assert entries == ["keycloak_not_updated"]
+
+
+def _deactivated_while_keycloak_was_down():
+    events: list[str] = []
+    accounts, audit, idp, uow = FakeAccounts(), FakeAudit(), FakeIdp(events), FakeUnitOfWork(events)
+    svc = AccessService(accounts, audit, idp, {"ada@x.test"}, now=lambda: NOW, uow=uow)
+    admin = svc.account_for("sub-ada", "Ada", "ada@x.test", True)
+    maya = svc.account_for("sub-1", "Maya", "maya@x.test", True)
+    svc.change(admin, maya.id, Action.approve)
+    idp.fail = True
+    svc.change(admin, maya.id, Action.deactivate, "left the team")
+    idp.fail = False
+    idp.calls.clear()
+    events.clear()
+    return svc, accounts, audit, idp, events, admin, maya
+
+
+@pytest.mark.ac("AC-77")
+def test_deactivating_again_retries_keycloak_and_records_one_new_done_entry():
+    svc, accounts, audit, idp, events, admin, maya = _deactivated_while_keycloak_was_down()
+    before = accounts.by_id(maya.id)
+
+    raised, result = None, None
+    try:
+        result = svc.change(admin, maya.id, Action.deactivate, "retry the Keycloak call")
+    except Exception as exc:  # noqa: BLE001 - the assertion below names it
+        raised = exc
+
+    assert raised is None
+    assert result.keycloak_updated is True
+    assert result.account == before and accounts.by_id(maya.id) == before
+    assert before.status is Status.deactivated
+    assert idp.calls == [("disable", "sub-1"), ("logout", "sub-1")]
+    entries = [o for r, o in zip(audit.rows, audit.outcomes) if r[1] == "deactivate"]
+    assert entries == ["keycloak_not_updated", "done"]
+
+
+@pytest.mark.ac("AC-77")
+def test_deactivating_again_while_keycloak_is_still_down_reports_it_and_does_not_raise():
+    svc, accounts, audit, idp, events, admin, maya = _deactivated_while_keycloak_was_down()
+    idp.fail = True
+
+    raised, result = None, None
+    try:
+        result = svc.change(admin, maya.id, Action.deactivate, "retry the Keycloak call")
+    except Exception as exc:  # noqa: BLE001 - the assertion below names it
+        raised = exc
+
+    assert raised is None
+    assert result.keycloak_updated is False
+    assert accounts.by_id(maya.id).status is Status.deactivated
+
+
+@pytest.mark.ac("AC-66")
+def test_a_pending_account_still_cannot_be_deactivated():
+    events: list[str] = []
+    accounts, audit, idp, uow = FakeAccounts(), FakeAudit(), FakeIdp(events), FakeUnitOfWork(events)
+    svc = AccessService(accounts, audit, idp, {"ada@x.test"}, now=lambda: NOW, uow=uow)
+    admin = svc.account_for("sub-ada", "Ada", "ada@x.test", True)
+    maya = svc.account_for("sub-1", "Maya", "maya@x.test", True)
+    with pytest.raises(InvalidTransition):
+        svc.change(admin, maya.id, Action.deactivate, "not yet approved")
+    assert idp.calls == []
