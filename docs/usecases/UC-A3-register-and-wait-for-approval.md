@@ -15,6 +15,7 @@ criteria:
   - id: AC-73
   - id: AC-74
   - id: AC-75
+  - id: AC-83
 parameters:
   - name, email and password (given to Keycloak, not to us)
 objects: [OBJ-A1]
@@ -31,7 +32,7 @@ evolved_from: [MK3 UC-A5]
 <!-- vbench-uc:begin mirror (generated from the requirements files, do not edit here: change the row, then run sync) -->
 
 <details>
-<summary>The requirements and criteria it runs, copied from docs/requirements (1 requirement, 7 criteria). Do not edit.</summary>
+<summary>The requirements and criteria it runs, copied from docs/requirements (1 requirement, 8 criteria). Do not edit.</summary>
 
 ## What this serves
 
@@ -81,9 +82,15 @@ evolved_from: [MK3 UC-A5]
 - When they make their first request
 - Then they get a pending account, like anyone else
 
+**AC-83** (acceptance, proves FR-3)
+
+- Given a new person whose first request is made
+- When their pending account is created
+- Then one audit entry says that they registered, with no actor and the new account as the target
+
 ## How it is verified
 
-- acceptance: AC-3, AC-4, AC-47, AC-61, AC-73, AC-74, AC-75
+- acceptance: AC-3, AC-4, AC-47, AC-61, AC-73, AC-74, AC-75, AC-83
 
 Each criterion is run by a test tagged `Verifies AC-<n>`.
 
@@ -131,6 +138,7 @@ New in the design language: **lazy provisioning**. The person exists in two plac
 - The person already has an account: nothing is created, and the name and email are refreshed from the token. (AC-3)
 - The person's email is in `BOOTSTRAP_ADMIN_EMAILS`, Keycloak says it is verified, and no active administrator exists: the account is created active, with role administrator, and the audit entry says it came from setup. This is the setup rule (decision 14). It is not RULE-A1, which protects the last administrator. (FR-3, AC-61)
 - The email is in `BOOTSTRAP_ADMIN_EMAILS`, and verified, but an active administrator already exists: the account is created pending, like anyone else's. The setup rule applies only while no active administrator exists. (AC-61)
+5. TSK-A3.5: Write one `register` audit entry when the pending account is created, with no actor and the new account as the target (AC-83, decision 22)
 - The email is in `BOOTSTRAP_ADMIN_EMAILS` but not verified: the account is created pending, as for anyone else, so someone cannot claim the first administrator by registering with an unverified address.
 - A pending person asks for anything other than their own status: the API answers 403 "waiting for approval". (AC-4)
 - A person who signs in and whose account is pending lands on the waiting page, built from their own status. (AC-47)

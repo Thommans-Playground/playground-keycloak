@@ -4,8 +4,8 @@ type: context
 name: Audit
 status: draft
 kind: generic
-owns: []
-  # OBJ-L1 (the audit entry) is not in the ontology yet. Hand it to vbench-ontology, then list it here.
+owns:
+  - OBJ-L1
 refers_to:
   - context: BC-ACCESS
     how: by account id only. Access writes its account changes here, through its own AuditLog port and a bridge in the composition root
@@ -97,7 +97,7 @@ The people and things are copied in with their name and email at that moment. "N
 
 | Action | Actor | Target | Details | Reason | Names come from |
 |---|---|---|---|---|---|
-| register | the new person | the new account | none | none | Access, from the token claims, in its AuditLog call |
+| register | nobody (the person had no account yet, AC-83) | the new account | none | none | Access, from the token claims, in its AuditLog call |
 | approve | the administrator | the account | none | none | Access, from the two accounts it holds |
 | deactivate | the administrator | the account | outcome: done | required | Access |
 | deactivate, Keycloak not updated | the administrator | the account | outcome: keycloak_not_updated (a second entry, the first is not touched) | the same reason | Access |
@@ -113,7 +113,7 @@ The entries hold personal data (names, emails, free text reasons). The alpha kee
 
 ## The rules it holds
 
-None of its own yet. The rules that make an entry necessary are in the other contexts:
+Its own, on [OBJ-L1](../ontology/OBJ-L1-audit-entry.md): [RULE-L1](../ontology/RULE-L1-an-audit-entry-is-never-changed-or-deleted.md) an entry is never changed or deleted, [RULE-L2](../ontology/RULE-L2-the-database-sets-the-time-of-an-entry.md) the database sets the time, [RULE-L3](../ontology/RULE-L3-each-fact-is-its-own-entry.md) each fact is its own entry, and [RULE-L4](../ontology/RULE-L4-people-are-shown-as-they-were-at-the-time.md) people are shown as they were at the time. The rules that make an entry necessary are in the other contexts:
 [RULE-A3](../ontology/RULE-A3-account-change-needs-a-reason.md) an account change needs a reason, and decision 14 for
 project member changes (an audit entry, no reason).
 

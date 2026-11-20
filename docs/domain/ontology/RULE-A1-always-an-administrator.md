@@ -24,7 +24,7 @@ guardrail that stops a cloud account from being locked out of itself.
 
 The check and the change are **one step** (decision 14). If the count of active administrators were read first and the
 change made after, two administrators demoting each other at the same moment would both pass the check and leave
-none. A lock, or one conditional update, closes that gap.
+none. A lock on the active administrator rows closes that gap (ADR 0009): the change takes the lock, counts the active administrators and then changes, so a second change waits and then sees the result.
 
 ## Allowed and refused
 

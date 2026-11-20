@@ -4,7 +4,7 @@ type: rule
 name: An account change needs a reason
 status: draft
 object: OBJ-A1
-statement: "Promoting, demoting, deactivating or reinstating an account without a reason that says something is refused."
+statement: "Promoting, demoting, deactivating or reinstating an account without a reason that says something is refused. A reason is plain text of at most 500 characters, with no control or bidirectional override character."
 proved_by: []
 satisfies: []
 ```
@@ -32,10 +32,15 @@ Allowed: "Left the team", "Needs to help approve requests".
 
 Refused: an empty reason, or one that is only spaces or noise.
 
+A reason is **plain text of at most 500 characters** (AC-81). It is refused if it is longer, or if it has a control character or a bidirectional override character (for example U+202E), where the change is made, so the account stays as it was and no such text reaches the audit trail (decision 22). The limit is Access's, because Access asks for the reason. Audit stores it and never asks for one.
+
+Why no control or override characters: they can hide or reorder text when an administrator reads the trail later, or break a log line.
+
 ## How a test would prove it
 
 - Given an active account, when an administrator deactivates it with no reason, then it is refused and it stays active.
 - Given a deactivated account, when an administrator reinstates it with no reason, then it is refused and it stays deactivated (AC-57).
+- Given an account change with a reason of 501 characters, or one with a control or bidirectional override character, then it is refused and the account stays as it was (AC-81).
 - Given the same change with a real reason, then it succeeds and the reason is in the audit trail.
 
 ## Related

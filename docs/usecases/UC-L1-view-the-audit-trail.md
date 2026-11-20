@@ -19,8 +19,8 @@ criteria:
   - id: AC-81
   - id: AC-82
 parameters: []
-objects: []
-rules: []
+objects: [OBJ-L1]
+rules: [RULE-L1, RULE-L2, RULE-L3, RULE-L4]
 effects:
   - nothing changes, reading the trail writes no audit entry and changes no account or project, and the read and every refusal write a line to the security log (decision 17)
   - a first request by a brand new person can write a register entry, which is UC-A3's effect and not the read's
