@@ -4,14 +4,18 @@ type: object
 name: Project
 status: draft
 context: BC-PROJECTS
-id_prefix: PROJ-
+id_prefix: none  # the id is a random UUID, not a counter with a prefix
 comment: >-
   A place where a team keeps its files, endpoints and evaluations. Only its members and the administrators can see inside it.
 properties:
+  - name: id
+    type: text
+    required: true
+    comment: A random UUID made in the domain, so an id reveals nothing about how many projects exist or in what order (ADR 0015).
   - name: name
     type: text
     required: true
-    comment: Not empty. Open whether it must be unique, and within what.
+    comment: Trimmed, 1 to 100 Unicode characters, no control or bidirectional override character (AC-12, AC-91). Open whether it must be unique, and within what.
   - name: created
     type: date
     required: true
@@ -83,10 +87,12 @@ flowchart LR
   same answer as for a project that does not exist ([RULE-P4](RULE-P4-only-members-see-inside-a-project.md)).
 - Every member has the same rights in it: they run evaluations.
 - Nothing is deleted when a member is removed or an account is deactivated.
-- Parked by decision 13: the project manager and the rule that a project always has one
+- Beta, not current (parked by decision 13): the project manager and the rule that a project always has one
   ([RULE-P1](RULE-P1-a-project-always-has-a-manager.md)). They return with role based access in a later release.
 
 ## Not yet a file
 
-Files, endpoints and evaluations are not ontology objects in this repo yet. In the first cut they are empty
-containers. Whether a project can be archived or deleted is not decided.
+Files, endpoints and evaluations are not ontology objects in this repo yet. In the first cut they are **empty
+placeholder lists** (`files`, `endpoints`, `evaluations`) that the API carries from the start, so they are part of the
+contract (decision 23). No requirement is behind them yet: a functional requirement for them is a later extension,
+written when those contexts are built. Whether a project can be archived or deleted is not decided.

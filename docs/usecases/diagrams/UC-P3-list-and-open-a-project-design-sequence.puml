@@ -5,13 +5,15 @@ skinparam sequenceMessageAlign left
 skinparam maxMessageSize 100
 skinparam ParticipantPadding 6
 title UC-P3 List and open a project (design sequence, planned)
-' Design level (decision 9), drawn against docs/domain/diagrams/projects-design.puml (decisions 13 and 14).
+' Design level (decision 9), drawn against docs/domain/diagrams/projects-design.puml (decisions 13, 14 and 23, ADR 0015).
 ' The analysis level is UC-P3-list-and-open-a-project-analysis-sequence.puml.
 ' Step ids are the main flow numbers of UC-P3. PLANNED, NOT BUILT.
-' Before step 1 the composition root runs the full check (token, account found, not deactivated, not pending)
-' and builds the Caller. That check is the account routes' check and is not drawn.
-' Both reads write no audit entry. The detail read adds three empty lists (files, endpoints, evaluations) in the
-' route's answer, because those contexts are not built. ProjectNotFound is mapped to 404 in main.py.
+' Before step 1 the guard chain runs the full check (token, account found, not deactivated, not pending) and
+' projects_caller(account) in composition/ builds the Caller. That is not drawn.
+' Both reads write no audit entry. Each read and each refusal writes one line to the security log (AC-48).
+' The answer adds three empty placeholder lists (files, endpoints, evaluations, decision 23).
+' ProjectNotFound is mapped to 404 in projects/adapters/inbound/errors.py, also for an id that is not well formed.
+' There is no paging in the alpha (decision 23).
 
 actor "Person" as U
 participant "Projects-\nService" as S #E7F4EA
@@ -19,6 +21,7 @@ participant "Caller" as C #D5E8D4
 participant "Project-\nRepository" as R #EEE7F7
 participant "Project-\nRules" as PR #FFE6CC
 participant "Project" as J #FFE6CC
+participant "Security-\nLog" as SL #EEE7F7
 
 U -> S : 1 list_for(caller)
 S -> C : 3 is_administrator?
@@ -27,16 +30,19 @@ alt an administrator
 else a user
   S -> R : 3 list_for_member(account_id)
 end
-R --> S : the projects
-S --> U : 3 the projects
+R --> S : the projects (maybe none)
+S -> SL : 3 event(project_list, ok)
+S --> U : 3 the projects, or an empty list
 U -> S : 4 open(caller, project_id)
 S -> R : 5 get(project_id)
 R --> S : the project, or none
 S -> PR : 5 may_see(caller, project)
 alt no project, or neither a member\nnor an administrator
+  S -> SL : 5 event(refused)
   S --> U : 5 ProjectNotFound (404, the same for both)
 else
   S -> J : 6 name, memberships
+  S -> SL : 6 event(project_open, ok)
   S --> U : 6 name, members, and empty lists\nfor files, endpoints and evaluations
 end
 @enduml

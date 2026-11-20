@@ -13,10 +13,10 @@ participant "Playground" as PG #E6F0FB
 U -> PG : 1 ask for my projects
 PG -> PG : 2 check the account
 ||20||
-PG --> U : 3 the projects: a user's own,\nall of them for an administrator
+PG --> U : 3 the projects: a user's own (maybe none),\nall of them for an administrator
 ||30||
 U -> PG : 4 open one project
-alt neither a member nor an administrator,\nor no such project
+alt neither a member nor an administrator,\nno such project, or a bad id
   PG --> U : 5 the same answer for both,\nas for a missing project
 else
   ||20||

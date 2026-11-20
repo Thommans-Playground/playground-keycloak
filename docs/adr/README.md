@@ -23,3 +23,5 @@ what, accepted risk) stay in [docs/domain/decisions.md](../domain/decisions.md).
 | [0011](0011-audit-context-append-only.md) | The Audit context, append only, enforced by the database |
 | [0012](0012-migrations-outside-the-app.md) | Migrations live in `apps/api/migrations/`, outside the app, and run as the owner role |
 | [0013](0013-security-log-port-json-on-stdout.md) | A SecurityLog port in each context that logs, one JSON line on stdout (the API half; the web half is on branch `feat/UC-A1-basic-logging`) |
+| [0014](0014-format-and-check-gate.md) | One check script, and formatting that happens by itself |
+| [0015](0015-projects-context-build-plan.md) | The Projects context: layout, ports, tables and tests |

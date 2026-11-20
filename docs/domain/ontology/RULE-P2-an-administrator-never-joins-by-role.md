@@ -10,7 +10,7 @@ satisfies:
   - id: FR-8
 ```
 
-> Parked by decision 13: not in the alpha. Brought back with role based access in a later release.
+> Beta, not current. Parked by decision 13: not in the alpha. Brought back with role based access in a later release.
 
 # An administrator never joins a project by being an administrator
 

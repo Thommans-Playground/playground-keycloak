@@ -5,52 +5,63 @@ skinparam sequenceMessageAlign left
 skinparam maxMessageSize 100
 skinparam ParticipantPadding 6
 title UC-P2 Manage project members (design sequence, planned)
-' Design level (decision 9), drawn against docs/domain/diagrams/projects-design.puml (decisions 13 and 14).
+' Design level (decision 9), drawn against docs/domain/diagrams/projects-design.puml (decisions 13, 14 and 23, ADR 0015).
 ' The analysis level is UC-P2-manage-project-members-analysis-sequence.puml.
 ' Step ids are the main flow numbers of UC-P2. PLANNED, NOT BUILT.
-' Before step 2 the composition root runs the full check (token, account found, not deactivated, not pending)
-' and builds the Caller. That check is the account routes' check and is not drawn.
+' Before step 4 the guard chain runs the full check (token, account found, not deactivated, not pending) and
+' projects_caller(account) in composition/ builds the Caller. That is not drawn.
 ' Order: may see (404), then may change (403), then the input (422). Authorisation comes before validation.
+' A project id that is not well formed is answered as a missing project (404).
 ' Opening the member list (step 1) is UC-P3. Not drawn: adding a person who is already a member, which changes
 ' nothing and writes no entry.
-' Steps 6 and 7 are one transaction: SqlProjects and the AuditLog adapter share one database session.
-' Answers are mapped to HTTP in main.py: ProjectNotFound 404, NotAnAdministrator 403, MemberNotEligible 422.
+' Steps 6 and 7 are one transaction: SqlProjects and the audit bridge share one database session.
+' Answers are mapped to HTTP in projects/adapters/inbound/errors.py: ProjectNotFound 404,
+' NotAnAdministrator 403, MemberNotEligible and InvalidRequest 422.
+' Every refusal writes one line to the security log (AC-48).
 
-actor "Caller\n(person)" as U
+actor "Administrator" as U
 participant "Projects-\nService" as S #E7F4EA
 participant "Project-\nRepository" as R #EEE7F7
 participant "Project-\nRules" as PR #FFE6CC
 participant "Project" as J #FFE6CC
 participant "Account-\nStatus" as AS #EEE7F7
+participant "People" as PE #EEE7F7
 participant "AuditLog" as AL #EEE7F7
+participant "Security-\nLog" as SL #EEE7F7
 
 U -> S : 2 add_member or remove_member\n(caller, project_id, account_id)
 S -> R : 4 get(project_id)
 R --> S : the project, or none
 S -> PR : 4 may_see(caller, project)
 alt no project, or neither a member\nnor an administrator
+  S -> SL : 4 event(refused)
   S --> U : 4 ProjectNotFound (404, the same for both)
 else
   S -> PR : 4 may_change_members(caller)
   alt a member, not an administrator
+    S -> SL : 4 event(refused)
     S --> U : 4 NotAnAdministrator (403)
   else add
     S -> AS : 5 active_among({account_id})
     alt not active, or unknown
+      S -> SL : 5 event(refused)
       S --> U : 5 MemberNotEligible (422)
     else
       S -> J : 6 add_member(account_id, added_by)
-      S -> R : 6 save(project)
-      S -> AL : 7 record(who, member added, whom)
+      S -> R : 6 save(project) (the row difference)
+      S -> PE : 7 names_of(actor, member)
+      S -> AL : 7 record(who, member added,\nproject id and name, whom)
       S --> U : updated member list
     end
   else remove
     S -> J : 6 remove_member(account_id)
     alt not a member (a Projects rule,\nAccountStatus is not asked)
-      S --> U : 6 MemberNotEligible (422)
+      S -> SL : 6 event(refused)
+      S --> U : 6 MemberNotEligible (422), nothing written
     else
-      S -> R : 6 save(project)
-      S -> AL : 7 record(who, member removed, whom)
+      S -> R : 6 save(project) (the row difference)
+      S -> PE : 7 names_of(actor, member)
+      S -> AL : 7 record(who, member removed,\nproject id and name, whom)
       S --> U : updated member list
     end
   end

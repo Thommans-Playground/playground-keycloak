@@ -20,7 +20,7 @@ satisfies:
   - id: FR-12
 ```
 
-> Parked by decision 13: not in the alpha. Brought back with role based access in a later release.
+> Beta, not current. Parked by decision 13: not in the alpha. Brought back with role based access in a later release.
 
 # Project roles
 
@@ -39,8 +39,8 @@ later, with new rules, without changing who holds them.
 ## How it is used
 
 - A project manager adds a person as a project manager or as an engineer
-  ([OBJ-P2](OBJ-P2-membership.md)).
-- A person who manages at least one project may create a new one ([UC-P1](../../usecases/UC-P1-create-a-project.md)).
+  ([OBJ-P2](OBJ-P2-membership.md)). In the alpha only an administrator changes members ([UC-P2](../../usecases/UC-P2-manage-project-members.md)).
+- A person who manages at least one project may create a new one. In the alpha only an administrator creates a project ([UC-P1](../../usecases/UC-P1-create-a-project.md), decision 13).
 - An administrator is not a project role. An administrator may only restore a manager
   ([RULE-P3](RULE-P3-administrator-only-restores-a-manager.md)).
 

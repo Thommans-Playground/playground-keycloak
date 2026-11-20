@@ -6,7 +6,7 @@ title UC-P1 Create a project (analysis: system sequence)
 ' Alpha scope (decision 13): only an administrator creates a project, and there are no project roles.
 ' No route, store, port, adapter, token or cookie.
 ' Step numbers are the main flow numbers of UC-P1.
-' Not drawn: the order of the refusals, and whether a refused creation is audited (open questions 1 and 2).
+' Not drawn: the order of the refusals. A refused creation is not an audit entry: it goes to the log (decision 22, AC-48).
 
 actor "Administrator" as U
 participant "Playground" as PG #E6F0FB
@@ -14,13 +14,13 @@ participant "Playground" as PG #E6F0FB
 U -> PG : 1 create a project\n(name, first members)
 alt not an administrator
   PG --> U : 2 refused
-else name empty or over 100
+else name not valid, more than 50\nfirst members or an unknown field
   PG --> U : 3 refused
 else a first member is not\nactive or unknown
   PG --> U : 4 refused
 else
   PG -> PG : 5 create it,\nthe named people are members
-  PG -> PG : 6 record who and\nwho the first members are
+  PG -> PG : 6 record who, the project\nand who the first members are
   PG --> U : 7 the new project
 end
 @enduml
