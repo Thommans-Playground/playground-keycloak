@@ -88,6 +88,7 @@ def test_deactivate_calls_keycloak_before_changing_anything():
     assert audit.rows[-1] == (admin.id, "deactivate", maya.id, "left the team", NOW)
 
 
+@pytest.mark.ac("AC-59")
 def test_a_keycloak_failure_changes_nothing():
     svc, accounts, audit, idp = make()
     admin = svc.account_for("sub-ada", "Ada", "ada@x.test", True)
