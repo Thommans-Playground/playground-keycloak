@@ -34,6 +34,8 @@ docker compose up -d --build     # first build takes a few minutes
 
 The API keeps its data in its own PostgreSQL (`api-db`), the engine Amazon RDS runs on AWS.
 
+The API creates no tables. The one-off `api-migrate` service runs `alembic upgrade head` (Alembic, in `apps/api/migrations/`) and the API starts after it ends well. To run it by hand: `docker compose run --rm api-migrate`, or in `apps/api/` with `MIGRATION_DATABASE_URL=postgresql+psycopg://playground:playground@localhost:5433/playground uv run alembic upgrade head`. An existing dev volume keeps working: the baseline skips a table that already exists, so there is nothing to recreate yet.
+
 Stop: `docker compose down`. Wipe all data and re-import the realm: `docker compose down -v`.
 Logs: `docker compose logs -f web api keycloak`.
 

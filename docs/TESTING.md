@@ -12,6 +12,13 @@ Each level proves more and runs slower. Most tests sit at the bottom.
 
 `npm test` runs only `*.test.ts`. The slow tests are `*.it.ts`, so a normal run never needs the stack.
 
+## The test database and migrations
+
+The API creates no tables, so every API test database is built by `alembic upgrade head` (ADR 0012): SQLite in memory
+by default, or PostgreSQL with `TEST_DATABASE_URL` (always a `*_test` database). Alembic runs as the owner role,
+with `TEST_MIGRATION_DATABASE_URL`; when it is not set the tests use `TEST_DATABASE_URL` (the same user until the
+separate roles arrive). CI and `scripts/test-stack.sh` set both. After each test the owner drops everything.
+
 ## The INTEGRATION=1 switch
 
 The integration and acceptance tests need a running stack. They run only when `INTEGRATION=1` is set. Without it the web

@@ -31,9 +31,24 @@ services:
       interval: 5s
       retries: 10
 
+  # One-off: brings the schema to head, then stops. The API never changes structure (ADR 0012). Run by hand with
+  #   docker compose run --rm api-migrate
+  # On AWS this is a one-off ECS task with the owner secret.
+  api-migrate:
+    build: ./apps/api
+    command: ["alembic", "upgrade", "head"]
+    restart: "no"
+    depends_on:
+      api-db:
+        condition: service_healthy
+    environment:
+      MIGRATION_DATABASE_URL: postgresql+psycopg://playground:playground@api-db:5432/playground
+
   api:
     build: ./apps/api
     depends_on:
+      api-migrate:
+        condition: service_completed_successfully
       keycloak:
         condition: service_started
       api-db:

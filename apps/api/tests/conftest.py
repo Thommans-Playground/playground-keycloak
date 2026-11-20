@@ -8,10 +8,10 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
 
-from app.access.adapters.outbound.sql import Base
 from app.access.adapters.outbound.token_verifier import JwtTokenVerifier
 from app.infrastructure.config import Settings
 from tests.fakes import FakeIdp
+from tests.migrations_support import drop_everything, owner_engine, upgrade
 from tests.safety import check_test_database
 from app.main import create_app
 
@@ -36,15 +36,29 @@ def idp():
     return FakeIdp()
 
 
-def make_engine():
-    """SQLite in memory by default, so a test run needs nothing and stays fast.
+def make_empty_engine():
+    """The API's engine on an empty database: SQLite in memory by default, so a test run needs nothing and stays fast.
     Set TEST_DATABASE_URL to run the same tests on PostgreSQL, the engine of Amazon RDS."""
     url = os.environ.get("TEST_DATABASE_URL")
     if url:
         engine = create_engine(check_test_database(url))  # refuses a database that is not named *_test
-        Base.metadata.drop_all(engine)  # a clean slate for each test: create_app makes the tables
+        owner = owner_engine()
+        drop_everything(owner)  # a clean slate for each test, as the owner
+        owner.dispose()
         return engine
     return create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+
+
+def make_engine():
+    """An engine on a database that Alembic has brought to head, as the owner (ADR 0012). The app creates no tables."""
+    engine = make_empty_engine()
+    if os.environ.get("TEST_DATABASE_URL"):
+        owner = owner_engine()
+        upgrade(owner)
+        owner.dispose()
+    else:
+        upgrade(engine)
+    return engine
 
 
 @pytest.fixture

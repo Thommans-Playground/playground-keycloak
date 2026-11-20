@@ -17,6 +17,8 @@ API_URL=${API_URL:-http://localhost:8000}
 APP_URL=${APP_URL:-http://localhost:3000}
 PORTS=(8080 8000 3000 5433 6380)
 TEST_DB_URL=${TEST_DATABASE_URL:-postgresql+psycopg://playground:playground@localhost:5433/playground_test}
+# The owner of the test database runs the migrations; until the roles of TSK-L1.3 it is the same user.
+TEST_MIGRATION_DB_URL=${TEST_MIGRATION_DATABASE_URL:-$TEST_DB_URL}
 
 # A port that is already taken means the dev stack (or something else) is running: stop here, with a clear message.
 check_ports() {
@@ -64,7 +66,7 @@ start() {
 stack_tests() {
   export INTEGRATION=1
   echo "== API on the stack's PostgreSQL (playground_test)"
-  (cd apps/api && TEST_DATABASE_URL="$TEST_DB_URL" uv run pytest -q)
+  (cd apps/api && TEST_DATABASE_URL="$TEST_DB_URL" TEST_MIGRATION_DATABASE_URL="$TEST_MIGRATION_DB_URL" uv run pytest -q)
   echo "== API integration tests"
   (cd apps/api && uv run pytest -q tests/integration)
   echo "== web integration and acceptance tests"

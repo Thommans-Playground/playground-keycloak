@@ -1,25 +1,30 @@
 """The SQL adapters keep the promises of the ports. Characterization tests: SQLite by default, PostgreSQL with TEST_DATABASE_URL."""
 
+import os
 from datetime import datetime, timedelta
 
 import pytest
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.access.adapters.outbound.sql import Base, SqlAccounts, SqlAudit
+from app.access.adapters.outbound.sql import SqlAccounts, SqlAudit
 from app.access.domain.account import Account, Role, Status
 from tests.conftest import make_engine
+from tests.migrations_support import drop_everything, owner_engine
 
 T0 = datetime(2026, 1, 1, 12, 0, 0)
 
 
 @pytest.fixture
 def session():
-    engine = make_engine()
-    Base.metadata.create_all(engine)
+    engine = make_engine()  # migrated to head by Alembic, as the owner
     with Session(engine) as s:
         yield s
-    Base.metadata.drop_all(engine)
+    engine.dispose()
+    if os.environ.get("TEST_DATABASE_URL"):
+        owner = owner_engine()
+        drop_everything(owner)
+        owner.dispose()
 
 
 @pytest.fixture

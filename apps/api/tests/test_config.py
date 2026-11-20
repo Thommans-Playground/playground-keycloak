@@ -14,3 +14,8 @@ def test_the_setup_list_fails_closed_when_nothing_is_set(monkeypatch):
     svc = AccessService(FakeAccounts(), FakeAudit(), FakeIdp(), settings.bootstrap_admins, uow=FakeUnitOfWork())
     for email in ("admin@example.test", "ada@x.test"):
         assert svc.account_for(f"sub-{email}", "Someone", email, True).status.value == "pending"
+
+
+def test_the_api_settings_do_not_know_the_migration_url():
+    # ADR 0011 and 0012: the owner secret exists only in the migration container, so the API cannot read it.
+    assert "migration_database_url" not in Settings.model_fields

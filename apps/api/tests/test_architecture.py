@@ -18,6 +18,7 @@ import sys
 from pathlib import Path
 
 APP = Path(__file__).resolve().parents[1] / "app"
+MIGRATIONS = Path(__file__).resolve().parents[1] / "migrations"
 STDLIB = set(sys.stdlib_module_names)
 
 SHARED_PACKAGES = {"composition", "infrastructure"}
@@ -148,3 +149,35 @@ def test_contexts_do_not_import_each_other():
             for mod in imports_of(f):
                 for other in cs:
                     assert other == c or not mod.startswith(f"app.{other}"), f"{f.relative_to(APP)} imports {mod}"
+
+
+# ADR 0012: migrations/ sits outside app/, is neither a context nor a layer, and sees only the tables.
+MIGRATION_LIBS = {"alembic", "sqlalchemy"}
+
+
+def migration_violations(path: Path) -> list[str]:
+    """Imports a migration file may not have: only infrastructure and the outbound table definitions of a context."""
+    allowed = ["app.infrastructure"] + [f"app.{c}.adapters.outbound.sql" for c in contexts()]
+    return outside(path, allowed, MIGRATION_LIBS)
+
+
+def test_migrations_import_only_infrastructure_and_the_table_definitions():
+    for f in py_files(MIGRATIONS):
+        bad = migration_violations(f)
+        assert bad == [], (
+            f"{f.relative_to(MIGRATIONS.parent)} imports {bad}: a migration sees the tables only, "
+            "never a domain or application module, or the schema would follow the rules of the day (ADR 0012)"
+        )
+
+
+def test_the_migration_rule_refuses_a_domain_or_an_application_import(tmp_path):
+    for module in ("app.access.domain.account", "app.access.application.service", "app.composition.app"):
+        f = tmp_path / "m.py"
+        f.write_text(f"from {module} import x\n", encoding="utf-8")
+        assert migration_violations(f) == [module]
+
+
+def test_nothing_in_the_app_imports_migrations():
+    for f in py_files(APP):
+        for mod in imports_of(f):
+            assert mod.split(".")[0] != "migrations", f"{f.relative_to(APP)} imports {mod}: the app never runs or reads migrations"
