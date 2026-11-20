@@ -31,7 +31,6 @@ else a user
   S -> R : 3 list_for_member(account_id)
 end
 R --> S : the projects (maybe none)
-S -> SL : 3 event(project_list, ok)
 S --> U : 3 the projects, or an empty list
 U -> S : 4 open(caller, project_id)
 S -> R : 5 get(project_id)
@@ -42,7 +41,6 @@ alt no project, or neither a member\nnor an administrator
   S --> U : 5 ProjectNotFound (404, the same for both)
 else
   S -> J : 6 name, memberships
-  S -> SL : 6 event(project_open, ok)
   S --> U : 6 name, members, and empty lists\nfor files, endpoints and evaluations
 end
 @enduml

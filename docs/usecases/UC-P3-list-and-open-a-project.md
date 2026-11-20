@@ -28,7 +28,7 @@ objects: [OBJ-P1, OBJ-P2]
 rules: [RULE-P4]
 effects:
   - nothing changes: both are reads
-  - no audit entry is written, but every refusal and every read writes a line to the security log (AC-48)
+  - no audit entry is written, and every refusal writes a line to the security log; a read that succeeds writes none (AC-48, ADR 0013)
 evolved_from: []
 flow_reviewed: 5bd7bab
 ```
@@ -119,7 +119,7 @@ A person lists the projects they may see and opens one. A user lists only the pr
 5. The system checks that the person may see it: they are a member or an administrator. (FR-12, AC-26)
 6. The system shows the project: its name, its members, and empty lists of files, endpoints and evaluations. (FR-12, AC-26, AC-28)
 
-Every refusal and every read writes one line to the security log. (AC-48)
+Every refusal writes one line to the security log, with the same reason code for a hidden and a missing project. A read that succeeds writes none. (AC-48, ADR 0013)
 
 ## Other flows
 
@@ -130,6 +130,8 @@ Every refusal and every read writes one line to the security log. (AC-48)
 - A person who is neither a member nor an administrator opens a project: refused, with the same answer as for a project that does not exist. (AC-26, AC-27)
 - A person asks for an id that does not exist, or one that is not well formed: the same answer as the line above, with the same status, body and code. (AC-27)
 - A pending or deactivated person, or a request with no token: refused by the guard chain (403 or 401) before any project is looked at. (AC-94)
+
+- Built: the list and the open answers show a project's members as account ids only, the same shape as the create answer. Their names (through the People port) are decided when the web pages need them.
 
 ## Postconditions
 

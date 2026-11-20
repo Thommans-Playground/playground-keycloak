@@ -189,6 +189,9 @@ A refusal at any step writes one line to the security log and nothing else. (AC-
 
 ## Open questions
 
+Known gap, built: eligibility is checked and the project saved in one request with no lock between them, so a person deactivated in that gap could still become a member. The guard refuses them on every later request, so they gain nothing. Revisit with concurrency work (UC-A4's lock is the model).
+
+
 For the product owner to decide.
 
 1. Must a project name be unique, and within what? (Still open from decision 3.)
