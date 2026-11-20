@@ -1,6 +1,7 @@
 """The bridges between contexts. This is the only place that knows both sides (ADR 0010, decision 14)."""
 
 from app.access.application.ports import AccountEvent
+from app.access.application.service import AccessService
 from app.access.domain.account import Account
 from app.audit.application.service import AuditService
 from app.audit.domain.caller import Caller
@@ -25,6 +26,16 @@ class AccessAuditBridge:
                 reason=event.reason,
             )
         )
+
+
+class AccountStatusBridge:
+    """Projects' AccountStatus port, answered by Access's use case, on the same session as the request."""
+
+    def __init__(self, access: AccessService):
+        self._access = access
+
+    def active_among(self, ids: set[str]) -> set[str]:
+        return set(self._access.active_among(list(ids)))
 
 
 def audit_caller(account: Account) -> Caller:

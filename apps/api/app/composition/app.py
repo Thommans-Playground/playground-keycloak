@@ -17,7 +17,7 @@ from app.audit.adapters.inbound.errors import register_error_handlers as registe
 from app.audit.adapters.inbound.http import build_router as build_audit_router
 from app.audit.adapters.outbound.sql import SqlAuditEntries
 from app.audit.application.service import AuditService
-from app.composition.bridges import AccessAuditBridge, audit_caller, projects_caller
+from app.composition.bridges import AccessAuditBridge, AccountStatusBridge, audit_caller, projects_caller
 from app.infrastructure.config import Settings, get_settings
 from app.infrastructure.role_check import check_start
 from app.infrastructure.security_log import JsonStdoutSecurityLog
@@ -83,10 +83,9 @@ def create_app(
             account
         )  # the guard chain refuses 401, pending and deactivated; Audit decides administrator
 
-    def projects_service(session: Session = Depends(db)) -> ProjectsService:
-        return ProjectsService(
-            SqlProjects(session)
-        )  # the request's session, so the project and its members commit together
+    def projects_service(session: Session = Depends(db), access: AccessService = Depends(service)) -> ProjectsService:
+        # the request's session, so the project and its members commit together
+        return ProjectsService(SqlProjects(session), AccountStatusBridge(access))
 
     def project_caller(account=Depends(guards.active_account)):
         return projects_caller(account)  # the same guard chain as every route: 401, pending and deactivated are refused

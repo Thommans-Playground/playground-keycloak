@@ -7,7 +7,7 @@ from app.projects.domain.caller import Caller
 from app.projects.domain.errors import InvalidProjectName, InvalidRequest, NotAnAdministrator
 from app.projects.domain.name import clean_name
 from app.projects.domain.project import Project
-from tests.fakes import FakeProjects
+from tests.fakes import FakeAccountStatus, FakeProjects
 
 ADMIN = Caller("acc-ada", is_administrator=True)
 USER = Caller("acc-maya", is_administrator=False)
@@ -54,7 +54,7 @@ def test_a_project_is_stored_with_the_trimmed_name():
 def test_the_service_refuses_a_bad_name_and_saves_nothing():
     repo = FakeProjects()
     with pytest.raises(InvalidProjectName):
-        ProjectsService(repo).create(ADMIN, "   ", [])
+        ProjectsService(repo, FakeAccountStatus()).create(ADMIN, "   ", [])
     assert repo.rows == {}
 
 
@@ -69,23 +69,25 @@ class ExplodingRepo:
 @pytest.mark.ac("AC-92")
 def test_more_than_50_first_members_is_refused_before_the_repository_is_asked():
     with pytest.raises(InvalidRequest):
-        ProjectsService(ExplodingRepo()).create(ADMIN, "Alpha", [f"acc-{i}" for i in range(51)])
+        ProjectsService(ExplodingRepo(), FakeAccountStatus()).create(ADMIN, "Alpha", [f"acc-{i}" for i in range(51)])
 
 
 @pytest.mark.ac("AC-92")
 def test_50_first_members_are_accepted():
     repo = FakeProjects()
-    p = ProjectsService(repo).create(ADMIN, "Alpha", [f"acc-{i}" for i in range(50)])
+    p = ProjectsService(repo, FakeAccountStatus()).create(ADMIN, "Alpha", [f"acc-{i}" for i in range(50)])
     assert len(p.members) == 50 and repo.by_id(p.id) is p
 
 
 @pytest.mark.ac("AC-92")
 def test_duplicates_are_not_an_error_and_the_cap_counts_distinct_ids():
-    p = ProjectsService(FakeProjects()).create(ADMIN, "Alpha", [f"acc-{i % 50}" for i in range(80)])
+    p = ProjectsService(FakeProjects(), FakeAccountStatus()).create(
+        ADMIN, "Alpha", [f"acc-{i % 50}" for i in range(80)]
+    )
     assert len(p.members) == 50
 
 
 @pytest.mark.ac("AC-11")
 def test_the_role_is_checked_before_the_name_and_the_cap():
     with pytest.raises(NotAnAdministrator):
-        ProjectsService(ExplodingRepo()).create(USER, "\u202e", [f"acc-{i}" for i in range(51)])
+        ProjectsService(ExplodingRepo(), FakeAccountStatus()).create(USER, "\u202e", [f"acc-{i}" for i in range(51)])

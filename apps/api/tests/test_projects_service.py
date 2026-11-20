@@ -4,8 +4,8 @@ import pytest
 
 from app.projects.application.service import ProjectsService
 from app.projects.domain.caller import Caller
-from app.projects.domain.errors import NotAnAdministrator
-from tests.fakes import FakeProjects
+from app.projects.domain.errors import InvalidProjectName, InvalidRequest, MemberNotEligible, NotAnAdministrator
+from tests.fakes import FakeAccountStatus, FakeProjects
 
 ADMIN = Caller("acc-ada", is_administrator=True)
 USER = Caller("acc-maya", is_administrator=False)
@@ -18,7 +18,7 @@ def projects():
 
 @pytest.fixture
 def service(projects):
-    return ProjectsService(projects)
+    return ProjectsService(projects, FakeAccountStatus())
 
 
 @pytest.mark.ac("AC-9")
@@ -52,3 +52,58 @@ def test_create_checks_the_role_before_the_input(service, projects):
     with pytest.raises(NotAnAdministrator):  # the name and the members are not looked at
         service.create(USER, "", ["", "not-an-account"])
     assert projects.rows == {}
+
+
+# AC-13, AC-89: a first member must have an active account, and each is counted once (UC-P1 TSK-P1.6)
+
+
+def service_with(active):
+    projects, status = FakeProjects(), FakeAccountStatus(set(active))
+    return ProjectsService(projects, status), projects, status
+
+
+@pytest.mark.ac("AC-13")
+@pytest.mark.parametrize("member", ["acc-pending", "acc-deactivated", "acc-unknown"])
+def test_a_first_member_who_is_not_active_is_refused_with_one_answer_and_nothing_is_saved(member):
+    service, projects, _ = service_with({"acc-maya"})
+    with pytest.raises(MemberNotEligible) as refusal:
+        service.create(ADMIN, "Alpha", [member])
+    assert (refusal.value.code, refusal.value.message) == ("member_not_eligible", "A first member cannot be added.")
+    assert member not in str(refusal.value)
+    assert projects.rows == {}
+
+
+@pytest.mark.ac("AC-13")
+def test_one_inactive_among_active_members_refuses_all_and_saves_nothing():
+    service, projects, _ = service_with({"acc-maya", "acc-bob"})
+    with pytest.raises(MemberNotEligible):
+        service.create(ADMIN, "Alpha", ["acc-maya", "acc-gone", "acc-bob"])
+    assert projects.rows == {}
+
+
+@pytest.mark.ac("AC-13")
+def test_eligibility_is_checked_after_authorisation_and_after_the_input_rules():
+    service, projects, status = service_with(set())
+    with pytest.raises(NotAnAdministrator):
+        service.create(USER, "Alpha", ["acc-gone"])
+    with pytest.raises(InvalidProjectName):
+        service.create(ADMIN, "", ["acc-gone"])
+    with pytest.raises(InvalidRequest):
+        service.create(ADMIN, "Alpha", [f"acc-{i}" for i in range(51)])
+    assert status.asked == [] and projects.rows == {}
+
+
+@pytest.mark.ac("AC-89")
+def test_naming_the_same_active_person_twice_makes_one_membership_and_asks_about_the_id_once():
+    service, projects, status = service_with({"acc-maya"})
+    p = service.create(ADMIN, "Alpha", ["acc-maya", "acc-maya"])
+    assert len(p.memberships) == 1 and p.members == {"acc-maya"}
+    assert projects.by_id(p.id) is p
+    assert status.asked == [{"acc-maya"}]
+
+
+@pytest.mark.ac("AC-13")
+def test_no_first_member_asks_nobody_and_is_accepted():
+    service, _, status = service_with(set())
+    assert service.create(ADMIN, "Alpha", []).members == frozenset()
+    assert all(not asked for asked in status.asked)

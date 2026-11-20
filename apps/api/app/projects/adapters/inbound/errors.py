@@ -6,9 +6,20 @@ from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from app.projects.domain.errors import InvalidProjectName, InvalidRequest, NotAnAdministrator, ProjectsError
+from app.projects.domain.errors import (
+    InvalidProjectName,
+    InvalidRequest,
+    MemberNotEligible,
+    NotAnAdministrator,
+    ProjectsError,
+)
 
-HTTP_STATUS: dict[type[ProjectsError], int] = {NotAnAdministrator: 403, InvalidProjectName: 422, InvalidRequest: 422}
+HTTP_STATUS: dict[type[ProjectsError], int] = {
+    NotAnAdministrator: 403,
+    InvalidProjectName: 422,
+    InvalidRequest: 422,
+    MemberNotEligible: 422,
+}
 
 
 def register_error_handlers(app: FastAPI) -> None:

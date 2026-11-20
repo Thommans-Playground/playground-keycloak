@@ -243,3 +243,16 @@ def test_each_context_declares_its_own_security_log_port_and_none_imports_the_ot
         )
         other = "audit" if c == "access" else "access"
         assert not any(m.startswith(f"app.{other}") for m in imports_of(ports)), f"{c} ports import {other}"
+
+
+def test_projects_imports_no_other_context_only_composition_sees_both():
+    # UC-P1 TSK-P1.6: Projects asks about accounts through its own AccountStatus port, answered by a bridge.
+    for f in py_files(APP / "projects"):
+        for mod in imports_of(f):
+            assert not any(mod == f"app.{c}" or mod.startswith(f"app.{c}.") for c in contexts() if c != "projects"), (
+                f"{f.relative_to(APP)} imports {mod}: Projects knows no other context (ADR 0002, 0010, 0015)"
+            )
+    ports = imports_of(APP / "projects" / "application" / "ports.py")
+    assert not any(m.startswith("app.access") for m in ports)
+    assert any(p.name == "bridges.py" for p in py_files(APP / "composition"))
+    assert any(m.startswith("app.access") for m in imports_of(APP / "composition" / "bridges.py"))

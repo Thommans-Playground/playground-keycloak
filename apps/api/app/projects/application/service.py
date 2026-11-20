@@ -2,15 +2,16 @@
 
 from collections.abc import Iterable
 
-from app.projects.application.ports import ProjectRepository
+from app.projects.application.ports import AccountStatus, ProjectRepository
 from app.projects.domain.caller import Caller
-from app.projects.domain.errors import NotAnAdministrator
+from app.projects.domain.errors import MemberNotEligible, NotAnAdministrator
 from app.projects.domain.project import Project
 
 
 class ProjectsService:
-    def __init__(self, projects: ProjectRepository):
+    def __init__(self, projects: ProjectRepository, accounts: AccountStatus):
         self._projects = projects
+        self._accounts = accounts
 
     @staticmethod
     def authorise_creation(caller: Caller) -> None:
@@ -20,8 +21,12 @@ class ProjectsService:
 
     def create(self, caller: Caller, name: str, member_ids: Iterable[str]) -> Project:
         """Create a project with its first members (AC-9, AC-10). Only an administrator may, and that is checked
-        before the input is (AC-11, AC-32); then the name and the cap on first members are (AC-12, AC-91, AC-92)."""
+        before the input is (AC-11, AC-32); then the name and the cap on first members are (AC-12, AC-91, AC-92); then that every person named has an
+        active account (AC-13), each counted once (AC-89)."""
         self.authorise_creation(caller)
         project = Project.create(caller, name, member_ids)
+        named = set(project.members)  # each person once (AC-89)
+        if named and not named <= self._accounts.active_among(named):
+            raise MemberNotEligible  # pending, deactivated or unknown: one answer (AC-13)
         self._projects.add(project)
         return project

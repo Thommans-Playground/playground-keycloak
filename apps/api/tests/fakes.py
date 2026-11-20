@@ -133,3 +133,15 @@ class FakeProjects:
 
     def by_id(self, project_id):
         return self.rows.get(project_id)
+
+
+class FakeAccountStatus:
+    """Stands in for Projects' AccountStatus port. `active=None` means every id is an active account."""
+
+    def __init__(self, active: set[str] | None = None):
+        self.active = active
+        self.asked: list[set[str]] = []
+
+    def active_among(self, ids):
+        self.asked.append(set(ids))
+        return set(ids) if self.active is None else set(ids) & self.active

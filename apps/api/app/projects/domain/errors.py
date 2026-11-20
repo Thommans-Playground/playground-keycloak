@@ -19,3 +19,12 @@ class InvalidProjectName(ProjectsError):
 
 class InvalidRequest(ProjectsError):
     code = "invalid_request"
+
+
+class MemberNotEligible(ProjectsError):
+    """One answer for a first member who is pending, deactivated or unknown: it names no id and no status (AC-13)."""
+
+    code = "member_not_eligible"
+
+    def __init__(self):
+        super().__init__("A first member cannot be added.")

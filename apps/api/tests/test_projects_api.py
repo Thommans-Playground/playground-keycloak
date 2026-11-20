@@ -213,7 +213,7 @@ def test_a_name_with_a_control_or_override_character_is_refused_and_not_echoed(a
 
 @pytest.mark.ac("AC-92")
 def test_51_first_members_are_refused_and_50_are_accepted(api, admin, engine):
-    ids = [f"acc-{i}" for i in range(51)]
+    ids = [active_user(api, admin, f"sub-{i}", f"u{i}@x.test")[1] for i in range(51)]
     refused(api.post("/projects", headers=admin, json={"name": "Alpha", "members": ids}), "invalid_request")
     assert project_count(engine) == 0
     r = api.post("/projects", headers=admin, json={"name": "Alpha", "members": ids[:50]})
@@ -244,3 +244,44 @@ def test_the_role_is_checked_before_unknown_fields_and_before_a_bad_name(api, ad
     r = api.post("/projects", headers=maya_h, json={"name": "", "members": [], "id": "p-1"})
     assert (r.status_code, r.json()["detail"]["code"]) == (403, "forbidden")
     assert project_count(engine) == 0
+
+
+def ineligible(r):
+    assert r.status_code == 422
+    assert r.json() == {"detail": {"code": "member_not_eligible", "message": "A first member cannot be added."}}
+
+
+@pytest.mark.ac("AC-13")
+def test_a_pending_a_deactivated_and_an_unknown_account_get_the_identical_refusal_and_nothing_is_written(
+    api, admin, engine
+):
+    _, pending_id = register(api, "sub-pen", "pen@x.test")
+    _, gone_id = active_user(api, admin, "sub-gone", "gone@x.test")
+    assert api.post(f"/accounts/{gone_id}/deactivate", headers=admin, json={"reason": "left"}).status_code == 200
+    answers = []
+    for member in (pending_id, gone_id, str(uuid.uuid4())):
+        r = api.post("/projects", headers=admin, json={"name": "Alpha", "members": [member]})
+        ineligible(r)
+        assert member not in r.text
+        answers.append((r.status_code, r.json()))
+    assert answers[0] == answers[1] == answers[2]
+    assert project_count(engine) == 0
+
+
+@pytest.mark.ac("AC-13")
+def test_one_active_and_one_inactive_member_refuses_all_and_writes_nothing(api, admin, engine):
+    _, maya_id = active_user(api, admin, "sub-maya", "maya@x.test")
+    _, pending_id = register(api, "sub-pen", "pen@x.test")
+    ineligible(api.post("/projects", headers=admin, json={"name": "Alpha", "members": [maya_id, pending_id]}))
+    assert project_count(engine) == 0
+    with Session(engine) as s:
+        assert s.execute(text("SELECT count(*) FROM memberships")).scalar_one() == 0
+
+
+@pytest.mark.ac("AC-89")
+def test_naming_the_same_active_person_twice_makes_one_membership(api, admin, engine):
+    _, maya_id = active_user(api, admin, "sub-maya", "maya@x.test")
+    r = api.post("/projects", headers=admin, json={"name": "Alpha", "members": [maya_id, maya_id]})
+    assert (r.status_code, r.json()["members"]) == (201, [maya_id])
+    with Session(engine) as s:
+        assert s.execute(text("SELECT count(*) FROM memberships")).scalar_one() == 1
