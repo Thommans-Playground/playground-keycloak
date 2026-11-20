@@ -250,6 +250,8 @@ Every step lands on a class of the diagram: `Caller`, `ProjectsService`, `Projec
 
 Decided here, within decisions 13, 14 and 23: an administrator may name themselves as a first member, a project may have none, the first members are de-duplicated and capped at 50, and `added by` of every first member is the creator. The project id is a random UUID made in the domain. Creating the project and writing its audit entry are one transaction (`SqlProjects` and the audit bridge share one database session). The answer carries the empty lists `files`, `endpoints` and `evaluations` (placeholders, decision 23). The tables, their grants and the grant test are slice TSK-P1.2.
 
+**Answer shape (changed, ADR 0016).** The create answer lists `members` as `{id, name}` and not as bare ids. The names come through the People port at the time of the answer, and an id that People does not know keeps its id with `name: null`. The request body still takes ids. The web needs the names to show the members.
+
 What each refusal answers (decision 14). Authorisation is checked before the input is validated.
 
 | Case | Error | Answer |
@@ -277,21 +279,47 @@ There is no 404 on this route: no project exists yet. Every refusal writes one l
 - D13 (port): People, `names_of(ids)`, for the names and emails at the time
 - D14 (port): SecurityLog, one line for each refusal
 
+### The web side (ADR 0016)
+
+The page `/projects/new` is for administrators. The form is a small client component that calls the BFF proxy, so the browser never holds a token. The server still decides: a person who is not an administrator is refused by the API whatever the screen shows (AC-11, AC-32).
+
+```mermaid
+sequenceDiagram
+    actor A as Administrator
+    participant P as /projects/new page
+    participant F as CreateProjectForm
+    participant X as BFF proxy
+    participant I as API
+    A->>P: open the page
+    P->>I: api() GET /me and GET /accounts?status=active
+    P-->>A: the form (a person who is not an administrator is sent to /projects)
+    A->>F: a name and first members
+    F->>X: POST /api/backend/projects
+    X->>I: POST /projects with the bearer token
+    I-->>F: the project, or a refusal code
+    F-->>A: go to /projects/[id], or the message for the code
+```
+
+- D15 (API answer): The create answer lists `members` as `{id, name}`, names through People (ADR 0016)
+- D16 (web route): `/projects/new` in `apps/web/src/app/(app)/projects/new/page.tsx`, a thin server page that reads `/me` and the active accounts and sends a person who is not an administrator to `/projects`
+- D17 (web client component): CreateProjectForm, a client component with the name, the member picker (at most 50, from `memberCandidates`) and the refusal message, posting through `/api/backend/projects`
+- D18 (web pure functions): `project-messages.ts` and `member-candidates.ts` in `apps/web/src/domain/`, shared with UC-P2 and UC-P3, each with unit tests (ADR 0016)
+
 ## Changes from analysis to design
 
 ```
-A1 became -> D1, D3
+A1 became -> D1, D3, D16, D17
 A2 became -> D2, D3
 A3 became -> D3, D5
-A4 became -> D3, D7, D10
-A5 became -> D3, D4, D6, D9
+A4 became -> D3, D7, D10, D17
+A5 became -> D3, D4, D6, D9, D15
 A6 became -> D3, D8, D10, D13
-A7 became -> D1
-A8 became -> D2, D3, D11
+A7 became -> D1, D15, D16
+A8 became -> D2, D3, D11, D16
 A9 became -> D4, D7, D12
 A10 became -> D3, D11, D14
-A11 became -> D1, D5, D11, D14
-A12 became -> D7, D11, D14
+A11 became -> D1, D5, D11, D14, D17, D18
+A12 became -> D7, D11, D14, D17, D18
 A13 became -> D4
 A14 became -> D4
 ```
@@ -305,3 +333,4 @@ A14 became -> D4
 5. TSK-P1.5: A project name is trimmed and checked, the first members are capped at 50, and the body refuses unknown fields (AC-12, AC-91, AC-92, AC-93)
 6. TSK-P1.6: A first member must have an active account, and each is counted once (AC-13, AC-89)
 7. TSK-P1.7: Creating a project is audited, with the names at the time, and every refusal is logged (AC-29, AC-48)
+8. TSK-P1.8: Web slice W4: the page `/projects/new` and its form, for administrators, with the first member picker and the refusal messages (AC-9, AC-10, AC-11, AC-12, AC-13, AC-32). It needs the pure functions of TSK-P3.5 and the answer with names (D15)

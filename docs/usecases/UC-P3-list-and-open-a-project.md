@@ -131,7 +131,7 @@ Every refusal writes one line to the security log, with the same reason code for
 - A person asks for an id that does not exist, or one that is not well formed: the same answer as the line above, with the same status, body and code. (AC-27)
 - A pending or deactivated person, or a request with no token: refused by the guard chain (403 or 401) before any project is looked at. (AC-94)
 
-- Built: the list and the open answers show a project's members as account ids only, the same shape as the create answer. Their names (through the People port) are decided when the web pages need them.
+- Changed (ADR 0016): the list and the open answers show a project's members as `{id, name}` (the name through the People port), the same shape as the create, add and remove answers. An id People does not know keeps its id with `name: null`. Before, they showed account ids only.
 
 ## Postconditions
 
@@ -143,6 +143,9 @@ Every refusal writes one line to the security log, with the same reason code for
 - TSK-P3.2: A member or an administrator opens a project and sees its name, members and the empty placeholder lists, rules RULE-P4 (AC-26, AC-28)
 - TSK-P3.3: Anyone else gets the same answer as for a missing project or a malformed id (AC-27)
 - TSK-P3.4: Every read and every refusal is logged, and every project route passes the guard chain (AC-48, AC-94)
+- TSK-P3.5: Web slice W1: the proxy allows DELETE (and not PUT or PATCH), `lib/api.ts` gets the project types, and the pure functions `project-messages`, `member-candidates` and `project-summary` with unit tests (AC-27, AC-28, AC-86). The API answers members with names first (D10)
+- TSK-P3.6: Web slice W2: the page `/projects` and the "Projects" item of the navigation, with the empty state (AC-55, AC-86, AC-94)
+- TSK-P3.7: Web slice W3 (the read part): the page `/projects/[id]` with the members by name and one not found page for a hidden and a missing project (AC-26, AC-27, AC-28)
 
 ## Overview
 
@@ -207,18 +210,46 @@ Listing never refuses a person who passed the check: it returns the projects the
 - D8 (domain error): ProjectNotFound, the one answer for a missing project, a malformed id and a person who may not see it
 - D9 (port): SecurityLog, one line for each read and each refusal
 
+### The web side (ADR 0016)
+
+The navigation shows "Projects" to every signed in, active person. `/projects` lists what the API returns (a user's projects, or all for an administrator), with the empty state when there are none, and `/projects/[id]` shows the name and the members by name. Both are thin server pages that read through `api()` (server side, GET). A 404 from the API shows the one not found page, the same for a hidden and a missing project, with no hint. The placeholders (files, endpoints, evaluations) are not shown yet.
+
+```mermaid
+sequenceDiagram
+    actor U as Person
+    participant P as /projects page
+    participant I as API
+    participant D as /projects/[id] page
+    U->>P: open Projects
+    P->>I: api() GET /projects
+    I-->>P: the projects, maybe none
+    P-->>U: the list, or "no projects yet"
+    U->>D: open one
+    D->>I: api() GET /projects/{id}
+    I-->>D: the project with named members, or 404
+    D-->>U: the project, or the not found page
+```
+
+- D10 (API answer): The list and the open answers show `members` as `{id, name}`, names through People, an unknown id keeping its id with `name: null` (ADR 0016)
+- D11 (web route): `/projects` in `apps/web/src/app/(app)/projects/page.tsx`, a thin server page with the list, `projectSummary` for each line and the empty state, and "Create a project" for an administrator
+- D12 (web route): `/projects/[id]` in `apps/web/src/app/(app)/projects/[id]/page.tsx`, a thin server page that shows the name and the members (`memberLabel`), and calls `notFound()` on a 404
+- D13 (web pure functions): `project-summary.ts` in `apps/web/src/domain/`, with its unit tests (the messages and the candidates are in UC-P1)
+- D14 (web adapter): `lib/api.ts` gains the types `Project` and `ProjectMember`; the BFF proxy also exports DELETE (UC-P2)
+- D15 (web navigation): `app-nav.tsx` gets a "Projects" item for every signed in, active person
+- D16 (web rule): One not found page for a hidden and a missing project, with no hint (AC-27)
+
 ## Changes from analysis to design
 
 ```
-A1 became -> D1, D3
+A1 became -> D1, D3, D11, D15
 A2 became -> D1, D2
-A3 became -> D1, D2, D3, D6, D7
-A4 became -> D1
+A3 became -> D1, D2, D3, D6, D7, D11, D13, D14
+A4 became -> D1, D11
 A5 became -> D3, D4, D5, D6
-A6 became -> D1, D3, D5
+A6 became -> D1, D3, D5, D10, D12, D13
 A7 became -> D3, D6, D7
 A8 became -> D4, D8, D9
-A9 became -> D3, D4, D8, D9
+A9 became -> D3, D4, D8, D9, D12, D16
 A10 became -> D5
 A11 became -> D5
 ```

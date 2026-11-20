@@ -25,3 +25,4 @@ what, accepted risk) stay in [docs/domain/decisions.md](../domain/decisions.md).
 | [0013](0013-security-log-port-json-on-stdout.md) | A SecurityLog port in each context that logs, one JSON line on stdout (the API half; the web half is on branch `feat/UC-A1-basic-logging`) |
 | [0014](0014-format-and-check-gate.md) | One check script, and formatting that happens by itself |
 | [0015](0015-projects-context-build-plan.md) | The Projects context: layout, ports, tables and tests |
+| [0016](0016-projects-web-pages.md) | The Projects web pages: routes, a proxy that allows DELETE, pure messages, members with names, and the web tests |

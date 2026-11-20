@@ -265,6 +265,8 @@ What each refusal answers (decision 14, decision 23):
 
 Every refusal writes one line to the security log through `SecurityLog` (AC-48), and no audit entry.
 
+**Answer shape (changed, ADR 0016).** The add and remove answers lists `members` as `{id, name}` and not as bare ids. The names come through the People port at the time of the answer, and an id that People does not know keeps its id with `name: null`. The request body still takes ids. The web needs the names to show the members.
+
 - D1 (route): The member routes (add, remove), kept thin. The member list is read by the open route of UC-P3
 - D2 (value object): Caller of Projects, built by `projects_caller(account)` in composition/ after the full check
 - D3 (use case): ProjectsService.add_member and remove_member (caller, project_id, account_id), which read the project, check may see and may change, then validate, apply, save, audit and log. It reuses `open` of UC-P3 for the member list
@@ -281,25 +283,51 @@ Every refusal writes one line to the security log through `SecurityLog` (AC-48),
 - D14 (port): SecurityLog
 - D15 (domain rule): A change that changes no row (an existing member added, a non-member removed) writes no entry
 
+### The web side (ADR 0016)
+
+On `/projects/[id]` an administrator sees "Add member" and a "Remove" action on each member. A member who is not an administrator sees the members and neither action. Both actions are small client components that call the BFF proxy: the add posts to `/api/backend/projects/{id}/members`, the remove sends DELETE to `/api/backend/projects/{id}/members/{account_id}` (the proxy now allows DELETE, and not PUT or PATCH). The picker offers the active accounts that are not yet members. After a change the page refreshes, so the list is the API's answer, with names. A refusal shows the message for its code (`member_not_eligible`, `forbidden`, `project_not_found`, `invalid_request`).
+
+```mermaid
+sequenceDiagram
+    actor A as Administrator
+    participant P as /projects/[id] page
+    participant C as Add and Remove components
+    participant X as BFF proxy
+    participant I as API
+    A->>P: open a project
+    P->>I: api() GET /projects/{id} and GET /accounts?status=active
+    P-->>A: members by name, with Add and Remove
+    A->>C: add a person, or remove one
+    C->>X: POST members, or DELETE members/{account_id}
+    X->>I: the same call with the bearer token
+    I-->>C: the project with its members, or a refusal code
+    C-->>A: the page refreshes, or the message for the code
+```
+
+- D16 (API answer): The add and remove answers list `members` as `{id, name}`, names through People (ADR 0016)
+- D17 (web client components): AddMemberForm and RemoveMemberButton on `/projects/[id]`, shown to administrators only, calling `/api/backend/projects/{id}/members` with POST and DELETE
+- D18 (web adapter): The BFF proxy route exports GET, POST and DELETE (and not PUT or PATCH)
+- D19 (web pure function): `memberCandidates(accounts, members)` leaves out the people already members
+
 ## Changes from analysis to design
 
 ```
 A1 became -> D1, D3
-A2 became -> D1
-A3 became -> D1
+A2 became -> D1, D17
+A3 became -> D1, D17, D19
 A4 became -> D2, D3, D4, D5, D6, D9
 A5 became -> D2, D3, D5
 A6 became -> D3, D7, D10
-A7 became -> D3, D4, D6, D9
+A7 became -> D3, D4, D6, D9, D16, D18
 A8 became -> D3, D8, D10, D13
 A9 became -> D12
 A10 became -> D5
 A11 became -> D5, D11
 A12 became -> D4, D5
 A13 became -> D3, D5, D11, D14
-A14 became -> D3, D5, D11, D14
-A15 became -> D3, D7, D11, D14
-A16 became -> D4, D11, D14
+A14 became -> D3, D5, D11, D14, D17
+A15 became -> D3, D7, D11, D14, D17
+A16 became -> D4, D11, D14, D17
 A17 became -> D4
 A18 became -> D4
 A19 became -> D4, D15
@@ -313,3 +341,4 @@ A19 became -> D4, D15
 4. TSK-P2.4: Changes to members are audited with the project and the names at the time, and every refusal is logged (AC-30, AC-48)
 5. TSK-P2.5: A member who is not an administrator is refused, the server refuses what a role may not do, and the body refuses unknown fields (AC-60, AC-32, AC-93, AC-94)
 6. TSK-P2.6: Two administrators adding the same person at the same moment leave one membership, on PostgreSQL (AC-90)
+7. TSK-P2.7: Web slice W3 (the change part): add and remove a member on `/projects/[id]` for administrators, through the BFF proxy, which now allows DELETE, with the refusal messages (AC-17, AC-18, AC-20, AC-60, AC-87, AC-32). It needs TSK-P3.5 and TSK-P3.7

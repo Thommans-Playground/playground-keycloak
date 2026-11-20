@@ -12,15 +12,21 @@ title Playground web server (BFF): ports and adapters (built; planned parts in w
 '   - a security log port (NFR-5)
 ' WARNING: the IdentityProvider port here (sign in, refresh, end session) is a DIFFERENT port with the same
 ' name as the API's IdentityProvider in access-design.puml (which enables and disables people in Keycloak).
-' Not drawn: pages and components (thin, no ports of their own), lib/utils.ts, the Keycloak login page.
+' PLANNED (ADR 0016), white: the Projects pages (/projects, /projects/new, /projects/[id]) with their client components
+'   for actions, three pure functions (project-messages, member-candidates, project-summary) and the proxy
+'   route now also allowing DELETE (PUT and PATCH are not added). The pages read through lib/api and act
+'   through the proxy; they have no ports of their own.
+' Not drawn: the other pages and components (thin, no ports of their own), lib/utils.ts, the Keycloak login page.
 
 skinparam classAttributeIconSize 0
 skinparam linetype polyline
 top to bottom direction
 
 class "proxy.ts\ncookie gate" as PRX #E6F0FB
-class "Routes\nlogin, callback,\nlogout, backend" as RT #E6F0FB
+class "Routes\nlogin, callback,\nlogout, backend\n(GET, POST, «planned»\nDELETE)" as RT #E6F0FB
 class "lib/auth, lib/api\ncookies, getMe" as LIB #E6F0FB
+class "«planned»\nProjects pages\n/projects, /projects/new,\n/projects/[id]" as PG #FFFFFF
+class "«planned»\nPure functions\nproject-messages,\nmember-candidates,\nproject-summary" as PF #FFFFFF
 class "composition.ts\nonly place that\npicks adapters,\nbuilds SignIn\nand SignOut" as COMP #ECECEC
 
 class "«use case»\nSignIn" as SI #E7F4EA {
@@ -81,6 +87,11 @@ class "Playground API" as API #ECECEC
 RT --> COMP
 LIB --> COMP
 PRX -[hidden]right- RT
+PG ..> LIB : reads with api()
+PG ..> RT : actions through\nthe proxy
+PG --> PF
+LIB -[hidden]right- PG
+PG -[hidden]right- PF
 RT -[hidden]right- LIB
 COMP ..> SI : builds
 COMP -[hidden]down- SI
@@ -138,6 +149,8 @@ note as N
     earlier one
   - SignIn, SignOut and SessionVisibility
     write to SecurityLog
+  - Projects pages, pure functions and
+    the proxy allowing DELETE (ADR 0016)
 end note
 CLOG -[hidden]right- N
 @enduml
