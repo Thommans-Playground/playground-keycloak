@@ -42,7 +42,10 @@ services:
       api-db:
         condition: service_healthy
     environment:
+      # The owner role runs the migrations and creates the API role (migration 0002). Only this service gets the
+      # owner's URL: the API refuses to start if it sees MIGRATION_DATABASE_URL.
       MIGRATION_DATABASE_URL: postgresql+psycopg://playground:playground@api-db:5432/playground
+      API_DB_PASSWORD: playground-api-dev   # DEVELOPMENT ONLY. On AWS both passwords come from Secrets Manager.
 
   api:
     build: ./apps/api
@@ -56,7 +59,8 @@ services:
     environment:
       KEYCLOAK_URL: http://localhost:8080            # the address in tokens (iss)
       KEYCLOAK_INTERNAL_URL: http://keycloak:8080    # where this container reaches Keycloak
-      DATABASE_URL: postgresql+psycopg://playground:playground@api-db:5432/playground
+      # The API role, not the owner: it cannot change structure or the audit trail (ADR 0011). Development password.
+      DATABASE_URL: postgresql+psycopg://playground_api:playground-api-dev@api-db:5432/playground
       BOOTSTRAP_ADMIN_EMAILS: admin@example.test
     ports:
       - "8000:8000"

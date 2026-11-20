@@ -14,7 +14,9 @@ class Settings(BaseSettings):
     keycloak_backend_client_id: str = "playground-backend"
     keycloak_backend_client_secret: str = "playground-backend-dev-secret"
     # PostgreSQL, as on Amazon RDS. `docker compose up -d api-db` starts it on localhost:5433.
-    database_url: str = "postgresql+psycopg://playground:playground@localhost:5433/playground"
+    database_url: str = "postgresql+psycopg://playground_api:playground-api-dev@localhost:5433/playground"
+    # The role the API connects with (created by migration 0002). Only the migration reads this one.
+    api_db_user: str = "playground_api"
     # Comma separated. While no administrator exists, a person with one of these verified emails becomes one.
     # Empty by default: with nothing set, nobody becomes an administrator (fail closed). Local work sets it.
     bootstrap_admin_emails: str = ""

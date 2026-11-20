@@ -38,7 +38,7 @@ Sign in as `admin@example.test` / `Admin123!` (first administrator) or `maya@exa
 
 ```bash
 cd apps/api && uv run pytest     # domain rules, token checks, account flows (fake Keycloak admin), on SQLite in memory
-cd apps/api && TEST_DATABASE_URL=postgresql+psycopg://playground:playground@localhost:5433/playground_test uv run pytest   # the same tests on PostgreSQL (docker compose up -d api-db). Use the *_test database: the tests drop every table, and refuse any other name
+cd apps/api && TEST_DATABASE_URL=postgresql+psycopg://playground_api:playground-api-dev@localhost:5433/playground_test TEST_MIGRATION_DATABASE_URL=postgresql+psycopg://playground:playground@localhost:5433/playground_test uv run pytest   # the same tests on PostgreSQL (docker compose up -d api-db). Use the *_test database: the tests drop every table, and refuse any other name
 cd apps/web && npm test          # domain rules, use cases, adapters (no stack needed). More levels and the fresh stack: docs/TESTING.md
 ```
 

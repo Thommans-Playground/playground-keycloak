@@ -40,8 +40,9 @@ jobs:
         run: uv run pytest -q
       - name: Tests on PostgreSQL
         env:
-          TEST_DATABASE_URL: postgresql+psycopg://playground:playground@localhost:5432/playground_test
-          # The owner role runs Alembic (ADR 0012); the same user until the roles of TSK-L1.3.
+          # The API role: migration 0002 creates it, with the password in this URL. The app and the tests connect as it.
+          TEST_DATABASE_URL: postgresql+psycopg://playground_api:playground-api-dev@localhost:5432/playground_test
+          # The owner role (the service's POSTGRES_USER) runs Alembic and drops the tables between tests (ADR 0012).
           TEST_MIGRATION_DATABASE_URL: postgresql+psycopg://playground:playground@localhost:5432/playground_test
         run: uv run pytest -q
 

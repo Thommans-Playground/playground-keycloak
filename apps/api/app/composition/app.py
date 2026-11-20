@@ -14,6 +14,7 @@ from app.access.adapters.outbound.sql import SqlAccounts, SqlAudit, SqlUnitOfWor
 from app.access.adapters.outbound.token_verifier import JwtTokenVerifier
 from app.access.application.service import AccessService
 from app.infrastructure.config import Settings, get_settings
+from app.infrastructure.role_check import check_start
 
 
 def create_app(
@@ -26,6 +27,7 @@ def create_app(
     if engine is None:
         kwargs = {"connect_args": {"check_same_thread": False}} if settings.database_url.startswith("sqlite") else {}
         engine = create_engine(settings.database_url, **kwargs)
+    check_start(engine)  # refuses to start with an unsafe role or the owner's URL in the environment (ADR 0011)
     sessions = sessionmaker(engine, expire_on_commit=False)
     verifier = verifier or JwtTokenVerifier.from_jwks(settings.issuer, settings.api_audience, settings.internal_realm_url)
     idp = idp or KeycloakAdmin(settings)
