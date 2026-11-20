@@ -271,3 +271,37 @@ def test_the_list_warns_of_accounts_with_the_same_email_and_approving_is_still_a
     listed = {a["id"]: a for a in client.get("/accounts", headers=admin).json()}
     assert listed[second_id]["duplicate_of"] == [{"id": first_id, "name": "One", "status": "deactivated"}]
     assert client.post(f"/accounts/{second_id}/approve", headers=admin).json()["status"] == "active"
+
+
+# FR-17: the reason is plain text of at most 500 characters, on every route that asks for one
+@pytest.mark.ac("AC-81")
+@pytest.mark.rule("RULE-A3")
+@pytest.mark.parametrize("bad", ["a" * 501, "Left the\nteam", "Left the\tteam", "Left the team\u202e", "Left \u2066x"])
+@pytest.mark.parametrize("action", ["deactivate", "reinstate", "promote", "demote"])
+def test_a_reason_too_long_or_with_a_hidden_character_is_refused_over_http(client, admin, action, bad):
+    maya, maya_id = register(client, "sub-maya", "maya@x.test")
+    client.post(f"/accounts/{maya_id}/approve", headers=admin)
+    if action == "reinstate":
+        client.post(f"/accounts/{maya_id}/deactivate", headers=admin, json={"reason": "Left the team"})
+    if action == "demote":
+        client.post(f"/accounts/{maya_id}/promote", headers=admin, json={"reason": "Helps approve"})
+    state = {a["id"]: (a["role"], a["status"]) for a in client.get("/accounts", headers=admin).json()}
+    entries = client.get("/audit", headers=admin).json()
+
+    r = client.post(f"/accounts/{maya_id}/{action}", headers=admin, json={"reason": bad})
+
+    assert (r.status_code, r.json()["code"]) == (422, "invalid_reason")
+    assert bad.strip() not in r.text  # the answer does not echo the reason
+    assert state == {a["id"]: (a["role"], a["status"]) for a in client.get("/accounts", headers=admin).json()}
+    after = client.get("/audit", headers=admin).json()
+    assert after == entries and all(bad not in str(e) for e in after)
+
+
+@pytest.mark.ac("AC-81")
+@pytest.mark.rule("RULE-A3")
+def test_the_trimmed_reason_is_the_one_stored_in_the_audit_trail(client, admin):
+    _, maya_id = register(client, "sub-maya", "maya@x.test")
+    client.post(f"/accounts/{maya_id}/approve", headers=admin)
+    r = client.post(f"/accounts/{maya_id}/deactivate", headers=admin, json={"reason": "  " + "a" * 500 + " \t"})
+    assert r.status_code == 200
+    assert client.get("/audit", headers=admin).json()[0]["reason"] == "a" * 500

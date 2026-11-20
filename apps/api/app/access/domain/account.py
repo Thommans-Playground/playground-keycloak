@@ -1,5 +1,6 @@
 """The Account and its rules. No framework, database or HTTP in here (BC-ACCESS)."""
 
+import unicodedata
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass, replace
@@ -38,6 +39,10 @@ class DomainError(Exception):
 
 class ReasonRequired(DomainError):  # RULE-A3
     code = "reason_required"
+
+
+class InvalidReason(DomainError):  # RULE-A3, AC-81
+    code = "invalid_reason"
 
 
 class CannotChangeSelf(DomainError):  # RULE-A2
@@ -119,11 +124,21 @@ def duplicates_by_email(accounts: list[Account]) -> dict[str, list[Account]]:
 REASON_ACTIONS = {Action.deactivate, Action.reinstate, Action.promote, Action.demote}
 
 
+REASON_MAX_LENGTH = 500
+# Bidirectional marks, embeddings, overrides and isolates: they reorder or hide text (AC-81, decision 22).
+_BIDIRECTIONAL = frozenset("\u202a\u202b\u202c\u202d\u202e\u2066\u2067\u2068\u2069\u200e\u200f\u061c")
+
+
 def clean_reason(reason: str | None) -> str:
-    """A reason must say something: at least three letters. Empty or noise is refused."""
+    """A reason must say something (at least three letters) and be plain text: at most 500 characters after
+    trimming, no control character and no bidirectional character. The trimmed text is what is kept."""
     text = (reason or "").strip()
     if sum(c.isalpha() for c in text) < 3:
         raise ReasonRequired("A reason that says something is required.")
+    if len(text) > REASON_MAX_LENGTH:
+        raise InvalidReason(f"A reason has at most {REASON_MAX_LENGTH} characters.")
+    if any(unicodedata.category(c) == "Cc" or c in _BIDIRECTIONAL for c in text):
+        raise InvalidReason("A reason is plain text: no control or direction characters.")
     return text
 
 
