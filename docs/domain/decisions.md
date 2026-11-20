@@ -643,3 +643,15 @@ records the technical side (commit order, locking).
 **Changes.** AC-78 added, UC-A5 text corrected (when a changed name shows), the dashboard link built test first.
 
 **Still open.** Nothing for the alpha.
+
+## 20. The alpha runs as one set of containers on one EC2 instance (20 Nov 2026)
+
+**Decided.** By the owner.
+- **The alpha has no scalability.** Everything (the web app, the API, Keycloak and Redis) runs as containers on one EC2 instance. Only the data is on RDS (the API database and Keycloak's database).
+- **So there is one web container, and UC-A6's refresh lock needs no shared lock.** The risk of two web containers refreshing one session at once is accepted for the alpha and listed in the security overlay's "Accepted for now".
+
+**Why.** The alpha goes to people inside the corporate network, and scaling out is not an alpha need.
+
+**Changes.** UC-A6's open question 2 is decided; the overlay lists the accepted risk with when to revisit it (before a second web container, or the move to ECS Fargate).
+
+**Still open.** Nothing for the alpha.

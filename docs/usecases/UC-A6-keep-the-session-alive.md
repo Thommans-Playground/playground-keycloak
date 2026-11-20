@@ -107,7 +107,8 @@ This is the one with the clearest lesson. Refresh tokens rotate, so using the ol
 
 For the product owner to decide.
 
-1. The sessions are kept in the web server's memory. A restart ends them all. A shared store such as Redis would fix that.
+1. Answered: the sessions can now live in Redis (the Redis adapter is built and chosen with `REDIS_URL`), so a restart does not end them. Without `REDIS_URL` they stay in memory, as in local work.
+2. Decided (decision 20, accepted risk): the one-refresh-at-a-time lock is a map inside one web process. With more than one web container, two requests of the same session can reach different containers and both refresh. Keycloak then sees the old refresh token used twice and ends the session, so the person is signed out. Options: run one web container for the alpha and list this in "Accepted for now", or build a lock in Redis around the refresh (test first). Nothing here proves it, because the access token lives 300 seconds and no test can force an early renewal.
 
 ## Overview
 
@@ -141,15 +142,15 @@ What the person and Playground say to each other, with no route, store, port or 
 
 ## Design
 
-The parts that do the work, drawn in [UC-A6-keep-the-session-alive-design-sequence.puml](diagrams/UC-A6-keep-the-session-alive-design-sequence.puml). The class diagram of the web server side is [bff-design.puml](../domain/diagrams/bff-design.puml), where AccessToken is built. What is built: `makeAccessToken` in `apps/web/src/application/access-token.ts` (the 30 second rule through `needsRefresh` in the domain, one refresh at a time for each session in a map of pending refreshes, and the session taken when Keycloak refuses), and the in-memory session store. Its tests: no session gives no token, a good token is not refreshed, a token about to expire is refreshed and kept, two requests share one refresh, and a refusal ends the session.
+The parts that do the work, drawn in [UC-A6-keep-the-session-alive-design-sequence.puml](diagrams/UC-A6-keep-the-session-alive-design-sequence.puml). The class diagram of the web server side is [bff-design.puml](../domain/diagrams/bff-design.puml), where AccessToken is built. What is built: `makeAccessToken` in `apps/web/src/application/access-token.ts` (the 30 second rule through `needsRefresh` in the domain, one refresh at a time for each session in a map of pending refreshes, and the session taken when Keycloak refuses), and the session store (in memory, or Redis when `REDIS_URL` is set). Its tests: no session gives no token, a good token is not refreshed, a token about to expire is refreshed and kept, two requests share one refresh, and a refusal ends the session.
 
 - D1 (domain rule): the access token ends in less than 30 seconds
 - D2 (use case): The web server's accessToken(), which finds the session and refreshes when needed
-- D3 (port): SessionStore, with the one-at-a-time refresh lock
+- D3 (port): SessionStore (get, put, take). The one-at-a-time refresh lock is not in the port: it is a map of pending refreshes inside the use case, for one process
 - D4 (port): IdentityProvider, the refresh token grant
 - D5 (port): BackendApi, called with the access token
 - D6 (adapter): Keycloak through openid-client, behind IdentityProvider
-- D7 (adapter): In-memory session store and lock, ElastiCache on AWS
+- D7 (adapter): In-memory session store, and the Redis session store (built, chosen with `REDIS_URL`; Redis on EC2 or ElastiCache on AWS). The lock stays in the process
 
 ## Changes from analysis to design
 

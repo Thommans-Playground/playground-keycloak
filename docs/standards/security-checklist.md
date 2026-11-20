@@ -29,6 +29,7 @@ None set aside yet. Add a line here, with the decision, when an item does not ap
 - **First request race** (UC-A3): two first requests of one new person at the same moment are not handled in code; the
   database's unique identity keeps it to one account. Reason: alpha, inside the corporate network. Revisit it with
   UC-A3's build, or before the product is reachable from outside.
+- **One web container** (decision 20): the refresh lock of UC-A6 is a map inside one web process. With a second web container two requests of one session could refresh at once, and Keycloak would end the session. Reason: the alpha runs as one set of containers on one EC2 instance, with only the data on RDS. Revisit it before a second web container runs (a lock in Redis, test first), or when the web tier moves to ECS Fargate.
 - **Before beta (decision 13).** Deferred hardening, accepted for the alpha because the product runs inside the corporate
   network (as decisions 10 and 13). Revisit all of it at beta, or before the product is reachable from outside the
   corporate network, whichever comes first:
