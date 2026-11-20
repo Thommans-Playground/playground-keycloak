@@ -74,3 +74,5 @@
 | AC-68 | FR-17 | a user who is not an administrator | they ask for the audit trail | it is refused | acceptance | draft |  |
 | AC-69 | FR-17 | no account or project change yet | an administrator opens the audit trail | it is empty and is not an error | acceptance | draft |  |
 | AC-70 | FR-17 | a person who was renamed after a change they made | an administrator opens the audit trail | the entry still shows the name they had at the time | acceptance | draft |  |
+| AC-71 | FR-2 | a signed-in person | a page on another site sends a GET to the sign out address | nothing happens, and their session still works | acceptance | draft |  |
+| AC-72 | FR-2 | a signed-in person | they sign out | they end on our home page, not on an error page of the identity provider | acceptance | draft |  |

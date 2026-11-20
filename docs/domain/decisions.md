@@ -290,6 +290,8 @@ a session store, token verification and cookies, which is the design. Two diagra
   single sequence diagram and says so. Both are drawn when more than one system takes part or a security rule
   shapes the steps.
 
+Footnote (decision 15): sign out was given as the example of a use case with one diagram, and turned out to need both an analysis and a design diagram, because two systems take part and a security rule (POST only) shapes its steps. A use case with one system and no security rule is the example that fits, for example a read only page.
+
 **Why.** One diagram cannot serve the owner, who asks what the person sees, and the builder, who asks which port does
 it. Mixing them hid a real disagreement: the state check sat in a different step in the flow and in the diagram.
 
@@ -528,4 +530,30 @@ diagram, the beta entries in "Accepted for now", and the stale lines the reviewe
 **Still open.**
 - A project's real contents (files, endpoints, evaluations) come with their own use cases.
 - Whether a project name must be unique: not in the alpha.
+
+## 15. UC-A2 sign out after its review (19 Nov 2026)
+
+**Decided.** By the owner, answering the findings of the three reviewers and the break-it check on UC-A2.
+- **A person with no session of ours goes home and Keycloak is not asked.** That covers no cookie, a second sign out
+  (a double click or a second tab) and an expired session. The use case already said so, and it avoids a Keycloak
+  "do you want to log out?" page. The cost: if only our session expired, Keycloak's own session stays until its own
+  timeout.
+- **Two new criteria.** AC-71: a GET to the sign out address does nothing and the session still works. AC-72: sign out
+  ends on our home page, not on an identity provider error page, and the end session address carries the person's ID
+  token as the hint and exactly our home page as the return address.
+- **Sign out never throws.** A session store that fails is the same as no session: the person goes home, and the route
+  clears the cookie on every path.
+- **Deferred to the beta list**, with the reason that the alpha is one process inside a corporate network:
+  sign out during a token refresh can write the session back (the store needs a "replace only if present" write),
+  server sessions have no lifetime of their own (a TTL in the store, native in ElastiCache), and a cross site POST
+  clears only the cookie (the deferred CSRF check).
+
+**Why.** The review showed that the use case promised things the code did not do (home page for no session, home page
+when Keycloak is down later), and that three security-relevant behaviours (the hint, the return address, GET) were not
+tested at all.
+
+**Changes.** `signOut` (test first), AC-71 and AC-72 with integration tests, UC-A2's text and diagrams, the beta list
+in the security overlay, and a note on UC-A1's beta reuse of sign out (it will need a return address parameter).
+
+**Still open.** Nothing for the alpha.
 

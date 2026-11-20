@@ -3,25 +3,42 @@
 hide footbox
 title UC-A2 Sign out (design sequence, built)
 ' Design level (decision 9). The analysis level is UC-A2-sign-out-analysis-sequence.puml.
-' Step ids are the main flow numbers of UC-A2.
-' Evolved from MK3 UC-A2: no refresh token to revoke, but two sessions to end.
+' Classes: bff-design.puml. Step ids are the main flow numbers of UC-A2. Decision 15.
+' A GET is answered 405 by the route (AC-71). The route clears the cookie in the same answer on every path.
 
 actor "Person" as P
-participant "Web route\n/auth/logout" as W #E6F0FB
-participant "Session store\n(server memory)" as S #EEE7F7
+participant "Logout route" as R #E6F0FB
+participant "SignOut" as U #E7F4EA
+participant "SessionStore" as S #EEE7F7
+participant "IdentityProvider" as I #EEE7F7
+participant "Keycloak\nadapter" as A #EEE7F7
 participant "Keycloak" as K #ECECEC
 
-P -> W : 1 POST sign out\n(GET does nothing)
-W -> S : 2 find session by cookie
-S --> W : session (ID token)
-W -> S : 2 drop session and tokens
-alt Keycloak address not available
-  W --> P : 5 delete cookie, go to home page
-else
-  W --> P : 3 303 to Keycloak end-session,\n5 delete cookie
-  P -> K : 3 end-session + ID token hint
-  K -> K : 4 end the Keycloak session
-  K --> P : 4 redirect to home page
+P -> R : 1 POST\nsign out
+R -> U : signOut\n(id)
+U -> S : 2 take(id)\none call
+||25||
+alt no session, or the store fails
+  U --> R : redirectTo = none
+  R --> P : 3 home page,\ndelete cookie
+||25||
+else session found (and removed)
+  U -> I : 3 endSessionUrl\n(ID token)
+  I -> A : build address,\nhint, return home
+  ||25||
+  alt address cannot be built
+    A --> U : error
+    U --> R : redirectTo = none
+    R --> P : 3 home page,\ndelete cookie
+  ||25||
+  else
+    A --> U : address
+    U --> R : redirectTo = address
+    R --> P : 3 to Keycloak,\ndelete cookie
+    P -> K : 4 end session\n+ ID token hint
+    K -> K : 4 end the Keycloak session
+    K --> P : 4 back to\nhome page (AC-72)
+  end
 end
-P -> W : 6 next request: no session,\nasked to sign in
+P -> R : 5 next request:\nsign in again
 @enduml

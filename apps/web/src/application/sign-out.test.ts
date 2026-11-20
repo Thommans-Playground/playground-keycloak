@@ -1,5 +1,5 @@
-// Verifies UC-A2 (AC-2): signing out forgets our session and points at Keycloak's end session address.
-// SO-1 is AC-2. SO-2 is proposed.
+// UC-A2: signing out forgets our session and points at Keycloak's end session address.
+// A person with no session of ours goes home and Keycloak is not asked (decision 15).
 import assert from "node:assert/strict";
 import { beforeEach, test } from "node:test";
 import { signOut } from "./sign-out.ts";
@@ -20,15 +20,30 @@ test("SO-1: the session is forgotten and the answer is Keycloak's address with t
   assert.equal(await sessions.get("s1"), null);
 });
 
-test("SO-2: signing out twice is harmless", async () => {
+test("signing out twice is harmless: the second time the person goes home and Keycloak is not asked", async () => {
   await signOut({ idp, sessions }, "s1");
+  idp.endSessionCalls = 0;
   const again = await signOut({ idp, sessions }, "s1");
-  assert.equal(again.redirectTo, "https://kc.test/logout?hint=");
+  assert.equal(again.redirectTo, null);
+  assert.equal(idp.endSessionCalls, 0);
 });
 
-test("signing out with no cookie still works", async () => {
+test("signing out with no cookie goes home and Keycloak is not asked", async () => {
   const { redirectTo } = await signOut({ idp, sessions }, undefined);
-  assert.equal(redirectTo, "https://kc.test/logout?hint=");
+  assert.equal(redirectTo, null);
+  assert.equal(idp.endSessionCalls, 0);
+});
+
+test("a session id nobody holds gets the same answer as no cookie", async () => {
+  const { redirectTo } = await signOut({ idp, sessions }, "not-a-session");
+  assert.equal(redirectTo, null);
+  assert.equal(idp.endSessionCalls, 0);
+});
+
+test("if the session store fails the person still goes home, and the route can clear the cookie", async () => {
+  const broken = { ...sessions, take: async () => { throw new Error("the store is down"); } } as unknown as InMemorySessionStore;
+  const { redirectTo } = await signOut({ idp, sessions: broken }, "s1");
+  assert.equal(redirectTo, null);
 });
 
 test("if Keycloak cannot be reached our session is still gone and the answer is to go home", async () => {

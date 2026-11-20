@@ -11,6 +11,8 @@ export class FakeIdentityProvider implements IdentityProvider {
   endSessionFails = false;
   /** a test can make Keycloak unreachable when a sign in starts */
   beginFails = false;
+  /** how many times a test asked Keycloak where to end its session */
+  endSessionCalls = 0;
   /** a test can hold a refresh open to prove that two callers share one refresh */
   gate: Promise<void> = Promise.resolve();
   lastBegin: { register: boolean } | undefined;
@@ -49,6 +51,7 @@ export class FakeIdentityProvider implements IdentityProvider {
   }
 
   async endSessionUrl(idToken: string | undefined): Promise<string> {
+    this.endSessionCalls++;
     if (this.endSessionFails) throw new Error("Keycloak is down");
     return `https://kc.test/logout?hint=${idToken ?? ""}`;
   }
