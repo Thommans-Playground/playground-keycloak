@@ -15,7 +15,11 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = ["pytest>=8", "cryptography>=43"]
+dev = [
+    "pytest>=8",
+    "cryptography>=43",
+    "ruff>=0.17.6",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -26,3 +30,11 @@ markers = [
     "rule(id): the ontology rule this test proves, for example rule('RULE-A3'). Also selectable as -m RULE_A3.",
     "integration: needs the running stack (Keycloak and API); collected only with INTEGRATION=1.",
 ]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E501", "B008"]   # E501: the formatter owns line length. B008: FastAPI Depends() in defaults

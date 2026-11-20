@@ -61,3 +61,5 @@ Keycloak user and deletes it.
 - Never edit a test to make the gate pass. If a test is wrong, say why and fix it in its own change.
 - Never stamp, freeze or approve anything from here. Those are the owner's.
 - Do not push, and do not change branch protection: that is set in the GitHub settings by a person.
+
+The fast part of the gate (format and lint checks, types, unit tests, requirement and tag checks) is also `scripts/check.sh` (ADR 0014). `scripts/check.sh full` is that plus `run`. `scripts/check.sh fix` formats everything.
