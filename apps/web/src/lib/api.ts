@@ -2,6 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { app } from "@/composition";
 import { currentSessionId } from "./auth/session";
+import type { DuplicateOf } from "@/domain/duplicate-warning";
 
 export type Account = {
   id: string;
@@ -11,6 +12,8 @@ export type Account = {
   status: "pending" | "active" | "deactivated";
   created: string;
   created_by: string | null;
+  /** The other accounts with the same email. Missing (an older API) means none. */
+  duplicate_of?: DuplicateOf[];
 };
 
 export type AuditEntry = {
