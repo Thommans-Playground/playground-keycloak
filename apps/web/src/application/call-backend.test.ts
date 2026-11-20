@@ -5,7 +5,7 @@ import { beforeEach, test } from "node:test";
 import { makeAccessToken } from "./access-token.ts";
 import { makeCallBackend } from "./call-backend.ts";
 import { InMemorySessionStore } from "../adapters/in-memory-stores.ts";
-import { FakeBackendApi, FakeIdentityProvider } from "../testing/fakes.ts";
+import { FakeBackendApi, FakeIdentityProvider, FakeSecurityLog } from "../testing/fakes.ts";
 
 const now = 1_000_000;
 let backend: FakeBackendApi;
@@ -18,7 +18,10 @@ beforeEach(async () => {
   idp = new FakeIdentityProvider(() => now);
   sessions = new InMemorySessionStore();
   await sessions.put("s1", { idToken: "i", accessToken: "at-1", refreshToken: "r", accessExpiresAt: now + 120_000 });
-  callBackend = makeCallBackend({ accessTokenFor: makeAccessToken({ idp, sessions, now: () => now }), backend });
+  callBackend = makeCallBackend({
+    accessTokenFor: makeAccessToken({ idp, sessions, now: () => now, log: new FakeSecurityLog() }),
+    backend,
+  });
 });
 
 test("with no session nothing is sent to the API", async () => {

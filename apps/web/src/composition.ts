@@ -5,6 +5,7 @@ import { env } from "@/lib/auth/config";
 import { FetchBackendApi } from "./adapters/fetch-backend-api.ts";
 import { InMemoryLoginAttemptStore, InMemorySessionStore } from "./adapters/in-memory-stores.ts";
 import { RedisLoginAttemptStore, RedisSessionStore } from "./adapters/redis-stores.ts";
+import { JsonSecurityLog } from "./adapters/json-security-log.ts";
 import { KeycloakIdentityProvider } from "./adapters/keycloak-identity-provider.ts";
 import { makeAccessToken } from "./application/access-token.ts";
 import { makeCallBackend } from "./application/call-backend.ts";
@@ -37,14 +38,15 @@ function build() {
   });
   const { attempts, sessions } = buildStores();
   const backend = new FetchBackendApi(env.apiUrl);
+  const log = new JsonSecurityLog();
 
-  const signInDeps = { idp, attempts, sessions, now, newId };
-  const accessTokenFor = makeAccessToken({ idp, sessions, now });
+  const signInDeps = { idp, attempts, sessions, now, newId, log };
+  const accessTokenFor = makeAccessToken({ idp, sessions, now, log });
 
   return {
     startLogin: (input: { returnTo: string | null | undefined; register: boolean }) => startLogin(signInDeps, input),
     finishLogin: (attemptId: string | undefined, callbackUrl: URL) => finishLogin(signInDeps, attemptId, callbackUrl),
-    signOut: (sessionId: string | undefined) => signOut({ idp, sessions }, sessionId),
+    signOut: (sessionId: string | undefined) => signOut({ idp, sessions, log }, sessionId),
     callBackend: makeCallBackend({ accessTokenFor, backend }),
     hasSession: async (sessionId: string | undefined) => (await sessions.get(sessionId)) !== null,
   };

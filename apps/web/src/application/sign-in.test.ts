@@ -11,23 +11,26 @@ import {
   type SignInDeps,
 } from "./sign-in.ts";
 import { InMemoryLoginAttemptStore, InMemorySessionStore } from "../adapters/in-memory-stores.ts";
-import { FakeIdentityProvider } from "../testing/fakes.ts";
+import { FakeIdentityProvider, FakeSecurityLog } from "../testing/fakes.ts";
 
 let now = 1_000_000;
 let ids = 0;
 let idp: FakeIdentityProvider;
 let deps: SignInDeps;
+let log: FakeSecurityLog;
 
 beforeEach(() => {
   now = 1_000_000;
   ids = 0;
   idp = new FakeIdentityProvider(() => now);
+  log = new FakeSecurityLog();
   deps = {
     idp,
     attempts: new InMemoryLoginAttemptStore(),
     sessions: new InMemorySessionStore(),
     now: () => now,
     newId: () => `id-${++ids}`,
+    log,
   };
 });
 
@@ -134,4 +137,43 @@ test("a sign in failure is recognised by what it says, even from another copy of
   assert.equal(isSignInFailed(new SignInFailed("login_failed")), true);
   assert.equal(isSignInFailed(new Error("something else")), false);
   assert.equal(isSignInFailed("login_expired"), false);
+});
+
+const refusedSignIn = (reason: string) => [{ name: "sign_in", result: "refused", reason }];
+
+test("an unknown, used or expired attempt writes one sign_in refused line, login_expired (Verifies AC-48)", async () => {
+  await assert.rejects(finishLogin(deps, "nope", callback("c", "state-1")));
+  assert.deepEqual(log.events, refusedSignIn("login_expired"));
+});
+
+test("a callback Keycloak marked as an error writes one sign_in refused line, login_refused (Verifies AC-48)", async () => {
+  const { attemptId } = await startLogin(deps, { returnTo: null, register: false });
+  await assert.rejects(
+    finishLogin(deps, attemptId, new URL("http://app.test/auth/callback?error=access_denied&state=state-1")),
+  );
+  assert.deepEqual(log.events, refusedSignIn("login_refused"));
+});
+
+test("a failed code exchange writes one sign_in refused line, login_failed (Verifies AC-48)", async () => {
+  const { attemptId } = await startLogin(deps, { returnTo: null, register: false });
+  await assert.rejects(finishLogin(deps, attemptId, callback("code-1", "someone-elses-state")));
+  assert.deepEqual(log.events, refusedSignIn("login_failed"));
+});
+
+test("a made session writes sign_in ok then session_start ok with the session id, and no secret (Verifies AC-48)", async () => {
+  const { attemptId } = await startLogin(deps, { returnTo: null, register: false });
+  const { sessionId } = await finishLogin(deps, attemptId, callback("code-1", "state-1"));
+  assert.deepEqual(log.events, [
+    { name: "sign_in", result: "ok" },
+    { name: "session_start", result: "ok", sessionId },
+  ]);
+  const text = JSON.stringify(log.events);
+  for (const secret of ["code-1", "state-1", "nonce-1", "verifier-1", "at-code-1", "rt-code-1", "id-code-1"]) {
+    assert.ok(!text.includes(secret), secret);
+  }
+});
+
+test("starting a login writes nothing (Verifies AC-48)", async () => {
+  await startLogin(deps, { returnTo: null, register: false });
+  assert.deepEqual(log.events, []);
 });

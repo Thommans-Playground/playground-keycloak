@@ -1,5 +1,5 @@
 // Stand-ins for the ports, so a use case runs in milliseconds with no Keycloak and no network.
-import type { IdentityProvider, BackendApi, BackendRequest } from "../application/ports.ts";
+import type { IdentityProvider, BackendApi, BackendRequest, SecurityEvent, SecurityLog } from "../application/ports.ts";
 import type { Session } from "../domain/session.ts";
 
 /** A strict fake: like Keycloak it checks `state` and refuses a code that was used before. */
@@ -75,5 +75,14 @@ export class FakeBackendApi implements BackendApi {
     if (this.fail) throw new Error("the API is down");
     this.calls.push({ req, accessToken });
     return this.answer;
+  }
+}
+
+/** Records the security events, so a test can say which lines a use case wrote. */
+export class FakeSecurityLog implements SecurityLog {
+  events: SecurityEvent[] = [];
+
+  event(e: SecurityEvent): void {
+    this.events.push(e);
   }
 }
