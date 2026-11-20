@@ -2,10 +2,10 @@
 
 import uuid
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from app.projects.domain.caller import Caller
-from app.projects.domain.errors import InvalidRequest
+from app.projects.domain.errors import InvalidRequest, MemberNotEligible
 from app.projects.domain.name import clean_name
 
 MAX_FIRST_MEMBERS = 50
@@ -39,3 +39,30 @@ class Project:
             raise InvalidRequest(f"A project starts with at most {MAX_FIRST_MEMBERS} members.")
         memberships = tuple(Membership(i, added_by=caller.account_id) for i in ids)
         return cls(str(uuid.uuid4()), name, caller.account_id, memberships)
+
+    def add_member(self, caller: Caller, account_id: str) -> tuple["Project", bool]:
+        """The project with one more member, and whether anything changed. A person already in is no change (AC-88),
+        so the adapter writes no row and the use case no entry."""
+        if account_id in self.members:
+            return self, False
+        return replace(self, memberships=(*self.memberships, Membership(account_id, added_by=caller.account_id))), True
+
+    def remove_member(self, account_id: str) -> "Project":
+        """The project without that member, possibly empty (AC-20). A person who is not a member is refused with the
+        one Projects answer, and nothing is looked up in Access (AC-87, decision 23)."""
+        if account_id not in self.members:
+            raise MemberNotEligible
+        return replace(self, memberships=tuple(m for m in self.memberships if m.account_id != account_id))
+
+
+def is_well_formed(project_id: str) -> bool:
+    """A project id is a UUID in its canonical form, as ids are made (ADR 0015). Anything else cannot exist."""
+    try:
+        return str(uuid.UUID(project_id)) == project_id
+    except ValueError:
+        return False
+
+
+def can_see(caller: Caller, project: Project) -> bool:
+    """RULE-P4: only the members and the administrators see inside a project."""
+    return caller.is_administrator or caller.account_id in project.members

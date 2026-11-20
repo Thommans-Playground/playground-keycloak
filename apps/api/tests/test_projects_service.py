@@ -157,3 +157,202 @@ def test_a_refused_creation_writes_no_event(caller, name, members):
     with pytest.raises(Exception):  # noqa: B017 - which refusal is proven in the tests above
         service.create(caller, name, members)
     assert audit.events == [] and projects.rows == {}
+
+
+# UC-P3: list and open (TSK-P3.1 to TSK-P3.3)
+
+from app.projects.domain.errors import ProjectNotFound  # noqa: E402
+
+
+@pytest.fixture
+def three(service, projects):
+    """Alpha (Maya), Beta (Maya and Bob), Gamma (nobody)."""
+    alpha = service.create(ADMIN, "Alpha", ["acc-maya"])
+    beta = service.create(ADMIN, "Beta", ["acc-maya", "acc-bob"])
+    gamma = service.create(ADMIN, "Gamma", [])
+    return alpha, beta, gamma
+
+
+@pytest.mark.ac("AC-55")
+def test_a_user_lists_only_the_projects_they_are_a_member_of(service, three):
+    alpha, beta, _ = three
+    assert {p.id for p in service.list_projects(Caller("acc-maya", False))} == {alpha.id, beta.id}
+    assert {p.id for p in service.list_projects(Caller("acc-bob", False))} == {beta.id}
+
+
+@pytest.mark.ac("AC-55")
+@pytest.mark.ac("AC-28")
+def test_an_administrator_lists_every_project_member_or_not(service, three):
+    assert {p.id for p in service.list_projects(Caller("acc-other", True))} == {p.id for p in three}
+
+
+@pytest.mark.ac("AC-86")
+def test_a_user_in_no_project_gets_an_empty_list_not_an_error(service, three):
+    assert service.list_projects(Caller("acc-nobody", False)) == []
+
+
+@pytest.mark.rule("RULE-P4")
+@pytest.mark.ac("AC-26")
+def test_a_member_and_an_administrator_open_a_project(service, three):
+    alpha, _, _ = three
+    assert service.open_project(Caller("acc-maya", False), alpha.id) is alpha
+    assert service.open_project(Caller("acc-other", True), alpha.id) is alpha
+
+
+@pytest.mark.rule("RULE-P4")
+@pytest.mark.ac("AC-27")
+@pytest.mark.parametrize(
+    "project_id", ["not-a-project", "", "x" * 5000, "a\x00b", "00000000-0000-0000-0000-000000000000"]
+)
+def test_a_missing_or_malformed_id_is_project_not_found(service, three, project_id):
+    with pytest.raises(ProjectNotFound):
+        service.open_project(Caller("acc-maya", False), project_id)
+
+
+@pytest.mark.rule("RULE-P4")
+@pytest.mark.ac("AC-27")
+def test_a_project_the_person_may_not_see_is_project_not_found_too(service, three):
+    _, beta, gamma = three
+    for hidden in (beta, gamma):
+        with pytest.raises(ProjectNotFound):
+            service.open_project(Caller("acc-eve", False), hidden.id)
+
+
+def test_reading_changes_nothing_and_writes_no_audit_entry(projects):
+    audit = FakeProjectsAudit()
+    svc = ProjectsService(projects, FakeAccountStatus(), audit)
+    p = svc.create(ADMIN, "Alpha", ["acc-maya"])
+    audit.events.clear()
+    svc.list_projects(USER)
+    svc.open_project(ADMIN, p.id)
+    assert audit.events == []
+
+
+# UC-P2: add_member and remove_member (TSK-P2.1 to TSK-P2.5)
+
+
+def member_world(active=None, known=None):
+    """A project of Maya's, made by Ada, and a service over fakes. Returns (service, project, projects, status, audit)."""
+    projects, status = FakeProjects(), FakeAccountStatus(active)
+    audit = FakeProjectsAudit(projects)
+    service = ProjectsService(projects, status, audit)
+    project = service.create(ADMIN, "Alpha", ["acc-maya"])
+    audit.events.clear()
+    audit.held_when_recorded.clear()
+    status.asked.clear()
+    return service, project, projects, status, audit
+
+
+@pytest.mark.ac("AC-17")
+def test_add_member_makes_an_active_person_a_member_and_returns_the_project():
+    service, project, projects, _, _ = member_world()
+    got = service.add_member(ADMIN, project.id, "acc-bob")
+    assert got.members == {"acc-maya", "acc-bob"}
+    assert projects.by_id(project.id).members == {"acc-maya", "acc-bob"}
+
+
+@pytest.mark.ac("AC-30")
+def test_a_real_addition_writes_one_event_after_the_change_is_saved():
+    service, project, _, _, audit = member_world()
+    service.add_member(ADMIN, project.id, "acc-bob")
+    assert audit.events == [ProjectEvent("add_member", "acc-ada", project.id, "Alpha", ("acc-bob",))]
+    assert audit.held_when_recorded[0].members == {"acc-maya", "acc-bob"}
+
+
+@pytest.mark.ac("AC-18")
+@pytest.mark.parametrize("who", ["acc-pending", "acc-deactivated", "acc-unknown"])
+def test_add_member_refuses_a_person_who_is_not_active_with_one_answer_and_changes_nothing(who):
+    service, project, projects, _, audit = member_world({"acc-maya", "acc-bob"})
+    with pytest.raises(MemberNotEligible) as refusal:
+        service.add_member(ADMIN, project.id, who)
+    assert refusal.value.code == "member_not_eligible" and who not in refusal.value.message
+    assert projects.by_id(project.id).members == {"acc-maya"}
+    assert audit.events == []
+
+
+@pytest.mark.ac("AC-88")
+def test_adding_an_existing_member_changes_nothing_writes_no_event_and_returns_the_same_members():
+    service, project, projects, _, audit = member_world()
+    got = service.add_member(ADMIN, project.id, "acc-maya")
+    assert got.members == {"acc-maya"}
+    assert audit.events == [] and projects.added == []
+
+
+@pytest.mark.ac("AC-20")
+@pytest.mark.ac("AC-30")
+def test_remove_member_takes_a_member_out_and_writes_one_event():
+    service, project, projects, status, audit = member_world()
+    got = service.remove_member(ADMIN, project.id, "acc-maya")
+    assert got.members == frozenset() and projects.by_id(project.id).members == frozenset()
+    assert audit.events == [ProjectEvent("remove_member", "acc-ada", project.id, "Alpha", ("acc-maya",))]
+    assert status.asked == []  # an administrator may remove anyone: Access is not asked
+
+
+@pytest.mark.ac("AC-87")
+def test_removing_a_person_who_is_not_a_member_is_refused_and_writes_nothing():
+    service, project, projects, _, audit = member_world()
+    with pytest.raises(MemberNotEligible):
+        service.remove_member(ADMIN, project.id, "acc-bob")
+    assert projects.by_id(project.id).members == {"acc-maya"} and audit.events == []
+
+
+@pytest.mark.ac("AC-60")
+@pytest.mark.ac("AC-32")
+@pytest.mark.parametrize("change", ["add", "remove"])
+def test_a_member_who_is_not_an_administrator_is_refused_and_nothing_changes(change):
+    service, project, projects, status, audit = member_world()
+    with pytest.raises(NotAnAdministrator):
+        if change == "add":
+            service.add_member(USER, project.id, "acc-bob")
+        else:
+            service.remove_member(USER, project.id, "acc-maya")
+    assert projects.by_id(project.id).members == {"acc-maya"} and audit.events == [] and status.asked == []
+
+
+@pytest.mark.rule("RULE-P4")
+@pytest.mark.ac("AC-84")
+@pytest.mark.parametrize("change", ["add", "remove"])
+@pytest.mark.parametrize("project_id", ["exists", "00000000-0000-4000-8000-000000000000", "not-a-uuid", ""])
+def test_someone_who_may_not_see_the_project_gets_project_not_found_whatever_the_id(change, project_id):
+    from app.projects.domain.errors import ProjectNotFound
+
+    service, project, projects, status, audit = member_world()
+    outsider = Caller("acc-eve", is_administrator=False)
+    pid = project.id if project_id == "exists" else project_id
+    with pytest.raises(ProjectNotFound):
+        if change == "add":
+            service.add_member(outsider, pid, "acc-bob")
+        else:
+            service.remove_member(outsider, pid, "acc-maya")
+    assert projects.by_id(project.id).members == {"acc-maya"} and audit.events == [] and status.asked == []
+
+
+@pytest.mark.ac("AC-84")
+def test_an_administrator_changing_a_missing_project_gets_project_not_found():
+    from app.projects.domain.errors import ProjectNotFound
+
+    service, *_ = member_world()
+    with pytest.raises(ProjectNotFound):
+        service.add_member(ADMIN, "not-a-uuid", "acc-bob")
+
+
+@pytest.mark.ac("AC-60")
+def test_visibility_is_checked_before_the_role_so_a_non_member_is_not_told_it_exists():
+    """A member (not an administrator) gets forbidden; a stranger gets not found (the order of UC-P2 step 4)."""
+    from app.projects.domain.errors import ProjectNotFound
+
+    service, project, *_ = member_world()
+    with pytest.raises(NotAnAdministrator):
+        service.authorise_member_change(Caller("acc-maya", False), project.id)
+    with pytest.raises(ProjectNotFound):
+        service.authorise_member_change(Caller("acc-eve", False), project.id)
+    assert service.authorise_member_change(ADMIN, project.id).id == project.id
+
+
+@pytest.mark.ac("AC-90")
+def test_the_loser_of_a_race_is_treated_as_already_a_member_and_writes_no_event():
+    service, project, projects, _, audit = member_world()
+    projects.lose_the_race = True  # the repository says another request inserted the row first
+    got = service.add_member(ADMIN, project.id, "acc-bob")
+    assert "acc-bob" in got.members
+    assert audit.events == []

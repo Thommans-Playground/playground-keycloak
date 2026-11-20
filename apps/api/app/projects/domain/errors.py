@@ -28,3 +28,12 @@ class MemberNotEligible(ProjectsError):
 
     def __init__(self):
         super().__init__("A first member cannot be added.")
+
+
+class ProjectNotFound(ProjectsError):
+    """One answer for a project that is hidden, one that does not exist and an id that is not well formed (AC-27)."""
+
+    code = "project_not_found"
+
+    def __init__(self):
+        super().__init__("Project not found.")

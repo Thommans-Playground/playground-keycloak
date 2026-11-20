@@ -1,5 +1,7 @@
 """In-memory stand-ins for the ports, so a use case can be tested with no database and no Keycloak."""
 
+from dataclasses import replace
+
 
 class FakeIdp:
     """Stands in for Keycloak's admin API and records what it was asked."""
@@ -127,12 +129,39 @@ class FakeProjects:
 
     def __init__(self):
         self.rows: dict[str, object] = {}
+        self.added: list = []  # the memberships written by add_member
+        self.lose_the_race = False  # another request inserts the same row first, as the unique key would show
 
     def add(self, project):
         self.rows[project.id] = project
 
     def by_id(self, project_id):
         return self.rows.get(project_id)
+
+    def add_member(self, project_id, membership):
+        project = self.rows[project_id]
+        already = membership.account_id in project.members
+        if not already:
+            self.rows[project_id] = replace(project, memberships=(*project.memberships, membership))
+        if already or self.lose_the_race:
+            return False  # the row was there: nothing of ours was written
+        self.added.append(membership)
+        return True
+
+    def remove_member(self, project_id, account_id):
+        project = self.rows[project_id]
+        if account_id not in project.members:
+            return False
+        self.rows[project_id] = replace(
+            project, memberships=tuple(m for m in project.memberships if m.account_id != account_id)
+        )
+        return True
+
+    def list_all(self):
+        return list(self.rows.values())
+
+    def list_for_member(self, account_id):
+        return [p for p in self.rows.values() if account_id in p.members]
 
 
 class FakeAccountStatus:

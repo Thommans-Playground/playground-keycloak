@@ -1,18 +1,18 @@
 from dataclasses import dataclass
 from typing import Protocol
 
-from app.projects.domain.project import Project
+from app.projects.domain.project import Membership, Project
 
 
 @dataclass(frozen=True)
 class ProjectEvent:
     """What happened to a project, in Projects' words: ids only, the names are looked up when it is written."""
 
-    action: str  # create_project
+    action: str  # create_project, add_member or remove_member
     actor_id: str
     project_id: str
     project_name: str
-    member_ids: tuple[str, ...] = ()  # the first members, each once
+    member_ids: tuple[str, ...] = ()  # the first members, each once, or the one member of a change
     reason: str | None = None  # none for a creation
 
 
@@ -50,3 +50,14 @@ class SecurityLog(Protocol):
 class ProjectRepository(Protocol):
     def add(self, project: Project) -> None: ...
     def by_id(self, project_id: str) -> Project | None: ...
+    def add_member(self, project_id: str, membership: Membership) -> bool:
+        """Write one membership. False if the person was already in (also when another request got there first):
+        nothing of ours was written."""
+        ...
+
+    def remove_member(self, project_id: str, account_id: str) -> bool:
+        """Delete one membership. False if there was none."""
+        ...
+
+    def list_all(self) -> list[Project]: ...
+    def list_for_member(self, account_id: str) -> list[Project]: ...

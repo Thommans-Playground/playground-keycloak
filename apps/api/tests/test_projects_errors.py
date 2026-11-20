@@ -37,3 +37,24 @@ def test_not_an_administrator_is_answered_with_a_403_and_the_forbidden_body():
         403,
         {"detail": {"code": "forbidden", "message": "Administrators only."}},
     )
+
+
+def test_project_not_found_is_answered_with_a_404_and_one_fixed_body():
+    from app.projects.domain.errors import ProjectNotFound
+
+    app = FastAPI()
+    log = FakeSecurityLog()
+    register_error_handlers(app, log)
+
+    @app.get("/x")
+    def x():
+        raise ProjectNotFound()
+
+    r = TestClient(app).get("/x")
+    assert (r.status_code, r.json()) == (
+        404,
+        {"detail": {"code": "project_not_found", "message": "Project not found."}},
+    )
+    assert [(e["event"], e["result"], e["reason"]) for e in log.events] == [
+        ("request_refused", "refused", "project_not_found")
+    ]

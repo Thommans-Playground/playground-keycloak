@@ -12,6 +12,12 @@ class CreateProjectIn(BaseModel):
     members: list[str] = []  # the first members, as account ids
 
 
+class AddMemberIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")  # an unknown field is refused, not ignored (AC-93)
+
+    account_id: str
+
+
 class ProjectOut(BaseModel):
     id: str
     name: str

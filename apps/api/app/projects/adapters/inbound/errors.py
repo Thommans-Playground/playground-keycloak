@@ -12,6 +12,7 @@ from app.projects.domain.errors import (
     InvalidRequest,
     MemberNotEligible,
     NotAnAdministrator,
+    ProjectNotFound,
     ProjectsError,
 )
 
@@ -20,6 +21,7 @@ HTTP_STATUS: dict[type[ProjectsError], int] = {
     InvalidProjectName: 422,
     InvalidRequest: 422,
     MemberNotEligible: 422,
+    ProjectNotFound: 404,
 }
 
 
