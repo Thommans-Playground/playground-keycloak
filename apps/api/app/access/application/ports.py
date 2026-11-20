@@ -57,6 +57,19 @@ class AuditLog(Protocol):
     def record(self, event: AccountEvent) -> None: ...
 
 
+class SecurityLog(Protocol):
+    """Where Access says that it refused a request, for the operators (decision 17). Never a token or typed text."""
+
+    def event(
+        self,
+        name: str,
+        result: str,
+        person_id: str | None = None,
+        session_id: str | None = None,
+        reason: str | None = None,
+    ) -> None: ...
+
+
 @dataclass(frozen=True)
 class Principal:
     """Who the token says the caller is. What they may do is decided from our own database, never from this."""

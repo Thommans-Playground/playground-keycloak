@@ -9,15 +9,20 @@ from collections.abc import Callable
 from fastapi import APIRouter, Depends
 
 from app.audit.adapters.inbound.schemas import EntryOut
+from app.audit.application.ports import SecurityLog
 from app.audit.application.service import AuditService
 from app.audit.domain.caller import Caller
 
 
-def build_router(service: Callable[..., AuditService], caller: Callable[..., Caller]) -> APIRouter:
+def build_router(
+    service: Callable[..., AuditService], caller: Callable[..., Caller], security_log: SecurityLog
+) -> APIRouter:
     router = APIRouter()
 
     @router.get("/audit", response_model=list[EntryOut])
     def audit(who: Caller = Depends(caller), svc: AuditService = Depends(service)):
-        return [EntryOut.of(r) for r in svc.read(who)]
+        entries = svc.read(who)  # a refusal is raised here and logged by the error handler
+        security_log.event("audit_read", "ok", person_id=who.account_id)
+        return [EntryOut.of(r) for r in entries]
 
     return router

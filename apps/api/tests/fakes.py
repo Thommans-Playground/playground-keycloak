@@ -14,11 +14,15 @@ class FakeIdp:
             raise RuntimeError("keycloak down")
         self.calls.append((what, identity))
 
-    def enable_user(self, identity): self._do("enable", identity)
+    def enable_user(self, identity):
+        self._do("enable", identity)
+
     def disable_user(self, identity):
         self.events.append("disable_user")
         self._do("disable", identity)
-    def end_sessions(self, identity): self._do("logout", identity)
+
+    def end_sessions(self, identity):
+        self._do("logout", identity)
 
 
 class FakeAccounts:
@@ -29,8 +33,12 @@ class FakeAccounts:
     def by_identity(self, identity):
         return next((a for a in self.rows.values() if a.identity == identity), None)
 
-    def by_id(self, account_id): return self.rows.get(account_id)
-    def add(self, account): self.rows[account.id] = account
+    def by_id(self, account_id):
+        return self.rows.get(account_id)
+
+    def add(self, account):
+        self.rows[account.id] = account
+
     def save(self, account):
         self.events.append("save")
         self.rows[account.id] = account
@@ -95,4 +103,17 @@ class FakeUnitOfWork:
     def __init__(self, events: list[str] | None = None):
         self.events = events if events is not None else []
 
-    def commit(self): self.events.append("commit")
+    def commit(self):
+        self.events.append("commit")
+
+
+class FakeSecurityLog:
+    """Records the security events, so a test can see what was raised. Satisfies both contexts' SecurityLog ports."""
+
+    def __init__(self):
+        self.events: list[dict] = []
+
+    def event(self, name, result, person_id=None, session_id=None, reason=None):
+        self.events.append(
+            {"event": name, "result": result, "person_id": person_id, "session_id": session_id, "reason": reason}
+        )

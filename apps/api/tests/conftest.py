@@ -10,10 +10,10 @@ from sqlalchemy.pool import StaticPool
 
 from app.access.adapters.outbound.token_verifier import JwtTokenVerifier
 from app.infrastructure.config import Settings
-from tests.fakes import FakeIdp
+from app.main import create_app
+from tests.fakes import FakeIdp, FakeSecurityLog
 from tests.migrations_support import drop_everything, owner_engine, upgrade
 from tests.safety import check_test_database
-from app.main import create_app
 
 # The integration tests need the running stack: collected only with INTEGRATION=1.
 collect_ignore_glob = [] if os.environ.get("INTEGRATION") == "1" else ["integration/*"]
@@ -24,10 +24,26 @@ KEY = rsa.generate_private_key(public_exponent=65537, key_size=2048)
 OTHER_KEY = rsa.generate_private_key(public_exponent=65537, key_size=2048)
 
 
-def make_token(sub: str, email: str, name: str = "Test Person", *, verified: bool = True, key=KEY,
-               issuer: str = ISSUER, audience: str = AUDIENCE, expires_in: int = 300) -> str:
-    claims = {"sub": sub, "email": email, "name": name, "email_verified": verified, "iss": issuer,
-              "aud": audience, "exp": int(time.time()) + expires_in}
+def make_token(
+    sub: str,
+    email: str,
+    name: str = "Test Person",
+    *,
+    verified: bool = True,
+    key=KEY,
+    issuer: str = ISSUER,
+    audience: str = AUDIENCE,
+    expires_in: int = 300,
+) -> str:
+    claims = {
+        "sub": sub,
+        "email": email,
+        "name": name,
+        "email_verified": verified,
+        "iss": issuer,
+        "aud": audience,
+        "exp": int(time.time()) + expires_in,
+    }
     return jwt.encode(claims, key, algorithm="RS256")
 
 
@@ -62,11 +78,16 @@ def make_engine():
 
 
 @pytest.fixture
-def client(idp):
+def security_log():
+    return FakeSecurityLog()
+
+
+@pytest.fixture
+def client(idp, security_log):
     settings = Settings(keycloak_url="http://kc.test", bootstrap_admin_emails="ada@x.test")
     engine = make_engine()
     verifier = JwtTokenVerifier(ISSUER, AUDIENCE, lambda _t: KEY.public_key())
-    return TestClient(create_app(settings, verifier, idp, engine))
+    return TestClient(create_app(settings, verifier, idp, engine, security_log))
 
 
 def auth(sub: str, email: str, **kw) -> dict:

@@ -22,3 +22,4 @@ what, accepted risk) stay in [docs/domain/decisions.md](../domain/decisions.md).
 | [0010](0010-context-folder-layout.md) | One folder layout for every bounded context in the API |
 | [0011](0011-audit-context-append-only.md) | The Audit context, append only, enforced by the database |
 | [0012](0012-migrations-outside-the-app.md) | Migrations live in `apps/api/migrations/`, outside the app, and run as the owner role |
+| [0013](0013-security-log-port-json-on-stdout.md) | A SecurityLog port in each context that logs, one JSON line on stdout (the API half; the web half is on branch `feat/UC-A1-basic-logging`) |

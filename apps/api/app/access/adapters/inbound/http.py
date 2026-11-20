@@ -7,7 +7,7 @@ the two things this module must not build itself: how to get an AccessService, a
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 
 from app.access.adapters.inbound.schemas import (
     AccountOut,
@@ -15,7 +15,7 @@ from app.access.adapters.inbound.schemas import (
     ListedAccountOut,
     ReasonIn,
 )
-from app.access.application.ports import InvalidToken, Principal, TokenVerifier
+from app.access.application.ports import InvalidToken, Principal, SecurityLog, TokenVerifier
 from app.access.application.service import AccessService
 from app.access.domain.account import Account, Action, Role, Status
 
@@ -30,57 +30,43 @@ class Guards:
     administrator: Callable[..., Account]
 
 
-def build_guards(service: Callable[..., AccessService], verifier: TokenVerifier) -> Guards:
+def build_guards(service: Callable[..., AccessService], verifier: TokenVerifier, security_log: SecurityLog) -> Guards:
+    def refuse(status: int, code: str, message: str, person_id: str | None = None, **kw) -> HTTPException:
+        """The one place a guard refuses: it writes one line to the security log, then returns the error to raise."""
+        security_log.event("request_refused", "refused", person_id=person_id, reason=code)
+        return HTTPException(status, {"code": code, "message": message}, **kw)
+
     def principal(authorization: str | None = Header(default=None)) -> Principal:
         scheme, _, token = (authorization or "").partition(" ")
+        bearer = {"headers": {"WWW-Authenticate": "Bearer"}}
         if scheme.lower() != "bearer" or not token:
-            raise HTTPException(
-                401,
-                {"code": "missing_token", "message": "Sign in first."},
-                headers={"WWW-Authenticate": "Bearer"},
-            )
+            raise refuse(401, "missing_token", "Sign in first.", **bearer)
         try:
             return verifier.verify(token)
         except InvalidToken:
-            raise HTTPException(
-                401,
-                {"code": "invalid_token", "message": "The token is not valid."},
-                headers={"WWW-Authenticate": "Bearer"},
-            )
+            raise refuse(401, "invalid_token", "The token is not valid.", **bearer) from None
 
     def any_account(
-        p: Principal = Depends(principal), svc: AccessService = Depends(service)
+        request: Request, p: Principal = Depends(principal), svc: AccessService = Depends(service)
     ) -> Account:
         """The caller's account, made on first sight, whatever its status."""
-        return svc.account_for(p.identity, p.name, p.email, p.email_verified)
+        account = svc.account_for(p.identity, p.name, p.email, p.email_verified)
+        request.state.person_id = account.id  # so a later refusal, in any context, is logged with who it was
+        return account
 
     def not_deactivated(a: Account = Depends(any_account)) -> Account:
         if a.status is Status.deactivated:
-            raise HTTPException(
-                403,
-                {
-                    "code": "account_deactivated",
-                    "message": "Your account is deactivated.",
-                },
-            )
+            raise refuse(403, "account_deactivated", "Your account is deactivated.", a.id)
         return a
 
     def active_account(a: Account = Depends(not_deactivated)) -> Account:
         if a.status is Status.pending:
-            raise HTTPException(
-                403,
-                {
-                    "code": "account_pending",
-                    "message": "Your account is waiting for approval.",
-                },
-            )
+            raise refuse(403, "account_pending", "Your account is waiting for approval.", a.id)
         return a
 
     def administrator(a: Account = Depends(active_account)) -> Account:
         if a.role is not Role.administrator:
-            raise HTTPException(
-                403, {"code": "forbidden", "message": "Administrators only."}
-            )
+            raise refuse(403, "forbidden", "Administrators only.", a.id)
         return a
 
     return Guards(any_account, not_deactivated, active_account, administrator)
@@ -105,10 +91,7 @@ def build_router(service: Callable[..., AccessService], guards: Guards) -> APIRo
         _: Account = Depends(administrator),
         svc: AccessService = Depends(service),
     ):
-        return [
-            ListedAccountOut.listed(a, d)
-            for a, d in svc.list_accounts(status.value if status else None)
-        ]
+        return [ListedAccountOut.listed(a, d) for a, d in svc.list_accounts(status.value if status else None)]
 
     def _change(action: Action):
         def endpoint(
@@ -117,9 +100,7 @@ def build_router(service: Callable[..., AccessService], guards: Guards) -> APIRo
             actor: Account = Depends(administrator),
             svc: AccessService = Depends(service),
         ):
-            result = svc.change(
-                actor, account_id, action, body.reason if body else None
-            )
+            result = svc.change(actor, account_id, action, body.reason if body else None)
             out = AccountOut.of(result.account).model_dump()
             if action is Action.deactivate:
                 out["keycloak_updated"] = result.keycloak_updated
