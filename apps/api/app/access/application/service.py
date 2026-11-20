@@ -117,14 +117,17 @@ class AccessService:
             if not is_repeat_deactivation(action, target):
                 self.accounts.save(updated)
             self.audit.record(
-                actor.id, action.value, target.id, cleaned, self._now(), "done"
+                actor.id, action.value, target.id, cleaned, self._now()
             )
             self.uow.commit()
             try:
                 self.idp.disable_user(target.identity)
                 self.idp.end_sessions(target.identity)
             except Exception:  # noqa: BLE001 - any adapter failure means "not updated"
-                self.audit.set_outcome(target.id, action.value, "keycloak_not_updated")
+                # Realises UC-L1 RULE-L3: a failure is a new entry, the first is never edited.
+                self.audit.record(
+                    actor.id, "keycloak_not_updated", target.id, cleaned, self._now()
+                )
                 return ChangeResult(updated, keycloak_updated=False)
             return ChangeResult(updated)
 

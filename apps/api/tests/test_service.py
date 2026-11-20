@@ -145,8 +145,10 @@ def test_deactivating_commits_first_and_a_keycloak_failure_still_leaves_it_deact
     )
     assert accounts.by_id(maya.id).status is Status.deactivated
     assert events == ["commit", "disable_user"]
-    entries = [o for r, o in zip(audit.rows, audit.outcomes) if r[1] == "deactivate"]
-    assert entries == ["keycloak_not_updated"]
+    assert [r[1] for r in audit.rows if r[2] == maya.id and r[1] in ("deactivate", "keycloak_not_updated")] == [
+        "deactivate",
+        "keycloak_not_updated",
+    ]
 
 
 def _deactivated_while_keycloak_was_down():
@@ -189,8 +191,11 @@ def test_deactivating_again_retries_keycloak_and_records_one_new_done_entry():
     assert result.account == before and accounts.by_id(maya.id) == before
     assert before.status is Status.deactivated
     assert idp.calls == [("disable", "sub-1"), ("logout", "sub-1")]
-    entries = [o for r, o in zip(audit.rows, audit.outcomes) if r[1] == "deactivate"]
-    assert entries == ["keycloak_not_updated", "done"]
+    assert [r[1] for r in audit.rows if r[2] == maya.id and r[1] in ("deactivate", "keycloak_not_updated")] == [
+        "deactivate",
+        "keycloak_not_updated",
+        "deactivate",
+    ]
 
 
 @pytest.mark.ac("AC-77")
@@ -277,3 +282,50 @@ def test_an_actor_demoted_a_moment_ago_is_refused_on_fresh_state():
     with pytest.raises(InvalidTransition):
         svc.change(stale_bob, maya.id, Action.approve)
     assert accounts.by_id(maya.id).status is Status.pending
+
+
+def _for(audit, account):
+    return [e for e in audit.entries() if e["target_id"] == account.id and e["action"] in ("deactivate", "keycloak_not_updated")]
+
+
+@pytest.mark.ac("AC-58")
+@pytest.mark.rule("RULE-L3")
+def test_a_keycloak_failure_after_a_deactivation_adds_its_own_entry_and_never_edits_the_first():
+    svc, accounts, audit, idp, events, admin, maya = _deactivated_while_keycloak_was_down()
+    entries = _for(audit, maya)
+    assert [e["action"] for e in entries] == ["deactivate", "keycloak_not_updated"]
+    first, second = entries
+    assert first["reason"] == "left the team" and first["actor_id"] == admin.id
+    assert second["target_id"] == first["target_id"] and second["actor_id"] == first["actor_id"]
+    assert second["reason"] in (first["reason"], None)
+
+
+@pytest.mark.ac("AC-77")
+@pytest.mark.rule("RULE-L3")
+def test_a_repeated_deactivation_adds_one_entry_for_the_retry():
+    svc, accounts, audit, idp, events, admin, maya = _deactivated_while_keycloak_was_down()
+    svc.change(admin, maya.id, Action.deactivate, "retry the Keycloak call")
+    entries = _for(audit, maya)
+    assert [e["action"] for e in entries] == ["deactivate", "keycloak_not_updated", "deactivate"]
+    assert entries[2]["reason"] == "retry the Keycloak call"
+
+
+@pytest.mark.ac("AC-77")
+@pytest.mark.rule("RULE-L3")
+def test_a_repeated_deactivation_that_fails_again_adds_the_retry_and_a_second_keycloak_not_updated_entry():
+    svc, accounts, audit, idp, events, admin, maya = _deactivated_while_keycloak_was_down()
+    idp.fail = True
+    svc.change(admin, maya.id, Action.deactivate, "retry the Keycloak call")
+    entries = _for(audit, maya)
+    assert [e["action"] for e in entries] == ["deactivate", "keycloak_not_updated", "deactivate", "keycloak_not_updated"]
+    assert entries[2]["reason"] == "retry the Keycloak call"
+
+
+@pytest.mark.rule("RULE-L1")
+def test_the_audit_log_has_no_way_to_edit_an_entry():
+    from app.access.application.ports import AuditLog
+    from app.access.adapters.outbound.sql import SqlAudit
+
+    assert not hasattr(AuditLog, "set_outcome")
+    assert not hasattr(SqlAudit, "set_outcome")
+    assert not hasattr(FakeAudit, "set_outcome")

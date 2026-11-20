@@ -27,7 +27,6 @@ class AuditRow(Base):
     action: Mapped[str] = mapped_column(String)
     target_id: Mapped[str] = mapped_column(String)
     reason: Mapped[str | None] = mapped_column(Text, nullable=True)
-    outcome: Mapped[str | None] = mapped_column(String, nullable=True)
 
 
 def _to_domain(r: AccountRow) -> Account:
@@ -125,7 +124,7 @@ class SqlAudit:
     def __init__(self, session: Session):
         self._s = session
 
-    def record(self, actor_id, action, target_id, reason, at, outcome=None) -> None:
+    def record(self, actor_id, action, target_id, reason, at) -> None:
         self._s.add(
             AuditRow(
                 at=at,
@@ -133,15 +132,8 @@ class SqlAudit:
                 action=action,
                 target_id=target_id,
                 reason=reason,
-                outcome=outcome,
             )
         )
-        self._s.flush()
-
-    def set_outcome(self, target_id, action, outcome) -> None:
-        row = self._s.scalars(select(AuditRow).where(AuditRow.target_id == target_id, AuditRow.action == action)
-                              .order_by(AuditRow.id.desc())).first()
-        row.outcome = outcome
         self._s.flush()
 
     def entries(self) -> list[dict]:

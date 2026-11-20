@@ -37,9 +37,7 @@ class AuditLog(Protocol):
         target_id: str,
         reason: str | None,
         at: datetime,
-        outcome: str | None = None,
     ) -> None: ...
-    def set_outcome(self, target_id: str, action: str, outcome: str) -> None: ...
     def entries(self) -> list[dict]: ...
 
 

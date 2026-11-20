@@ -137,3 +137,13 @@ def test_audit_reason_and_actor_of_none_round_trip(audit):
 
 def test_audit_with_nothing_recorded_is_empty(audit):
     assert audit.entries() == []
+
+
+@pytest.mark.ac("AC-58")
+@pytest.mark.rule("RULE-L3")
+def test_audit_keeps_a_deactivation_and_its_keycloak_not_updated_entry_as_two_entries_in_order(audit):
+    audit.record("a", "deactivate", "t1", "left the team", T0)
+    audit.record("a", "keycloak_not_updated", "t1", "left the team", T0 + timedelta(seconds=1))
+    entries = audit.entries()  # newest first
+    assert [e["action"] for e in reversed(entries)] == ["deactivate", "keycloak_not_updated"]
+    assert all(e["target_id"] == "t1" and e["actor_id"] == "a" for e in entries)

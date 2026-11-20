@@ -51,15 +51,9 @@ class FakeAccounts:
 class FakeAudit:
     def __init__(self):
         self.rows: list[tuple[str | None, str, str, str | None, datetime]] = []
-        self.outcomes: list[str | None] = []  # parallel to rows
 
-    def record(self, actor_id, action, target_id, reason, at, outcome=None):
+    def record(self, actor_id, action, target_id, reason, at):
         self.rows.append((actor_id, action, target_id, reason, at))
-        self.outcomes.append(outcome)
-
-    def set_outcome(self, target_id, action, outcome):
-        i = max(i for i, r in enumerate(self.rows) if r[1] == action and r[2] == target_id)
-        self.outcomes[i] = outcome
 
     def entries(self): return [dict(zip(("actor_id", "action", "target_id", "reason", "at"), r)) for r in self.rows]
 
