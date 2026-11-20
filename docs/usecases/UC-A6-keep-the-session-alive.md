@@ -108,7 +108,7 @@ This is the one with the clearest lesson. Refresh tokens rotate, so using the ol
 For the product owner to decide.
 
 1. Answered: the sessions can now live in Redis (the Redis adapter is built and chosen with `REDIS_URL`), so a restart does not end them. Without `REDIS_URL` they stay in memory, as in local work.
-2. Open, for the owner (a risk): the one-refresh-at-a-time lock is a map inside one web process. With more than one web container, two requests of the same session can reach different containers and both refresh. Keycloak then sees the old refresh token used twice and ends the session, so the person is signed out. Options: run one web container for the alpha and list this in "Accepted for now", or build a lock in Redis around the refresh (test first). Nothing here proves it, because the access token lives 300 seconds and no test can force an early renewal.
+2. Decided (decision 20, accepted risk): the one-refresh-at-a-time lock is a map inside one web process. With more than one web container, two requests of the same session can reach different containers and both refresh. Keycloak then sees the old refresh token used twice and ends the session, so the person is signed out. Options: run one web container for the alpha and list this in "Accepted for now", or build a lock in Redis around the refresh (test first). Nothing here proves it, because the access token lives 300 seconds and no test can force an early renewal.
 
 ## Overview
 
