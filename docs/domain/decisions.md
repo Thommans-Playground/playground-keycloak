@@ -669,3 +669,17 @@ records the technical side (commit order, locking).
 **Changes.** AC-79 and AC-80 added; AC-58 and UC-A4 reworded; UC-L1's design gains the permission step; ADR 0011 records the technical choices (and supersedes the audit part of ADR 0009); `set_outcome` goes away when the Audit context is built.
 
 **Still open.** Retention (how long entries are kept) is not decided. Whether UC-A3 (register) writes an audit entry is still open from decision 17.
+
+## 22. The audit trail after the review: retries, personal data, the owner role, register (20 Nov 2026)
+
+**Decided.** By the owner, after the three reviews of UC-L1.
+- **Every repeated deactivation (AC-77) adds one audit entry** with its outcome (done, or Keycloak not updated as a second entry) and the reason given for the retry. This changes decision 18's "retry changes nothing in our database": it still changes no account, and it now adds an entry.
+- **Personal data in the trail is kept for the alpha:** names, emails and free text reasons. It is listed in the security overlay's "Accepted for now". Retention is open; revisit before the beta.
+- **The database owner (the RDS master user) can still edit audit rows.** Accepted for the alpha and listed in "Accepted for now". Closing it needs a hash chain or an immutable copy, later.
+- **`register` writes an audit entry**, as today. This answers decision 17's open question for UC-A3.
+
+**Why.** An audit trail with gaps (a retry nobody sees) proves less than one without. The alpha runs inside the corporate network, so the two accepted risks are cheaper to hold than to close now.
+
+**Changes.** AC-68, AC-77, AC-79 and AC-80 reworded, AC-81 and AC-82 added, AC-29 and AC-30 stay with UC-P1 and UC-P2 and leave UC-L1 (with FR-13). UC-L1 and UC-A4 text, slices and three diagrams; BC-AUDIT gains the table of what an entry records. ADR 0011 records the technical side (one role and one session, a separate owner role for migrations, names at the time, the `Caller` of Audit, reasons limits, log lines). The security overlay lists the two accepted risks.
+
+**Still open.** Retention of the trail and its personal data. Whether a refused change should ever be an entry (today it goes to the log).

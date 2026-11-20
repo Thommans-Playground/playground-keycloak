@@ -14,7 +14,8 @@ refers_to:
 ports_needed:
   - name: AuditRepository
     answers: Add an audit entry, and list the entries newest first.
-    status: built
+    status: planned
+    # Built today as Access's AuditLog port (record, entries and set_outcome). Audit's own port has add and list_newest_first only (decision 21, ADR 0011).
 must_not:
   - Write to Access or Projects data. It holds entries about them, and never changes an account, a role, a project or a member.
   - Import another context. Access and Projects call it through the bridge that the composition root wires, never directly.
@@ -65,7 +66,7 @@ what the person was called when it happened.
 ## How the other contexts write to it
 
 Access and Projects each keep their **own `AuditLog` port**, written in their own words. The **composition root**
-(`main.py`) wires, for each, a small adapter (a bridge) that turns the call into Audit's use case,
+(`composition/`, which builds the adapter on the request's one session) wires, for each, a small adapter (a bridge) that turns the call into Audit's use case,
 `AuditService.record(entry)`. So Access never imports Audit and Projects never imports Audit, and the architecture
 test that forbids one context importing another still holds. Only the composition root knows all three.
 
@@ -90,6 +91,26 @@ The administrator reads the trail through `AuditService.read(caller)`. A person 
 | Ask for a reason where the rule needs one | Stores the reason, and never asks for one |
 | Say who is the caller | Lets only an administrator read |
 
+## What an entry records
+
+The people and things are copied in with their name and email at that moment. "Names come from" says who supplies them. The database sets the time.
+
+| Action | Actor | Target | Details | Reason | Names come from |
+|---|---|---|---|---|---|
+| register | the new person | the new account | none | none | Access, from the token claims, in its AuditLog call |
+| approve | the administrator | the account | none | none | Access, from the two accounts it holds |
+| deactivate | the administrator | the account | outcome: done | required | Access |
+| deactivate, Keycloak not updated | the administrator | the account | outcome: keycloak_not_updated (a second entry, the first is not touched) | the same reason | Access |
+| retry (deactivate again, AC-77) | the administrator | the account | outcome: done, or a second entry keycloak_not_updated | the reason given for the retry | Access |
+| reinstate | the administrator | the account | none | required | Access |
+| promote | the administrator | the account | none | required | Access |
+| demote | the administrator | the account | none | required | Access |
+| project created (later, UC-P1) | the administrator | the project (id, name) | the first members | none | Projects, through its `People` port answered by Access in composition/ |
+| member added or removed (later, UC-P2) | the administrator | the project | the member | none | Projects, through its `People` port answered by Access in composition/ |
+
+A reason is plain text of at most 500 characters, with no control or bidirectional override characters (AC-81).
+The entries hold personal data (names, emails, free text reasons). The alpha keeps them, and retention is open (decision 22).
+
 ## The rules it holds
 
 None of its own yet. The rules that make an entry necessary are in the other contexts:
@@ -105,8 +126,8 @@ last step of UC-A4, UC-P1 and UC-P2.
 
 For the product owner to decide.
 
-1. Should an entry be kept for a read, or for a refused change? Not in the alpha: only changes that happened are recorded.
-2. How long is the trail kept, and can it be exported? Nothing is decided. The alpha keeps every entry.
+1. Decided (decisions 21 and 22): only changes that happened are recorded. A read and a refused change write a line to the security log (decision 17), never an entry. A repeated deactivation is a change and adds an entry. `register` writes an entry.
+2. How long is the trail kept, personal data included, and can it be exported? Open. The alpha keeps every entry and its names, emails and reasons (decision 22). Revisit before the beta.
 3. Should the list be paged and filtered by kind, person or date? Today it returns everything, newest first.
 
 ## Built, and not yet built

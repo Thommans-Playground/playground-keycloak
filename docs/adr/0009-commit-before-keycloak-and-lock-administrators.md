@@ -1,6 +1,6 @@
 # 0009 Commit a deactivation before calling Keycloak, and lock the administrators
 
-- Status: accepted
+- Status: accepted; the audit outcome part of ADR 0009 is superseded by 0011 (a second entry, not `set_outcome`)
 - Date: 2026-11-20
 - Decided by: the agent (technical), after the three UC-A4 reviews
 

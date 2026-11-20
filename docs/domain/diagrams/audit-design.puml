@@ -8,7 +8,8 @@ title Playground Audit: ports and adapters (partly built, mostly planned)
 ' time, the two bridges, the Alembic migration, and the project entries. Boxes marked planned do not exist yet.
 ' Not drawn: the Access and Projects services that call their AuditLog ports (see access-design.puml and the
 ' Projects diagram), and the web page that shows the trail.
-' The bridges sit in the composition root (main.py), the one place that knows Access, Projects and Audit.
+' The bridges sit in composition/, the one place that knows Access, Projects and Audit, and it builds the adapter on the request's one session.
+' Decisions 21 and 22, ADR 0011: the API role has INSERT and SELECT only (D12), migrations run as a separate owner role (D10), the database sets the time.
 
 skinparam classAttributeIconSize 0
 skinparam linetype ortho
@@ -24,21 +25,26 @@ class "«entity, planned»\nAuditEntry" as AE #FFE6CC {
   reason
 }
 
+class "«value object, planned»\nCaller" as CL #FFE6CC {
+  account id
+  is administrator
+}
+
 class "«service, planned»\nAuditService" as SVC #E7F4EA {
   +record(entry)
   +read(caller)
 }
 
-class "«port, built as AuditLog»\nAuditRepository" as PAR #EEE7F7 {
+class "«port, built as AuditLog»\nAuditRepository\n(no update, no delete)" as PAR #EEE7F7 {
   +add(entry)
   +list_newest_first()
 }
 
-class "«adapter, built»\nSqlAudit" as SQL #EEE7F7
+class "«adapter, built as SqlAudit»\nSqlAuditEntries" as SQL #EEE7F7
 
-class "RDS PostgreSQL\naudit_entries" as DB #ECECEC
+class "RDS PostgreSQL\naudit_entries\n(D10 migrations by the owner role,\nD12 the API role: INSERT, SELECT)" as DB #ECECEC
 
-package "Composition root (main.py)" {
+package "Composition root (composition/)" {
   class "«adapter, planned»\nAccessAuditBridge" as BA #EEE7F7
   class "«adapter, planned»\nProjectsAuditBridge" as BP #EEE7F7
 }
@@ -47,6 +53,7 @@ class "«port»\nAccess AuditLog\n(built)" as PAL #EEE7F7
 class "«port»\nProjects AuditLog\n(planned)" as PPL #EEE7F7
 
 AE <.. SVC : builds, reads
+SVC ..> CL : read(caller)
 SVC --> PAR
 PAR <|.. SQL
 SQL --> DB : AWS, RDS\nPostgreSQL
@@ -58,7 +65,10 @@ PPL <|.. BP
 note right of SVC
   read(caller) lets
   only an administrator in.
-  The trail is append only.
+  The trail is append only:
+  no update or delete in the
+  port, the routes or the
+  database (AC-79, AC-80).
 end note
 note right of AE
   Names and emails are

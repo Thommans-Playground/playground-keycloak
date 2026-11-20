@@ -6,7 +6,8 @@ title UC-A4 Approve, deactivate, reinstate, promote and demote (design sequence)
 ' Design level (decision 9), drawn against docs/domain/diagrams/access-design.puml. Analysis: UC-A4-approve-deactivate-and-reinstate-an-account-analysis-sequence.puml.
 ' Step numbers are the main flow numbers of UC-A4. BUILT (ADR 0009, decisions 14 and 18): the lock on the active administrators and the re-read of
 ' the actor and target, a deactivation committed with its audit entry before Keycloak is called, the outcome instead of an error, the repeat of a
-' deactivation. NOT BUILT: the audit entry going to the Audit context (BC-AUDIT), still the Access table (D14).
+' deactivation. NOT BUILT: the audit entry going to the Audit context (BC-AUDIT), still the Access table (D14), and the second entry and the retry
+' entry (decisions 21 and 22, TSK-A4.8): AuditLog has record() only, no set_outcome, and each entry is added, never edited.
 ' Not drawn: the web page and its reason dialog (D12) and the token check, which is UC-A1 step 9.
 
 actor "Administrator" as AD
@@ -36,11 +37,11 @@ else
     S -> AL : 8 record(actor, action, target, reason)
   else deactivate, or again (AC-77)
     S -> AR : 6 save(deactivated), none if again
-    S -> AL : 8 record(..., outcome done)
+    S -> AL : 8 record(entry: deactivate, or the retry, with its reason)
     S -> UW : 6 commit() (the lock is released)
     S -> IDP : 6 disable_user + end_sessions
     alt Keycloak fails
-      S -> AL : 7 set_outcome(keycloak_not_updated)
+      S -> AL : 7 record(second entry: keycloak_not_updated)
       S --> R : ChangeResult(keycloak_updated false)
       R --> AD : 7 200 "Keycloak was not updated", repeat
     end
