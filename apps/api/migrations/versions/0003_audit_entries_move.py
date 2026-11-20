@@ -25,8 +25,16 @@ depends_on = None
 NEW_COLUMNS = ("kind", "actor_name", "actor_email", "target_name", "target_email", "details")
 # The API role may add these and nothing else: id and at are set by the database.
 API_INSERT_COLUMNS = (
-    "kind", "actor_id", "actor_name", "actor_email", "action",
-    "target_id", "target_name", "target_email", "details", "reason",
+    "kind",
+    "actor_id",
+    "actor_name",
+    "actor_email",
+    "action",
+    "target_id",
+    "target_name",
+    "target_email",
+    "details",
+    "reason",
 )
 UTC_NOW = sa.text("(now() AT TIME ZONE 'utc')")
 
@@ -57,16 +65,20 @@ def upgrade() -> None:
     if not postgres:
         return
     role = _role_name()
-    identity = bind.execute(sa.text(
-        "SELECT is_identity FROM information_schema.columns "
-        "WHERE table_schema = 'public' AND table_name = 'audit_entries' AND column_name = 'id'"
-    )).scalar_one()
+    identity = bind.execute(
+        sa.text(
+            "SELECT is_identity FROM information_schema.columns "
+            "WHERE table_schema = 'public' AND table_name = 'audit_entries' AND column_name = 'id'"
+        )
+    ).scalar_one()
     if identity != "YES":
         # serial -> identity: keep the numbering going after the rows that exist.
         start = int(bind.execute(sa.text("SELECT coalesce(max(id), 0) + 1 FROM audit_entries")).scalar_one())
         bind.execute(sa.text("ALTER TABLE audit_entries ALTER COLUMN id DROP DEFAULT"))
         bind.execute(sa.text("DROP SEQUENCE IF EXISTS audit_entries_id_seq"))  # also drops the USAGE grant of 0002
-        bind.execute(sa.text(f"ALTER TABLE audit_entries ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (START WITH {start})"))
+        bind.execute(
+            sa.text(f"ALTER TABLE audit_entries ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (START WITH {start})")
+        )
     # An identity column needs no sequence grant. Nothing on the sequence, whatever an earlier run left.
     bind.execute(sa.text(f'REVOKE ALL ON SEQUENCE audit_entries_id_seq FROM "{role}"'))
     # Table level INSERT out, column level INSERT in: the API cannot name the id or the time. SELECT stays.

@@ -15,9 +15,13 @@ export default async function PublicLayout({ children }: { children: React.React
           </Link>
           <nav className="flex items-center gap-3">
             {signedIn ? (
-              <Link href="/dashboard" className={buttonVariants({ size: "sm" })}>Go to dashboard</Link>
+              <Link href="/dashboard" className={buttonVariants({ size: "sm" })}>
+                Go to dashboard
+              </Link>
             ) : (
-              <Link href="/login" className={buttonVariants({ size: "sm" })}>Sign in</Link>
+              <Link href="/login" className={buttonVariants({ size: "sm" })}>
+                Sign in
+              </Link>
             )}
           </nav>
         </div>

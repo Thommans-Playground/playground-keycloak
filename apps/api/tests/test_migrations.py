@@ -1,22 +1,23 @@
 """Migrations (ADR 0004, 0012): Alembic builds the schema as the owner, and the app builds nothing."""
 
+import os
+
 import pytest
 from alembic.autogenerate import compare_metadata
+from alembic.config import Config
 from alembic.migration import MigrationContext
 from alembic.script import ScriptDirectory
-from alembic.config import Config
 from sqlalchemy import inspect, text
 
 import app.access.adapters.outbound.sql  # noqa: F401 - registers the tables on Base
 import app.audit.adapters.outbound.sql  # noqa: F401 - registers the audit table on Base
+from app.access.adapters.outbound.token_verifier import JwtTokenVerifier
 from app.infrastructure.config import Settings
 from app.infrastructure.db import Base
 from app.main import create_app
-from tests.conftest import ISSUER, AUDIENCE, KEY, make_empty_engine
+from tests.conftest import AUDIENCE, ISSUER, KEY, make_empty_engine
 from tests.fakes import FakeIdp
 from tests.migrations_support import API, as_owner, drop_everything, owner_engine, stamp, upgrade
-from app.access.adapters.outbound.token_verifier import JwtTokenVerifier
-import os
 
 
 @pytest.fixture
@@ -39,8 +40,18 @@ def test_migrations_create_todays_schema(engine):
     assert set(inspect(engine).get_table_names()) - {"alembic_version"} == {"accounts", "audit_entries"}
     assert columns(engine, "accounts") == {"id", "identity", "name", "email", "role", "status", "created", "created_by"}
     assert columns(engine, "audit_entries") == {
-        "id", "at", "kind", "actor_id", "actor_name", "actor_email", "action",
-        "target_id", "target_name", "target_email", "details", "reason",
+        "id",
+        "at",
+        "kind",
+        "actor_id",
+        "actor_name",
+        "actor_email",
+        "action",
+        "target_id",
+        "target_name",
+        "target_email",
+        "details",
+        "reason",
     }
 
 
@@ -95,10 +106,12 @@ def test_an_old_row_becomes_an_account_entry_with_no_names(engine):
         connection.execute(text(OLD_ROW))
     upgrade(owner)
     with owner.connect() as connection:
-        row = connection.execute(text(
-            "SELECT kind, actor_id, actor_name, actor_email, target_id, target_name, target_email, details, reason "
-            "FROM audit_entries"
-        )).one()
+        row = connection.execute(
+            text(
+                "SELECT kind, actor_id, actor_name, actor_email, target_id, target_name, target_email, details, reason "
+                "FROM audit_entries"
+            )
+        ).one()
     assert row.kind == "account"
     assert (row.actor_id, row.target_id, row.reason) == ("actor-1", "target-1", "old reason")
     assert (row.actor_name, row.actor_email, row.target_name, row.target_email) == (None, None, None, None)
@@ -110,9 +123,9 @@ def test_the_database_sets_the_time_when_an_insert_names_none(engine):
     owner = as_owner(engine)
     upgrade(owner)
     with owner.begin() as connection:
-        connection.execute(text(
-            "INSERT INTO audit_entries (kind, action, target_id) VALUES ('account', 'approve', 'target-1')"
-        ))
+        connection.execute(
+            text("INSERT INTO audit_entries (kind, action, target_id) VALUES ('account', 'approve', 'target-1')")
+        )
         at = connection.execute(text("SELECT at FROM audit_entries")).scalar_one()
     assert at is not None
 
@@ -121,10 +134,12 @@ def test_the_database_sets_the_time_when_an_insert_names_none(engine):
 def test_the_id_is_an_identity_column_always_generated(engine):
     upgrade(as_owner(engine))
     with as_owner(engine).connect() as connection:
-        row = connection.execute(text(
-            "SELECT is_identity, identity_generation, column_default FROM information_schema.columns "
-            "WHERE table_name = 'audit_entries' AND column_name = 'id'"
-        )).one()
+        row = connection.execute(
+            text(
+                "SELECT is_identity, identity_generation, column_default FROM information_schema.columns "
+                "WHERE table_name = 'audit_entries' AND column_name = 'id'"
+            )
+        ).one()
     assert (row.is_identity, row.identity_generation, row.column_default) == ("YES", "ALWAYS", None)
 
 
@@ -137,6 +152,8 @@ def test_the_migration_keeps_the_numbering_of_old_rows_going(engine):
         connection.execute(text(OLD_ROW))
     upgrade(owner)
     with owner.begin() as connection:
-        connection.execute(text("INSERT INTO audit_entries (kind, action, target_id) VALUES ('account', 'approve', 't')"))
+        connection.execute(
+            text("INSERT INTO audit_entries (kind, action, target_id) VALUES ('account', 'approve', 't')")
+        )
         ids = connection.execute(text("SELECT id FROM audit_entries ORDER BY id")).scalars().all()
     assert ids == [1, 2, 3]

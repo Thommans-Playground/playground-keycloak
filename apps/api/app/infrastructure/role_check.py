@@ -33,13 +33,17 @@ def check_database_role(connection: Connection) -> None:
     problems: list[str] = []
     if _one(connection, "SELECT rolsuper FROM pg_roles WHERE rolname = current_user"):
         problems.append("is a superuser")
-    owned = connection.execute(
-        text(
-            "SELECT schemaname || '.' || tablename FROM pg_tables "
-            "WHERE schemaname NOT IN ('pg_catalog', 'information_schema') "
-            "AND pg_has_role(current_user, tableowner, 'MEMBER')"
+    owned = (
+        connection.execute(
+            text(
+                "SELECT schemaname || '.' || tablename FROM pg_tables "
+                "WHERE schemaname NOT IN ('pg_catalog', 'information_schema') "
+                "AND pg_has_role(current_user, tableowner, 'MEMBER')"
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     if owned:
         problems.append(f"owns, or belongs to a role that owns, the tables {sorted(owned)}")
     if _one(connection, f"SELECT to_regclass('{AUDIT_TABLE}') IS NOT NULL"):
@@ -49,12 +53,16 @@ def check_database_role(connection: Connection) -> None:
         for privilege in ("UPDATE", "REFERENCES"):  # on any column too, not only on the table
             if _one(connection, f"SELECT has_any_column_privilege(current_user, '{AUDIT_TABLE}', '{privilege}')"):
                 problems.append(f"has {privilege} on audit_entries")
-        sequences = connection.execute(
-            text(
-                "SELECT pg_get_serial_sequence('public.audit_entries', attname) FROM pg_attribute "
-                "WHERE attrelid = 'public.audit_entries'::regclass AND attnum > 0 AND NOT attisdropped"
+        sequences = (
+            connection.execute(
+                text(
+                    "SELECT pg_get_serial_sequence('public.audit_entries', attname) FROM pg_attribute "
+                    "WHERE attrelid = 'public.audit_entries'::regclass AND attnum > 0 AND NOT attisdropped"
+                )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
         for sequence in filter(None, sequences):
             if connection.execute(
                 text("SELECT has_sequence_privilege(current_user, :s, 'UPDATE')"), {"s": sequence}

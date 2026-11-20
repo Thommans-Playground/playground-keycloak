@@ -7,13 +7,13 @@ import os
 import pytest
 from sqlalchemy import text
 
+from app.access.adapters.outbound.token_verifier import JwtTokenVerifier
 from app.infrastructure.config import Settings
 from app.infrastructure.role_check import UnsafeStartup, check_database_role, check_environment
 from app.main import create_app
 from tests.conftest import AUDIENCE, ISSUER, KEY, make_engine
 from tests.fakes import FakeIdp
 from tests.migrations_support import drop_everything, owner_engine
-from app.access.adapters.outbound.token_verifier import JwtTokenVerifier
 
 postgres = pytest.mark.skipif(
     not os.environ.get("TEST_DATABASE_URL"), reason="roles and grants exist on PostgreSQL only"

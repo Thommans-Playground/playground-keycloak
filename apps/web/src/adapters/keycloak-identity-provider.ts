@@ -45,7 +45,12 @@ export class KeycloakIdentityProvider implements IdentityProvider {
     // openid-client would refuse that mismatch in discovery(), so the metadata is read by hand.
     const res = await fetch(`${internalIssuer}/.well-known/openid-configuration`, { cache: "no-store" });
     if (!res.ok) throw new Error(`discovery failed: ${res.status}`);
-    const config = new client.Configuration(await res.json(), clientId, undefined, client.ClientSecretPost(clientSecret));
+    const config = new client.Configuration(
+      await res.json(),
+      clientId,
+      undefined,
+      client.ClientSecretPost(clientSecret),
+    );
     if (this.insecure()) client.allowInsecureRequests(config);
     return config;
   }
@@ -77,7 +82,10 @@ export class KeycloakIdentityProvider implements IdentityProvider {
     return { redirectTo: client.buildAuthorizationUrl(cfg, params).href, state, nonce, pkceVerifier };
   }
 
-  async completeLogin(callbackUrl: URL, attempt: { state: string; nonce: string; pkceVerifier: string }): Promise<Session> {
+  async completeLogin(
+    callbackUrl: URL,
+    attempt: { state: string; nonce: string; pkceVerifier: string },
+  ): Promise<Session> {
     const cfg = await this.configuration();
     const tokens = await client.authorizationCodeGrant(cfg, callbackUrl, {
       pkceCodeVerifier: attempt.pkceVerifier,

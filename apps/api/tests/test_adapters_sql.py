@@ -33,8 +33,16 @@ def accounts(session):
 
 
 def acct(n: int, role=Role.user, status=Status.active, created=None, created_by=None) -> Account:
-    return Account(f"id-{n}", f"sub-{n}", f"Person {n}", f"p{n}@x.test", role, status,
-                   created or T0 + timedelta(minutes=n), created_by)
+    return Account(
+        f"id-{n}",
+        f"sub-{n}",
+        f"Person {n}",
+        f"p{n}@x.test",
+        role,
+        status,
+        created or T0 + timedelta(minutes=n),
+        created_by,
+    )
 
 
 def test_add_then_get_by_id_and_by_identity(accounts):

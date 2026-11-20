@@ -50,9 +50,15 @@ class LoginRefused(Exception):
 def admin_headers(client: httpx.Client | None = None) -> dict[str, str]:
     """A fresh service account token of playground-backend, straight from Keycloak."""
     s = settings()
-    r = (client or httpx).post(f"{OIDC}/token", timeout=TIMEOUT, data={
-        "grant_type": "client_credentials", "client_id": s.keycloak_backend_client_id,
-        "client_secret": s.keycloak_backend_client_secret})
+    r = (client or httpx).post(
+        f"{OIDC}/token",
+        timeout=TIMEOUT,
+        data={
+            "grant_type": "client_credentials",
+            "client_id": s.keycloak_backend_client_id,
+            "client_secret": s.keycloak_backend_client_secret,
+        },
+    )
     r.raise_for_status()
     return {"Authorization": f"Bearer {r.json()['access_token']}"}
 
@@ -69,10 +75,20 @@ def kc_sessions(user_id: str) -> list:
 
 def create_user(email: str | None = None, password: str = PASSWORD) -> User:
     email = email or f"it-{int(time.time())}-{secrets.token_hex(4)}@example.test"
-    r = httpx.post(ADMIN_USERS, headers=admin_headers(), timeout=TIMEOUT, json={
-        "username": email, "email": email, "firstName": "Integration", "lastName": "Test",
-        "enabled": True, "emailVerified": True,
-        "credentials": [{"type": "password", "value": password, "temporary": False}]})
+    r = httpx.post(
+        ADMIN_USERS,
+        headers=admin_headers(),
+        timeout=TIMEOUT,
+        json={
+            "username": email,
+            "email": email,
+            "firstName": "Integration",
+            "lastName": "Test",
+            "enabled": True,
+            "emailVerified": True,
+            "credentials": [{"type": "password", "value": password, "temporary": False}],
+        },
+    )
     r.raise_for_status()
     return User(id=r.headers["Location"].rsplit("/", 1)[1], email=email, password=password)
 
@@ -107,12 +123,22 @@ def login(user: User | str, password: str | None = None) -> str:
             request.headers["Cookie"] = "; ".join(f"{k}={v}" for k, v in jar.items())
 
     with httpx.Client(timeout=TIMEOUT, event_hooks={"request": [send_cookies], "response": [keep_cookies]}) as http:
-        page = http.get(f"{OIDC}/auth", params={
-            "client_id": WEB_CLIENT_ID, "redirect_uri": REDIRECT_URI, "response_type": "code",
-            "scope": "openid", "state": state, "code_challenge": challenge, "code_challenge_method": "S256"})
-        assert page.status_code == 200, page.headers.get('location')
-        form = re.search(r'<form[^>]*id="kc-form-login"[^>]*action="([^"]+)"', page.text) \
-            or re.search(r'<form[^>]*action="([^"]+)"[^>]*id="kc-form-login"', page.text)
+        page = http.get(
+            f"{OIDC}/auth",
+            params={
+                "client_id": WEB_CLIENT_ID,
+                "redirect_uri": REDIRECT_URI,
+                "response_type": "code",
+                "scope": "openid",
+                "state": state,
+                "code_challenge": challenge,
+                "code_challenge_method": "S256",
+            },
+        )
+        assert page.status_code == 200, page.headers.get("location")
+        form = re.search(r'<form[^>]*id="kc-form-login"[^>]*action="([^"]+)"', page.text) or re.search(
+            r'<form[^>]*action="([^"]+)"[^>]*id="kc-form-login"', page.text
+        )
         assert form, "the login form (kc-form-login) was not found"
         url = html.unescape(form.group(1))
         resp = http.post(url, data={"username": username, "password": password, "credentialId": ""})
@@ -127,16 +153,25 @@ def login(user: User | str, password: str | None = None) -> str:
             raise LoginRefused("too many redirects")
         query = parse_qs(urlparse(location).query)
         assert query["state"] == [state]
-        token = http.post(f"{OIDC}/token", data={
-            "grant_type": "authorization_code", "code": query["code"][0], "redirect_uri": REDIRECT_URI,
-            "client_id": WEB_CLIENT_ID, "client_secret": WEB_CLIENT_SECRET, "code_verifier": verifier})
+        token = http.post(
+            f"{OIDC}/token",
+            data={
+                "grant_type": "authorization_code",
+                "code": query["code"][0],
+                "redirect_uri": REDIRECT_URI,
+                "client_id": WEB_CLIENT_ID,
+                "client_secret": WEB_CLIENT_SECRET,
+                "code_verifier": verifier,
+            },
+        )
         token.raise_for_status()
         return token.json()["access_token"]
 
 
 def _error_text(page: str) -> str:
-    m = re.search(r'id="input-error[^"]*"[^>]*>\s*(.*?)\s*</span>', page, re.S) \
-        or re.search(r'class="[^"]*alert-error[^"]*"[^>]*>.*?<span[^>]*>\s*(.*?)\s*</span>', page, re.S)
+    m = re.search(r'id="input-error[^"]*"[^>]*>\s*(.*?)\s*</span>', page, re.S) or re.search(
+        r'class="[^"]*alert-error[^"]*"[^>]*>.*?<span[^>]*>\s*(.*?)\s*</span>', page, re.S
+    )
     return html.unescape(re.sub(r"<[^>]+>", "", m.group(1))).strip() if m else "(no error text found)"
 
 

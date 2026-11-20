@@ -16,19 +16,24 @@ export default async function Dashboard() {
     if (me.code === "account_deactivated") {
       return (
         <Notice title="Your account is deactivated">
-          An administrator has switched off your access. Nothing you made was removed. Ask an administrator to reinstate you.
+          An administrator has switched off your access. Nothing you made was removed. Ask an administrator to reinstate
+          you.
         </Notice>
       );
     }
-    return <Notice title="The API is not reachable">Start it with <code>uv run uvicorn app.main:create_app --factory</code>.</Notice>;
+    return (
+      <Notice title="The API is not reachable">
+        Start it with <code>uv run uvicorn app.main:create_app --factory</code>.
+      </Notice>
+    );
   }
 
   const account = me.data;
   if (account.status === "pending") {
     return (
       <Notice title="Waiting for approval">
-        Hello {account.name}. Your account was created, and an administrator needs to approve it before you can use Playground.
-        Until then this is the only page you can see.
+        Hello {account.name}. Your account was created, and an administrator needs to approve it before you can use
+        Playground. Until then this is the only page you can see.
       </Notice>
     );
   }
@@ -42,17 +47,25 @@ export default async function Dashboard() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <Stat label="Role"><Badge variant="secondary">{account.role}</Badge></Stat>
-        <Stat label="Status"><Badge>{account.status}</Badge></Stat>
+        <Stat label="Role">
+          <Badge variant="secondary">{account.role}</Badge>
+        </Stat>
+        <Stat label="Status">
+          <Badge>{account.status}</Badge>
+        </Stat>
         <Stat label="Member since">{new Date(account.created + "Z").toLocaleDateString()}</Stat>
       </div>
 
       <Card>
-        <CardHeader><CardTitle>Your account</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle>Your account</CardTitle>
+        </CardHeader>
         <CardContent className="space-y-3 text-sm">
           <Row label="Name">{account.name}</Row>
           <Row label="Email">{account.email}</Row>
-          <p className="text-muted-foreground">Keycloak holds your name, email and password. This application does not change them.</p>
+          <p className="text-muted-foreground">
+            Keycloak holds your name, email and password. This application does not change them.
+          </p>
           <a href={accountPageUrl(env.issuer)} className={buttonVariants({ variant: "outline" })}>
             Change your name, email or password in Keycloak
           </a>
@@ -66,7 +79,9 @@ export default async function Dashboard() {
             <CardDescription>Approve new accounts, change roles and review the audit trail.</CardDescription>
           </CardHeader>
           <CardContent>
-            <Link href="/admin/accounts" className={buttonVariants()}>Manage accounts</Link>
+            <Link href="/admin/accounts" className={buttonVariants()}>
+              Manage accounts
+            </Link>
           </CardContent>
         </Card>
       )}

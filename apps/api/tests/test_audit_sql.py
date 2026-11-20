@@ -4,7 +4,7 @@ import os
 from datetime import UTC, datetime, timedelta
 
 import pytest
-from sqlalchemy import inspect, text
+from sqlalchemy import inspect
 from sqlalchemy.orm import Session
 
 from app.audit.adapters.outbound.sql import SqlAuditEntries
@@ -103,6 +103,16 @@ def test_the_adapter_never_names_the_time_or_the_id_in_its_insert(session, entri
 def test_the_table_has_the_columns_of_an_entry(session):
     columns = {c["name"] for c in inspect(session.get_bind()).get_columns("audit_entries")}
     assert columns == {
-        "id", "at", "kind", "actor_id", "actor_name", "actor_email", "action",
-        "target_id", "target_name", "target_email", "details", "reason",
+        "id",
+        "at",
+        "kind",
+        "actor_id",
+        "actor_name",
+        "actor_email",
+        "action",
+        "target_id",
+        "target_name",
+        "target_email",
+        "details",
+        "reason",
     }

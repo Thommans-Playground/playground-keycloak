@@ -13,8 +13,18 @@ from tests.fakes import FakeIdp
 from tests.test_api import _api_routes
 
 ENTRY_FIELDS = {
-    "id", "at", "kind", "actor_id", "actor_name", "actor_email", "action",
-    "target_id", "target_name", "target_email", "details", "reason",
+    "id",
+    "at",
+    "kind",
+    "actor_id",
+    "actor_name",
+    "actor_email",
+    "action",
+    "target_id",
+    "target_name",
+    "target_email",
+    "details",
+    "reason",
 }
 
 
@@ -31,13 +41,29 @@ def test_an_account_change_shows_with_who_what_whom_and_the_reason(client, admin
     assert all(set(e) == ENTRY_FIELDS for e in entries)
     deactivate, approve, register_entry = entries[0], entries[1], entries[2]
 
-    assert (deactivate["kind"], deactivate["action"], deactivate["reason"]) == ("account", "deactivate", "Left the team")
-    assert (deactivate["actor_id"], deactivate["actor_name"], deactivate["actor_email"]) == (ada_id, "Ada", "ada@x.test")
-    assert (deactivate["target_id"], deactivate["target_name"], deactivate["target_email"]) == (maya_id, "maya", "maya@x.test")
+    assert (deactivate["kind"], deactivate["action"], deactivate["reason"]) == (
+        "account",
+        "deactivate",
+        "Left the team",
+    )
+    assert (deactivate["actor_id"], deactivate["actor_name"], deactivate["actor_email"]) == (
+        ada_id,
+        "Ada",
+        "ada@x.test",
+    )
+    assert (deactivate["target_id"], deactivate["target_name"], deactivate["target_email"]) == (
+        maya_id,
+        "maya",
+        "maya@x.test",
+    )
     assert deactivate["details"] == [] and deactivate["at"]
     assert (approve["action"], approve["reason"]) == ("approve", None)
     # a person's first request: no actor, the new account as target
-    assert (register_entry["action"], register_entry["actor_id"], register_entry["actor_name"]) == ("register", None, None)
+    assert (register_entry["action"], register_entry["actor_id"], register_entry["actor_name"]) == (
+        "register",
+        None,
+        None,
+    )
     assert (register_entry["target_id"], register_entry["target_name"]) == (maya_id, "maya")
 
 
@@ -45,7 +71,12 @@ def test_an_account_change_shows_with_who_what_whom_and_the_reason(client, admin
 def test_the_bootstrap_administrator_entry_names_the_new_account(client, admin):
     ada_id = me_id(client, admin)
     last = client.get("/audit", headers=admin).json()[-1]
-    assert (last["action"], last["actor_id"], last["target_id"], last["target_name"]) == ("create_bootstrap_admin", None, ada_id, "Ada")
+    assert (last["action"], last["actor_id"], last["target_id"], last["target_name"]) == (
+        "create_bootstrap_admin",
+        None,
+        ada_id,
+        "Ada",
+    )
 
 
 @pytest.mark.ac("AC-68")
@@ -89,8 +120,18 @@ def test_the_refusal_of_an_ordinary_user_has_the_body_the_web_reads(client, admi
 def test_an_empty_trail_is_200_and_an_empty_list():
     engine = make_engine()
     with Session(engine) as s:  # an administrator who already exists, with no change recorded yet
-        s.add(AccountRow(id="acc-ada", identity="sub-ada", name="Ada", email="ada@x.test", role="administrator",
-                         status="active", created=__import__("datetime").datetime(2026, 1, 1), created_by=None))
+        s.add(
+            AccountRow(
+                id="acc-ada",
+                identity="sub-ada",
+                name="Ada",
+                email="ada@x.test",
+                role="administrator",
+                status="active",
+                created=__import__("datetime").datetime(2026, 1, 1),
+                created_by=None,
+            )
+        )
         s.commit()
     verifier = JwtTokenVerifier(ISSUER, AUDIENCE, lambda _t: KEY.public_key())
     app = create_app(Settings(keycloak_url="http://kc.test"), verifier, FakeIdp(), engine)
@@ -99,8 +140,12 @@ def test_an_empty_trail_is_200_and_an_empty_list():
 
 
 def test_the_audit_route_is_served_by_the_audit_context_and_not_by_access():
-    app = create_app(Settings(keycloak_url="http://kc.test"), JwtTokenVerifier(ISSUER, AUDIENCE, lambda _t: KEY.public_key()),
-                     FakeIdp(), make_engine())
+    app = create_app(
+        Settings(keycloak_url="http://kc.test"),
+        JwtTokenVerifier(ISSUER, AUDIENCE, lambda _t: KEY.public_key()),
+        FakeIdp(),
+        make_engine(),
+    )
     modules = {r.endpoint.__module__ for r in _api_routes(app) if r.path == "/audit"}
     assert modules == {"app.audit.adapters.inbound.http"}
 
@@ -151,11 +196,17 @@ def test_entries_from_before_names_were_stored_stay_readable(idp):
 
     engine = make_engine()
     settings = Settings(keycloak_url="http://kc.test", bootstrap_admin_emails="ada@x.test")
-    client = TestClient(create_app(settings, JwtTokenVerifier(ISSUER, AUDIENCE, lambda _t: KEY.public_key()), idp, engine))
+    client = TestClient(
+        create_app(settings, JwtTokenVerifier(ISSUER, AUDIENCE, lambda _t: KEY.public_key()), idp, engine)
+    )
     admin = auth("sub-ada", "ada@x.test", name="Ada")
     _, maya_id = register(client, "sub-maya", "maya@x.test")
     with as_owner(engine).begin() as c:  # the API role cannot update the table: the owner makes the old rows
-        c.execute(text("UPDATE audit_entries SET actor_name = NULL, actor_email = NULL, target_name = NULL, target_email = NULL"))
+        c.execute(
+            text(
+                "UPDATE audit_entries SET actor_name = NULL, actor_email = NULL, target_name = NULL, target_email = NULL"
+            )
+        )
     r = client.get("/audit", headers=admin)
     assert r.status_code == 200
     old = [e for e in r.json() if e["target_id"] == maya_id][0]

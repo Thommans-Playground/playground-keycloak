@@ -42,7 +42,9 @@ def roles():
 
 def rows(engine):
     with engine.connect() as connection:
-        return connection.execute(text("SELECT id, at, actor_id, action, target_id, reason FROM audit_entries ORDER BY id")).all()
+        return connection.execute(
+            text("SELECT id, at, actor_id, action, target_id, reason FROM audit_entries ORDER BY id")
+        ).all()
 
 
 STATEMENTS = {
@@ -105,27 +107,79 @@ DATABASE_SET = {"id", "at"}
 def test_the_api_role_holds_exactly_the_privileges_on_the_allow_list(roles):
     api, owner = roles
     with owner.connect() as connection:
-        privileges = TABLE_PRIVILEGES + (["MAINTAIN"] if int(connection.execute(text("SHOW server_version_num")).scalar_one()) >= 170000 else [])
+        privileges = TABLE_PRIVILEGES + (
+            ["MAINTAIN"] if int(connection.execute(text("SHOW server_version_num")).scalar_one()) >= 170000 else []
+        )
         user = api.url.username
-        tables = connection.execute(text("SELECT relname FROM pg_class WHERE relkind IN ('r','p') AND relnamespace = 'public'::regnamespace")).scalars().all()
-        sequences = connection.execute(text("SELECT relname FROM pg_class WHERE relkind = 'S' AND relnamespace = 'public'::regnamespace")).scalars().all()
+        tables = (
+            connection.execute(
+                text(
+                    "SELECT relname FROM pg_class WHERE relkind IN ('r','p') AND relnamespace = 'public'::regnamespace"
+                )
+            )
+            .scalars()
+            .all()
+        )
+        sequences = (
+            connection.execute(
+                text("SELECT relname FROM pg_class WHERE relkind = 'S' AND relnamespace = 'public'::regnamespace")
+            )
+            .scalars()
+            .all()
+        )
         held_tables = {
-            t: {p for p in privileges if connection.execute(text("SELECT has_table_privilege(:u, :t, :p)"), {"u": user, "t": f"public.{t}", "p": p}).scalar_one()}
+            t: {
+                p
+                for p in privileges
+                if connection.execute(
+                    text("SELECT has_table_privilege(:u, :t, :p)"), {"u": user, "t": f"public.{t}", "p": p}
+                ).scalar_one()
+            }
             for t in tables
         }
         held_sequences = {
-            s: {p for p in ("USAGE", "SELECT", "UPDATE") if connection.execute(text("SELECT has_sequence_privilege(:u, :s, :p)"), {"u": user, "s": f"public.{s}", "p": p}).scalar_one()}
+            s: {
+                p
+                for p in ("USAGE", "SELECT", "UPDATE")
+                if connection.execute(
+                    text("SELECT has_sequence_privilege(:u, :s, :p)"), {"u": user, "s": f"public.{s}", "p": p}
+                ).scalar_one()
+            }
             for s in sequences
         }
         held_schema = {
-            p for p in ("USAGE", "CREATE") if connection.execute(text("SELECT has_schema_privilege(:u, 'public', :p)"), {"u": user, "p": p}).scalar_one()
+            p
+            for p in ("USAGE", "CREATE")
+            if connection.execute(
+                text("SELECT has_schema_privilege(:u, 'public', :p)"), {"u": user, "p": p}
+            ).scalar_one()
         }
-        any_column_update = connection.execute(text("SELECT has_any_column_privilege(:u, 'public.audit_entries', 'UPDATE')"), {"u": user}).scalar_one()
-        columns = connection.execute(text(
-            "SELECT attname FROM pg_attribute WHERE attrelid = 'public.audit_entries'::regclass AND attnum > 0 AND NOT attisdropped"
-        )).scalars().all()
-        insertable = {c for c in columns if connection.execute(text("SELECT has_column_privilege(:u, 'public.audit_entries', :c, 'INSERT')"), {"u": user, "c": c}).scalar_one()}
-        selectable = {c for c in columns if connection.execute(text("SELECT has_column_privilege(:u, 'public.audit_entries', :c, 'SELECT')"), {"u": user, "c": c}).scalar_one()}
+        any_column_update = connection.execute(
+            text("SELECT has_any_column_privilege(:u, 'public.audit_entries', 'UPDATE')"), {"u": user}
+        ).scalar_one()
+        columns = (
+            connection.execute(
+                text(
+                    "SELECT attname FROM pg_attribute WHERE attrelid = 'public.audit_entries'::regclass AND attnum > 0 AND NOT attisdropped"
+                )
+            )
+            .scalars()
+            .all()
+        )
+        insertable = {
+            c
+            for c in columns
+            if connection.execute(
+                text("SELECT has_column_privilege(:u, 'public.audit_entries', :c, 'INSERT')"), {"u": user, "c": c}
+            ).scalar_one()
+        }
+        selectable = {
+            c
+            for c in columns
+            if connection.execute(
+                text("SELECT has_column_privilege(:u, 'public.audit_entries', :c, 'SELECT')"), {"u": user, "c": c}
+            ).scalar_one()
+        }
     assert insertable == set(columns) - DATABASE_SET
     assert selectable == set(columns)
     assert held_tables == EXPECTED_TABLES
@@ -143,9 +197,11 @@ def test_an_insert_that_names_the_time_or_the_id_is_refused(roles, column):
     value = "'2020-01-01 00:00:00'" if column == "at" else "999"
     with pytest.raises(DBAPIError) as refused:
         with api.begin() as connection:
-            connection.execute(text(
-                f"INSERT INTO audit_entries ({column}, kind, action, target_id) VALUES ({value}, 'account', 'approve', 't')"
-            ))
+            connection.execute(
+                text(
+                    f"INSERT INTO audit_entries ({column}, kind, action, target_id) VALUES ({value}, 'account', 'approve', 't')"
+                )
+            )
     # A named id is refused twice over: by the column grant (42501) and by GENERATED ALWAYS (428C9). PostgreSQL
     # reports the second first, for a plain insert. The time has only the grant.
     assert refused.value.orig.sqlstate in ({PERMISSION_DENIED, "428C9"} if column == "id" else {PERMISSION_DENIED})
@@ -153,18 +209,22 @@ def test_an_insert_that_names_the_time_or_the_id_is_refused(roles, column):
     if column == "id":  # forcing it past GENERATED ALWAYS still meets the grant
         with pytest.raises(DBAPIError) as forced:
             with api.begin() as connection:
-                connection.execute(text(
-                    "INSERT INTO audit_entries (id, kind, action, target_id) OVERRIDING SYSTEM VALUE "
-                    "VALUES (999, 'account', 'approve', 't')"
-                ))
+                connection.execute(
+                    text(
+                        "INSERT INTO audit_entries (id, kind, action, target_id) OVERRIDING SYSTEM VALUE "
+                        "VALUES (999, 'account', 'approve', 't')"
+                    )
+                )
         assert forced.value.orig.sqlstate == PERMISSION_DENIED
     # the control: the owner may name them (the owner can still edit rows, which is accepted for the alpha)
     with owner.connect() as connection:
         transaction = connection.begin()
-        connection.execute(text(
-            f"INSERT INTO audit_entries ({column}, kind, action, target_id) OVERRIDING SYSTEM VALUE "
-            f"VALUES ({value}, 'account', 'approve', 't')"
-        ))
+        connection.execute(
+            text(
+                f"INSERT INTO audit_entries ({column}, kind, action, target_id) OVERRIDING SYSTEM VALUE "
+                f"VALUES ({value}, 'account', 'approve', 't')"
+            )
+        )
         transaction.rollback()
 
 

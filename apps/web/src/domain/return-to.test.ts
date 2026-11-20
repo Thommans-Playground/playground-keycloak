@@ -7,7 +7,16 @@ test("keeps local paths (Verifies AC-40, RULE-A6)", () => {
 });
 
 test("refuses everything that could leave the site (Verifies AC-40, RULE-A6)", () => {
-  for (const bad of ["https://evil.example", "//evil.example", "/\\evil.example", "dashboard", "", null, undefined, "/a\nb"]) {
+  for (const bad of [
+    "https://evil.example",
+    "//evil.example",
+    "/\\evil.example",
+    "dashboard",
+    "",
+    null,
+    undefined,
+    "/a\nb",
+  ]) {
     assert.equal(safeReturnTo(bad), "/dashboard", String(bad));
   }
 });

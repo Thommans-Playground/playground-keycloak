@@ -41,7 +41,12 @@ test("a session id nobody holds gets the same answer as no cookie", async () => 
 });
 
 test("if the session store fails the person still goes home, and the route can clear the cookie", async () => {
-  const broken = { ...sessions, take: async () => { throw new Error("the store is down"); } } as unknown as InMemorySessionStore;
+  const broken = {
+    ...sessions,
+    take: async () => {
+      throw new Error("the store is down");
+    },
+  } as unknown as InMemorySessionStore;
   const { redirectTo } = await signOut({ idp, sessions: broken }, "s1");
   assert.equal(redirectTo, null);
 });

@@ -2,7 +2,14 @@
 // Labels SI-n are the sign in lesson's own. SI-1 and SI-2 are AC-1 in docs/requirements.
 import assert from "node:assert/strict";
 import { beforeEach, test } from "node:test";
-import { finishLogin, isSignInFailed, signInFailureCode, SignInFailed, startLogin, type SignInDeps } from "./sign-in.ts";
+import {
+  finishLogin,
+  isSignInFailed,
+  signInFailureCode,
+  SignInFailed,
+  startLogin,
+  type SignInDeps,
+} from "./sign-in.ts";
 import { InMemoryLoginAttemptStore, InMemorySessionStore } from "../adapters/in-memory-stores.ts";
 import { FakeIdentityProvider } from "../testing/fakes.ts";
 
@@ -15,7 +22,13 @@ beforeEach(() => {
   now = 1_000_000;
   ids = 0;
   idp = new FakeIdentityProvider(() => now);
-  deps = { idp, attempts: new InMemoryLoginAttemptStore(), sessions: new InMemorySessionStore(), now: () => now, newId: () => `id-${++ids}` };
+  deps = {
+    idp,
+    attempts: new InMemoryLoginAttemptStore(),
+    sessions: new InMemorySessionStore(),
+    now: () => now,
+    newId: () => `id-${++ids}`,
+  };
 });
 
 const callback = (code: string, state: string) => new URL(`http://app.test/auth/callback?code=${code}&state=${state}`);

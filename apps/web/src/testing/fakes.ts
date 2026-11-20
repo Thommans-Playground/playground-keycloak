@@ -35,12 +35,20 @@ export class FakeIdentityProvider implements IdentityProvider {
     };
   }
 
-  async completeLogin(callbackUrl: URL, attempt: { state: string; nonce: string; pkceVerifier: string }): Promise<Session> {
+  async completeLogin(
+    callbackUrl: URL,
+    attempt: { state: string; nonce: string; pkceVerifier: string },
+  ): Promise<Session> {
     const code = callbackUrl.searchParams.get("code");
     if (callbackUrl.searchParams.get("state") !== attempt.state) throw new Error("state does not match");
     if (!code || this.usedCodes.has(code)) throw new Error("the code is missing or was used before");
     this.usedCodes.add(code);
-    return { idToken: `id-${code}`, accessToken: `at-${code}`, refreshToken: `rt-${code}`, accessExpiresAt: this.now() + 300_000 };
+    return {
+      idToken: `id-${code}`,
+      accessToken: `at-${code}`,
+      refreshToken: `rt-${code}`,
+      accessExpiresAt: this.now() + 300_000,
+    };
   }
 
   async refresh(session: Session): Promise<Session> {

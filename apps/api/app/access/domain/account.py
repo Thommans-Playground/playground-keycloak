@@ -1,10 +1,10 @@
 """The Account and its rules. No framework, database or HTTP in here (BC-ACCESS)."""
 
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass, replace
 from datetime import datetime
 from enum import StrEnum
-from typing import Callable
 
 
 class Role(StrEnum):
@@ -75,8 +75,15 @@ class Account:
         return replace(self, **changes)
 
 
-def new_account(identity: str, name: str, email: str, email_verified: bool, setup_emails: set[str],
-                active_admins: int, clock: Callable[[], datetime]) -> Account:
+def new_account(
+    identity: str,
+    name: str,
+    email: str,
+    email_verified: bool,
+    setup_emails: set[str],
+    active_admins: int,
+    clock: Callable[[], datetime],
+) -> Account:
     """A person seen for the first time (RULE-A5).
 
     Only a verified setup email, while no active administrator exists, makes an active administrator.
@@ -84,7 +91,10 @@ def new_account(identity: str, name: str, email: str, email_verified: bool, setu
     """
     first_admin = active_admins == 0 and email_verified and email.strip().lower() in setup_emails
     return Account(
-        id=str(uuid.uuid4()), identity=identity, name=name, email=email,
+        id=str(uuid.uuid4()),
+        identity=identity,
+        name=name,
+        email=email,
         role=Role.administrator if first_admin else Role.user,
         status=Status.active if first_admin else Status.pending,
         created=clock(),

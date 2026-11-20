@@ -8,14 +8,14 @@ import threading
 from datetime import datetime
 
 import pytest
+from sqlalchemy.orm import sessionmaker
+
+from app.access.adapters.outbound.sql import SqlAccounts, SqlUnitOfWork
+from app.access.application.service import AccessService
+from app.access.domain.account import Account, Action, LastAdministrator, Role, Status
 from app.audit.adapters.outbound.sql import SqlAuditEntries
 from app.audit.application.service import AuditService
 from app.composition.bridges import AccessAuditBridge
-from app.access.adapters.outbound.sql import SqlAccounts, SqlUnitOfWork
-from app.access.domain.account import Account, Action, LastAdministrator, Role, Status
-from app.access.application.service import AccessService
-from sqlalchemy.orm import sessionmaker
-
 from tests.conftest import make_engine
 
 URL = os.environ.get("TEST_DATABASE_URL", "")
@@ -72,7 +72,12 @@ def test_two_administrators_demoting_each_other_at_once_leave_exactly_one():
         with sessions() as s:
             repo = Repo(s)
             svc = AccessService(
-                repo, AccessAuditBridge(AuditService(SqlAuditEntries(s))), None, set(), now=lambda: NOW, uow=SqlUnitOfWork(s)
+                repo,
+                AccessAuditBridge(AuditService(SqlAuditEntries(s))),
+                None,
+                set(),
+                now=lambda: NOW,
+                uow=SqlUnitOfWork(s),
             )
             actor = repo.by_id(ids[actor_key])
             try:
@@ -91,9 +96,7 @@ def test_two_administrators_demoting_each_other_at_once_leave_exactly_one():
     [t.join(timeout=20) for t in threads]
 
     results = list(outcomes.values())
-    assert sorted(type(r).__name__ for r in results) == ["LastAdministrator", "str"], (
-        results
-    )
+    assert sorted(type(r).__name__ for r in results) == ["LastAdministrator", "str"], results
     assert any(isinstance(r, LastAdministrator) for r in results)
     with sessions() as s:
         assert SqlAccounts(s).count_active_administrators() == 1

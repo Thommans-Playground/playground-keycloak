@@ -4,6 +4,14 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
+from app.access.application.ports import (
+    AccountEvent,
+    AccountRef,
+    AccountRepository,
+    AuditLog,
+    IdentityProvider,
+    UnitOfWork,
+)
 from app.access.domain.account import (
     REASON_ACTIONS,
     Account,
@@ -17,14 +25,6 @@ from app.access.domain.account import (
     duplicates_by_email,
     is_repeat_deactivation,
     new_account,
-)
-from app.access.application.ports import (
-    AccountEvent,
-    AccountRef,
-    AccountRepository,
-    AuditLog,
-    IdentityProvider,
-    UnitOfWork,
 )
 
 
@@ -58,9 +58,7 @@ class AccessService:
         self.uow = uow
         self._now = now  # a clock that a test can fix
 
-    def account_for(
-        self, identity: str, name: str, email: str, email_verified: bool
-    ) -> Account:
+    def account_for(self, identity: str, name: str, email: str, email_verified: bool) -> Account:
         """Find the person's account, or make one the first time they are seen (FR-3).
 
         Name and email are copied from the token each time. The link is the identity, never the email.
@@ -91,22 +89,14 @@ class AccessService:
         )
         return account
 
-    def list_accounts(
-        self, status: str | None = None
-    ) -> list[tuple[Account, list[Account]]]:
+    def list_accounts(self, status: str | None = None) -> list[tuple[Account, list[Account]]]:
         """The accounts, each with the other accounts that share its email. The duplicates are found among all
         accounts, whatever the filter, so a deactivated twin still shows."""
         everyone = self.accounts.list()
         duplicates = duplicates_by_email(everyone)
-        return [
-            (a, duplicates[a.id])
-            for a in everyone
-            if status is None or a.status.value == status
-        ]
+        return [(a, duplicates[a.id]) for a in everyone if status is None or a.status.value == status]
 
-    def change(
-        self, actor: Account, target_id: str, action: Action, reason: str | None = None
-    ) -> ChangeResult:
+    def change(self, actor: Account, target_id: str, action: Action, reason: str | None = None) -> ChangeResult:
         # Realises UC-A4 AC-62 (ADR 0009): lock first, then judge the actor and target on fresh state.
         locked_admins = self.accounts.lock_active_administrators()
         actor = self.accounts.by_id(actor.id)
@@ -138,9 +128,7 @@ class AccessService:
             if action is Action.reinstate:
                 self.idp.enable_user(target.identity)
         except Exception as exc:
-            raise IdentityProviderUnavailable(
-                "Keycloak could not be reached. Nothing was changed."
-            ) from exc
+            raise IdentityProviderUnavailable("Keycloak could not be reached. Nothing was changed.") from exc
 
         self.accounts.save(updated)
         self._audit(actor, action.value, target, cleaned)

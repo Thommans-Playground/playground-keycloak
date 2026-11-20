@@ -2,7 +2,8 @@ import uuid
 
 import pytest
 from fastapi.routing import APIRoute
-from tests.conftest import KEY, OTHER_KEY, auth, make_token, me_id, register
+
+from tests.conftest import OTHER_KEY, auth, make_token, me_id, register
 
 
 # no token, expired token, token not from the identity provider
@@ -192,7 +193,9 @@ def test_deactivate_needs_reason_disables_in_keycloak_and_blocks_next_request(cl
     assert idp.calls == [("disable", "sub-maya"), ("logout", "sub-maya")]
     r = client.get("/me", headers=maya)  # the same, still valid token
     assert (r.status_code, r.json()["detail"]["code"]) == (403, "account_deactivated")
-    assert any(a["id"] == maya_id and a["status"] == "deactivated" for a in client.get("/accounts", headers=admin).json())
+    assert any(
+        a["id"] == maya_id and a["status"] == "deactivated" for a in client.get("/accounts", headers=admin).json()
+    )
 
 
 # FR-4
@@ -202,7 +205,10 @@ def test_reinstate_enables_in_keycloak(client, admin, idp):
     client.post(f"/accounts/{maya_id}/approve", headers=admin)
     client.post(f"/accounts/{maya_id}/deactivate", headers=admin, json={"reason": "Left the team"})
     idp.calls.clear()
-    assert client.post(f"/accounts/{maya_id}/reinstate", headers=admin, json={"reason": "Came back"}).json()["status"] == "active"
+    assert (
+        client.post(f"/accounts/{maya_id}/reinstate", headers=admin, json={"reason": "Came back"}).json()["status"]
+        == "active"
+    )
     assert idp.calls == [("enable", "sub-maya")]
     assert client.get("/me", headers=maya).json()["status"] == "active"
 

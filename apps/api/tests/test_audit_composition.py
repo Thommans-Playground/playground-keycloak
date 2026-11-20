@@ -31,7 +31,9 @@ def test_the_bridge_turns_an_access_event_into_an_account_entry_with_the_names()
 
 def test_the_bridge_passes_no_actor_for_a_registration():
     port = FakeAuditEntries()
-    AccessAuditBridge(AuditService(port)).record(AccountEvent(None, "register", AccountRef("m", "Maya", "m@x.test"), None))
+    AccessAuditBridge(AuditService(port)).record(
+        AccountEvent(None, "register", AccountRef("m", "Maya", "m@x.test"), None)
+    )
     assert port.stored[0].entry.actor is None
 
 

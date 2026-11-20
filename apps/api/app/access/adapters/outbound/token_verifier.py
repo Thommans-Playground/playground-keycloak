@@ -1,6 +1,6 @@
 """Check the Keycloak access token: signature, expiry, issuer, audience (NFR-1, NFR-1)."""
 
-from typing import Callable
+from collections.abc import Callable
 
 import jwt
 from jwt import PyJWKClient

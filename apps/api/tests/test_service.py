@@ -3,6 +3,8 @@
 from datetime import datetime
 
 import pytest
+
+from app.access.application.service import AccessService, IdentityProviderUnavailable
 from app.access.domain.account import (
     Action,
     InvalidTransition,
@@ -10,8 +12,6 @@ from app.access.domain.account import (
     Role,
     Status,
 )
-from app.access.application.service import AccessService, IdentityProviderUnavailable
-
 from tests.fakes import FakeAccounts, FakeAudit, FakeIdp, FakeUnitOfWork
 
 NOW = datetime(2026, 11, 17, 9, 0, 0)
@@ -20,9 +20,7 @@ NOW = datetime(2026, 11, 17, 9, 0, 0)
 def make(admins=("ada@x.test",)):
     accounts, audit, idp = FakeAccounts(), FakeAudit(), FakeIdp()
     return (
-        AccessService(
-            accounts, audit, idp, set(admins), now=lambda: NOW, uow=FakeUnitOfWork()
-        ),
+        AccessService(accounts, audit, idp, set(admins), now=lambda: NOW, uow=FakeUnitOfWork()),
         accounts,
         audit,
         idp,
@@ -71,10 +69,7 @@ def test_with_an_active_administrator_the_setup_email_is_only_pending():
     second = svc.account_for("sub-ada-2", "Ada again", "ada@x.test", True)
     assert (second.role, second.status) == (Role.user, Status.pending)
     assert audit.shapes()[-1] == (None, "register", second.id, None)
-    assert (
-        accounts.count_active_administrators() == 1
-        and accounts.by_id(first.id).role is Role.administrator
-    )
+    assert accounts.count_active_administrators() == 1 and accounts.by_id(first.id).role is Role.administrator
 
 
 def test_deactivate_calls_keycloak_before_changing_anything():
@@ -99,10 +94,7 @@ def test_a_keycloak_failure_changes_nothing():
     before = len(audit.shapes())
     with pytest.raises(IdentityProviderUnavailable):
         svc.change(admin, maya.id, Action.reinstate, "came back")
-    assert (
-        accounts.by_id(maya.id).status is Status.deactivated
-        and len(audit.shapes()) == before
-    )
+    assert accounts.by_id(maya.id).status is Status.deactivated and len(audit.shapes()) == before
 
 
 @pytest.mark.ac("AC-73")
@@ -140,12 +132,14 @@ def test_deactivating_commits_first_and_a_keycloak_failure_still_leaves_it_deact
         raised = exc
 
     assert raised is None
-    assert (
-        result.account.status is Status.deactivated and result.keycloak_updated is False
-    )
+    assert result.account.status is Status.deactivated and result.keycloak_updated is False
     assert accounts.by_id(maya.id).status is Status.deactivated
     assert events == ["commit", "disable_user"]
-    assert [e["action"] for e in audit.entries() if e["target_id"] == maya.id and e["action"] in ("deactivate", "keycloak_not_updated")] == [
+    assert [
+        e["action"]
+        for e in audit.entries()
+        if e["target_id"] == maya.id and e["action"] in ("deactivate", "keycloak_not_updated")
+    ] == [
         "deactivate",
         "keycloak_not_updated",
     ]
@@ -173,16 +167,12 @@ def _deactivated_while_keycloak_was_down():
 
 @pytest.mark.ac("AC-77")
 def test_deactivating_again_retries_keycloak_and_records_one_new_done_entry():
-    svc, accounts, audit, idp, events, admin, maya = (
-        _deactivated_while_keycloak_was_down()
-    )
+    svc, accounts, audit, idp, events, admin, maya = _deactivated_while_keycloak_was_down()
     before = accounts.by_id(maya.id)
 
     raised, result = None, None
     try:
-        result = svc.change(
-            admin, maya.id, Action.deactivate, "retry the Keycloak call"
-        )
+        result = svc.change(admin, maya.id, Action.deactivate, "retry the Keycloak call")
     except Exception as exc:  # noqa: BLE001 - the assertion below names it
         raised = exc
 
@@ -191,7 +181,11 @@ def test_deactivating_again_retries_keycloak_and_records_one_new_done_entry():
     assert result.account == before and accounts.by_id(maya.id) == before
     assert before.status is Status.deactivated
     assert idp.calls == [("disable", "sub-1"), ("logout", "sub-1")]
-    assert [e["action"] for e in audit.entries() if e["target_id"] == maya.id and e["action"] in ("deactivate", "keycloak_not_updated")] == [
+    assert [
+        e["action"]
+        for e in audit.entries()
+        if e["target_id"] == maya.id and e["action"] in ("deactivate", "keycloak_not_updated")
+    ] == [
         "deactivate",
         "keycloak_not_updated",
         "deactivate",
@@ -200,16 +194,12 @@ def test_deactivating_again_retries_keycloak_and_records_one_new_done_entry():
 
 @pytest.mark.ac("AC-77")
 def test_deactivating_again_while_keycloak_is_still_down_reports_it_and_does_not_raise():
-    svc, accounts, audit, idp, events, admin, maya = (
-        _deactivated_while_keycloak_was_down()
-    )
+    svc, accounts, audit, idp, events, admin, maya = _deactivated_while_keycloak_was_down()
     idp.fail = True
 
     raised, result = None, None
     try:
-        result = svc.change(
-            admin, maya.id, Action.deactivate, "retry the Keycloak call"
-        )
+        result = svc.change(admin, maya.id, Action.deactivate, "retry the Keycloak call")
     except Exception as exc:  # noqa: BLE001 - the assertion below names it
         raised = exc
 
@@ -285,7 +275,11 @@ def test_an_actor_demoted_a_moment_ago_is_refused_on_fresh_state():
 
 
 def _for(audit, account):
-    return [e for e in audit.entries() if e["target_id"] == account.id and e["action"] in ("deactivate", "keycloak_not_updated")]
+    return [
+        e
+        for e in audit.entries()
+        if e["target_id"] == account.id and e["action"] in ("deactivate", "keycloak_not_updated")
+    ]
 
 
 @pytest.mark.ac("AC-58")
@@ -317,7 +311,12 @@ def test_a_repeated_deactivation_that_fails_again_adds_the_retry_and_a_second_ke
     idp.fail = True
     svc.change(admin, maya.id, Action.deactivate, "retry the Keycloak call")
     entries = _for(audit, maya)
-    assert [e["action"] for e in entries] == ["deactivate", "keycloak_not_updated", "deactivate", "keycloak_not_updated"]
+    assert [e["action"] for e in entries] == [
+        "deactivate",
+        "keycloak_not_updated",
+        "deactivate",
+        "keycloak_not_updated",
+    ]
     assert entries[2]["reason"] == "retry the Keycloak call"
 
 
