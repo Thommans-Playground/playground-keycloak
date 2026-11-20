@@ -11,6 +11,7 @@ from sqlalchemy import inspect, text
 
 import app.access.adapters.outbound.sql  # noqa: F401 - registers the tables on Base
 import app.audit.adapters.outbound.sql  # noqa: F401 - registers the audit table on Base
+import app.projects.adapters.outbound.sql  # noqa: F401 - registers the project tables on Base
 from app.access.adapters.outbound.token_verifier import JwtTokenVerifier
 from app.infrastructure.config import Settings
 from app.infrastructure.db import Base
@@ -37,7 +38,12 @@ def columns(engine, table):
 
 def test_migrations_create_todays_schema(engine):
     upgrade(as_owner(engine))
-    assert set(inspect(engine).get_table_names()) - {"alembic_version"} == {"accounts", "audit_entries"}
+    assert set(inspect(engine).get_table_names()) - {"alembic_version"} == {
+        "accounts",
+        "audit_entries",
+        "projects",
+        "memberships",
+    }
     assert columns(engine, "accounts") == {"id", "identity", "name", "email", "role", "status", "created", "created_by"}
     assert columns(engine, "audit_entries") == {
         "id",
@@ -53,6 +59,12 @@ def test_migrations_create_todays_schema(engine):
         "details",
         "reason",
     }
+
+
+def test_the_project_tables_have_the_columns_of_the_ontology(engine):
+    upgrade(as_owner(engine))
+    assert columns(engine, "projects") == {"id", "name", "created_by", "created_at"}
+    assert columns(engine, "memberships") == {"project_id", "account_id", "added_by", "added_at"}
 
 
 def test_migrations_match_the_models(engine):
@@ -72,7 +84,13 @@ def test_create_app_creates_no_tables(engine):
 def test_upgrade_is_safe_on_an_existing_schema(engine):
     Base.metadata.create_all(as_owner(engine))  # an old dev database: the tables exist, Alembic has never run
     upgrade(as_owner(engine))
-    assert set(inspect(engine).get_table_names()) == {"accounts", "audit_entries", "alembic_version"}
+    assert set(inspect(engine).get_table_names()) == {
+        "accounts",
+        "audit_entries",
+        "projects",
+        "memberships",
+        "alembic_version",
+    }
     with as_owner(engine).connect() as connection:  # alembic_version is the owner's: the API role has no grant on it
         at = MigrationContext.configure(connection).get_current_revision()
     cfg = Config(str(API / "alembic.ini"))
@@ -89,7 +107,7 @@ def test_the_roles_migration_can_run_twice(engine):
     upgrade(owner)
     with as_owner(engine).connect() as connection:  # alembic_version is the owner's: the API role has no grant on it
         at = MigrationContext.configure(connection).get_current_revision()
-    assert at == "0003"
+    assert at == "0004"
 
 
 OLD_ROW = (
@@ -157,3 +175,27 @@ def test_the_migration_keeps_the_numbering_of_old_rows_going(engine):
         )
         ids = connection.execute(text("SELECT id FROM audit_entries ORDER BY id")).scalars().all()
     assert ids == [1, 2, 3]
+
+
+def test_the_project_migration_can_run_twice(engine):
+    owner = as_owner(engine)
+    upgrade(owner)
+    stamp(owner, "0003")
+    upgrade(owner)  # the tables and the grants exist: neither a failure nor a change
+    with owner.connect() as connection:
+        at = MigrationContext.configure(connection).get_current_revision()
+        diff = compare_metadata(MigrationContext.configure(connection), Base.metadata)
+    assert at == "0004" and diff == []
+
+
+def test_the_database_sets_when_a_project_and_a_membership_were_added(engine):
+    owner = as_owner(engine)
+    upgrade(owner)
+    with owner.begin() as connection:
+        connection.execute(text("INSERT INTO projects (id, name, created_by) VALUES ('p-1', 'Alpha', 'a-1')"))
+        connection.execute(
+            text("INSERT INTO memberships (project_id, account_id, added_by) VALUES ('p-1', 'a-2', 'a-1')")
+        )
+        created = connection.execute(text("SELECT created_at FROM projects")).scalar_one()
+        added = connection.execute(text("SELECT added_at FROM memberships")).scalar_one()
+    assert created is not None and added is not None
