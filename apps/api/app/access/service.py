@@ -1,11 +1,10 @@
 """Use cases of the Access context. Ports in, domain rules applied, audit written."""
 
-import uuid
 from datetime import datetime, timezone
 from typing import Callable
 
 from app.access.domain.account import (
-    Account, AccountNotFound, Action, DomainError, REASON_ACTIONS, Role, Status, clean_reason, decide,
+    Account, AccountNotFound, Action, DomainError, REASON_ACTIONS, Status, clean_reason, decide, duplicates_by_email, new_account,
 )
 from app.access.ports import AccountRepository, AuditLog, IdentityProvider
 
@@ -31,17 +30,18 @@ class AccessService:
                 existing = existing.with_(name=name, email=email)
                 self.accounts.save(existing)
             return existing
-        # The first administrator comes from setup. An unverified email must not be able to claim it.
-        first_admin = email_verified and email.lower() in self.bootstrap_admins
-        account = Account(
-            id=str(uuid.uuid4()), identity=identity, name=name, email=email,
-            role=Role.administrator if first_admin else Role.user,
-            status=Status.active if first_admin else Status.pending,
-            created=self._now(),
-        )
+        account = new_account(identity, name, email, email_verified, self.bootstrap_admins,
+                               self.accounts.count_active_administrators(), self._now)
         self.accounts.add(account)
-        self.audit.record(None, "create_bootstrap_admin" if first_admin else "register", account.id, None, self._now())
+        self.audit.record(None, "register" if account.status is Status.pending else "create_bootstrap_admin", account.id, None, self._now())
         return account
+
+    def list_accounts(self, status: str | None = None) -> list[tuple[Account, list[Account]]]:
+        """The accounts, each with the other accounts that share its email. The duplicates are found among all
+        accounts, whatever the filter, so a deactivated twin still shows."""
+        everyone = self.accounts.list()
+        duplicates = duplicates_by_email(everyone)
+        return [(a, duplicates[a.id]) for a in everyone if status is None or a.status.value == status]
 
     def change(self, actor: Account, target_id: str, action: Action, reason: str | None = None) -> Account:
         target = self.accounts.by_id(target_id)

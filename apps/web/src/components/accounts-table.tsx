@@ -11,6 +11,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import type { Account } from "@/lib/api";
+import { duplicateWarning } from "@/domain/duplicate-warning";
 
 type Action = "approve" | "deactivate" | "reinstate" | "promote" | "demote";
 
@@ -76,6 +77,11 @@ export function AccountsTable({ accounts, currentId }: { accounts: Account[]; cu
               <TableCell>
                 <div className="font-medium">{a.name}{a.id === currentId && " (you)"}</div>
                 <div className="text-xs text-muted-foreground">{a.email}</div>
+                {duplicateWarning(a.duplicate_of) && (
+                  <div className="mt-1 text-xs font-medium text-amber-700 dark:text-amber-400" role="note">
+                    {duplicateWarning(a.duplicate_of)}
+                  </div>
+                )}
               </TableCell>
               <TableCell><Badge variant="secondary">{a.role}</Badge></TableCell>
               <TableCell>

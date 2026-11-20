@@ -15,8 +15,9 @@ class Settings(BaseSettings):
     keycloak_backend_client_secret: str = "playground-backend-dev-secret"
     # PostgreSQL, as on Amazon RDS. `docker compose up -d api-db` starts it on localhost:5433.
     database_url: str = "postgresql+psycopg://playground:playground@localhost:5433/playground"
-    # Comma separated. A person with one of these verified emails becomes the first administrator.
-    bootstrap_admin_emails: str = "admin@example.test"
+    # Comma separated. While no administrator exists, a person with one of these verified emails becomes one.
+    # Empty by default: with nothing set, nobody becomes an administrator (fail closed). Local work sets it.
+    bootstrap_admin_emails: str = ""
 
     @property
     def issuer(self) -> str:

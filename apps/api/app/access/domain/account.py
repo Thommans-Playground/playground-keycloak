@@ -1,8 +1,10 @@
 """The Account and its rules. No framework, database or HTTP in here (BC-ACCESS)."""
 
+import uuid
 from dataclasses import dataclass, replace
 from datetime import datetime
 from enum import StrEnum
+from typing import Callable
 
 
 class Role(StrEnum):
@@ -71,6 +73,33 @@ class Account:
 
     def with_(self, **changes) -> "Account":
         return replace(self, **changes)
+
+
+def new_account(identity: str, name: str, email: str, email_verified: bool, setup_emails: set[str],
+                active_admins: int, clock: Callable[[], datetime]) -> Account:
+    """A person seen for the first time (RULE-A5).
+
+    Only a verified setup email, while no active administrator exists, makes an active administrator.
+    Everyone else waits for approval.
+    """
+    first_admin = active_admins == 0 and email_verified and email.strip().lower() in setup_emails
+    return Account(
+        id=str(uuid.uuid4()), identity=identity, name=name, email=email,
+        role=Role.administrator if first_admin else Role.user,
+        status=Status.active if first_admin else Status.pending,
+        created=clock(),
+    )
+
+
+def duplicates_by_email(accounts: list[Account]) -> dict[str, list[Account]]:
+    """For each account id, the OTHER accounts with the same email (case and spaces ignored).
+
+    Only a warning for the administrator. Identity is the sub, so nothing is merged or blocked (decision 10).
+    """
+    by_email: dict[str, list[Account]] = {}
+    for a in accounts:
+        by_email.setdefault(a.email.strip().lower(), []).append(a)
+    return {a.id: [o for o in by_email[a.email.strip().lower()] if o.id != a.id] for a in accounts}
 
 
 REASON_ACTIONS = {Action.deactivate, Action.reinstate, Action.promote, Action.demote}

@@ -25,6 +25,7 @@ criteria:
   - id: AC-65
   - id: AC-66
   - id: AC-67
+  - id: AC-76
 parameters:
   - account
   - decision (approve, deactivate, reinstate, promote or demote)
@@ -45,7 +46,7 @@ flow_reviewed: 63dc9f3
 <!-- vbench-uc:begin mirror (generated from the requirements files, do not edit here: change the row, then run sync) -->
 
 <details>
-<summary>The requirements and criteria it runs, copied from docs/requirements (3 requirements, 15 criteria). Do not edit.</summary>
+<summary>The requirements and criteria it runs, copied from docs/requirements (3 requirements, 16 criteria). Do not edit.</summary>
 
 ## What this serves
 
@@ -61,7 +62,7 @@ flow_reviewed: 63dc9f3
 
 - Given a pending account
 - When an administrator approves it
-- Then the person's next request to a protected route succeeds, with no change made in Keycloak
+- Then their next request shows an active account and their own page, not the waiting page, and nothing was changed in Keycloak
 
 **AC-6** (acceptance, proves FR-4)
 
@@ -119,7 +120,7 @@ flow_reviewed: 63dc9f3
 
 **AC-63** (acceptance, proves FR-4)
 
-- Given a user who is not an administrator
+- Given a person who is not an active administrator: an ordinary user, a pending account or a deactivated account
 - When they try to approve, deactivate, reinstate, promote or demote an account
 - Then each is refused and the account stays as it was
 
@@ -147,9 +148,15 @@ flow_reviewed: 63dc9f3
 - When they open the dashboard
 - Then the request is refused and the page says the account is deactivated
 
+**AC-76** (acceptance, proves FR-4)
+
+- Given an administrator
+- When they approve an account that does not exist, or one that is not pending
+- Then it is refused with a clear answer and nothing changes
+
 ## How it is verified
 
-- acceptance: AC-5, AC-6, AC-7, AC-49, AC-50, AC-51, AC-57, AC-58, AC-59, AC-62, AC-63, AC-64, AC-65, AC-67
+- acceptance: AC-5, AC-6, AC-7, AC-49, AC-50, AC-51, AC-57, AC-58, AC-59, AC-62, AC-63, AC-64, AC-65, AC-67, AC-76
 - unit: AC-66
 
 Each criterion is run by a test tagged `Verifies AC-<n>`.

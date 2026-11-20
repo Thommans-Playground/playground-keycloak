@@ -26,7 +26,7 @@ async function activePerson() {
   return { ...p, admin };
 }
 
-itest("an administrator approves a pending account: the next request is active, with no change in Keycloak (Verifies AC-5)", async () => {
+itest("an administrator approves a pending account: the next request is active, with no change in Keycloak", async () => {
   const p = await pendingPerson();
   const admin = await adminSignIn();
   const before = await backend(p.jar, "GET", "accounts");
@@ -39,6 +39,25 @@ itest("an administrator approves a pending account: the next request is active, 
   assert.equal(me.status, 200);
   assert.equal(me.json.status, "active");
   assert.deepEqual(await keycloakUser(p.user.id), kcBefore, "Keycloak was not changed");
+});
+
+itest("after approval the same person's next dashboard shows their own page, not 'Waiting for approval' (Verifies AC-5)", async () => {
+  const p = await pendingPerson();
+  const before = await http(`${config.appUrl}/dashboard`, { jar: p.jar });
+  assert.equal(before.status, 200);
+  assert.match(await before.text(), /Waiting for approval/);
+
+  const admin = await adminSignIn();
+  assert.equal((await backend(admin, "POST", `accounts/${p.id}/approve`)).status, 200);
+
+  // the SAME session jar, no new sign in
+  const after = await http(`${config.appUrl}/dashboard`, { jar: p.jar });
+  assert.equal(after.status, 200);
+  const html = await after.text();
+  assert.doesNotMatch(html, /Waiting for approval/);
+  assert.match(html, /Hello, /, "their own page");
+  const me = await backend(p.jar, "GET", "me");
+  assert.equal(me.json.status, "active");
 });
 
 itest("a user who is not an administrator is refused every decision and the account stays as it was (Verifies AC-63)", async () => {

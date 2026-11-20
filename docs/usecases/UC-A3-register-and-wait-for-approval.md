@@ -12,6 +12,9 @@ criteria:
   - id: AC-4
   - id: AC-47
   - id: AC-61
+  - id: AC-73
+  - id: AC-74
+  - id: AC-75
 parameters:
   - name, email and password (given to Keycloak, not to us)
 objects: [OBJ-A1]
@@ -28,7 +31,7 @@ evolved_from: [MK3 UC-A5]
 <!-- vbench-uc:begin mirror (generated from the requirements files, do not edit here: change the row, then run sync) -->
 
 <details>
-<summary>The requirements and criteria it runs, copied from docs/requirements (1 requirement, 4 criteria). Do not edit.</summary>
+<summary>The requirements and criteria it runs, copied from docs/requirements (1 requirement, 7 criteria). Do not edit.</summary>
 
 ## What this serves
 
@@ -45,8 +48,8 @@ evolved_from: [MK3 UC-A5]
 **AC-4** (acceptance, proves FR-3)
 
 - Given a pending account
-- When its owner asks for their status, then for anything else
-- Then the status says it is waiting, and everything else is refused
+- When its owner asks for their status, then makes any other request
+- Then the status says it is waiting, and every other route is refused
 
 **AC-47** (acceptance, proves FR-3)
 
@@ -60,9 +63,27 @@ evolved_from: [MK3 UC-A5]
 - When they make their first request
 - Then they get a pending account, not an administrator account
 
+**AC-73** (acceptance, proves FR-3)
+
+- Given a pending account whose email another account already has
+- When an administrator lists the accounts
+- Then it is marked with a warning that shows the other account, and approving it is still the administrator's decision
+
+**AC-74** (acceptance, proves FR-3)
+
+- Given no active administrator exists, and a new person whose email is the setup email, verified
+- When they make their first request
+- Then they get an active administrator account
+
+**AC-75** (acceptance, proves FR-3)
+
+- Given a new person whose email is the setup email, not verified
+- When they make their first request
+- Then they get a pending account, like anyone else
+
 ## How it is verified
 
-- acceptance: AC-3, AC-4, AC-47, AC-61
+- acceptance: AC-3, AC-4, AC-47, AC-61, AC-73, AC-74, AC-75
 
 Each criterion is run by a test tagged `Verifies AC-<n>`.
 
