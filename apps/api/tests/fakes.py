@@ -120,3 +120,16 @@ class FakeSecurityLog:
         self.events.append(
             {"event": name, "result": result, "person_id": person_id, "session_id": session_id, "reason": reason}
         )
+
+
+class FakeProjects:
+    """Stands in for Projects' ProjectRepository port: keeps the projects in memory."""
+
+    def __init__(self):
+        self.rows: dict[str, object] = {}
+
+    def add(self, project):
+        self.rows[project.id] = project
+
+    def by_id(self, project_id):
+        return self.rows.get(project_id)

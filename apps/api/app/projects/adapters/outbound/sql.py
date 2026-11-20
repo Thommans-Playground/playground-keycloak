@@ -3,10 +3,11 @@ role and created by Alembic; the API role gets column level grants only (ADR 001
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint, func, select
+from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from app.infrastructure.db import Base
+from app.projects.domain.project import Membership, Project
 
 
 class ProjectRow(Base):
@@ -28,3 +29,29 @@ class MembershipRow(Base):
     account_id: Mapped[str] = mapped_column(String)
     added_by: Mapped[str] = mapped_column(String)
     added_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class SqlProjects:
+    """Writes a project and its memberships in the request's session, so they commit together (ADR 0015). The
+    application names neither created_at nor added_at: the database sets them, and the API role may not."""
+
+    def __init__(self, session: Session):
+        self._s = session
+
+    def add(self, project: Project) -> None:
+        self._s.add(ProjectRow(id=project.id, name=project.name, created_by=project.created_by))
+        self._s.flush()  # the project row first: the memberships point at it, and there is no relationship to order them
+        self._s.add_all(
+            MembershipRow(project_id=project.id, account_id=m.account_id, added_by=m.added_by)
+            for m in project.memberships
+        )
+        self._s.flush()
+
+    def by_id(self, project_id: str) -> Project | None:
+        row = self._s.get(ProjectRow, project_id)
+        if row is None:
+            return None
+        members = self._s.scalars(
+            select(MembershipRow).where(MembershipRow.project_id == project_id).order_by(MembershipRow.account_id)
+        )
+        return Project(row.id, row.name, row.created_by, tuple(Membership(m.account_id, m.added_by) for m in members))

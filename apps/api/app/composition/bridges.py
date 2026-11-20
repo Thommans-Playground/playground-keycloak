@@ -5,6 +5,7 @@ from app.access.domain.account import Account
 from app.audit.application.service import AuditService
 from app.audit.domain.caller import Caller
 from app.audit.domain.entry import AuditEntry, Kind, Person
+from app.projects.domain.caller import Caller as ProjectsCaller
 
 
 class AccessAuditBridge:
@@ -29,3 +30,9 @@ class AccessAuditBridge:
 def audit_caller(account: Account) -> Caller:
     """The guard's account, in Audit's words. Whether that may read is for AuditService.read to say."""
     return Caller(account.id, is_administrator=account.is_active_administrator)
+
+
+def projects_caller(account: Account) -> ProjectsCaller:
+    """The guard's account, in Projects' words (ADR 0002, 0015). The guard chain has refused a deactivated, pending
+    or unknown account before this is built; whether an administrator may act is for the use case to say."""
+    return ProjectsCaller(account.id, is_administrator=account.is_active_administrator)

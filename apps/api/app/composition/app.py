@@ -17,10 +17,14 @@ from app.audit.adapters.inbound.errors import register_error_handlers as registe
 from app.audit.adapters.inbound.http import build_router as build_audit_router
 from app.audit.adapters.outbound.sql import SqlAuditEntries
 from app.audit.application.service import AuditService
-from app.composition.bridges import AccessAuditBridge, audit_caller
+from app.composition.bridges import AccessAuditBridge, audit_caller, projects_caller
 from app.infrastructure.config import Settings, get_settings
 from app.infrastructure.role_check import check_start
 from app.infrastructure.security_log import JsonStdoutSecurityLog
+from app.projects.adapters.inbound.errors import register_error_handlers as register_projects_error_handlers
+from app.projects.adapters.inbound.http import build_router as build_projects_router
+from app.projects.adapters.outbound.sql import SqlProjects
+from app.projects.application.service import ProjectsService
 
 
 def create_app(
@@ -49,6 +53,7 @@ def create_app(
     app = FastAPI(title="Playground API", lifespan=lifespan)
     register_error_handlers(app, security_log)
     register_audit_error_handlers(app, security_log)
+    register_projects_error_handlers(app)
 
     def db() -> Iterator[Session]:
         with sessions() as session:
@@ -78,6 +83,15 @@ def create_app(
             account
         )  # the guard chain refuses 401, pending and deactivated; Audit decides administrator
 
+    def projects_service(session: Session = Depends(db)) -> ProjectsService:
+        return ProjectsService(
+            SqlProjects(session)
+        )  # the request's session, so the project and its members commit together
+
+    def project_caller(account=Depends(guards.active_account)):
+        return projects_caller(account)  # the same guard chain as every route: 401, pending and deactivated are refused
+
     app.include_router(build_router(service, guards))
     app.include_router(build_audit_router(audit_service, caller, security_log))
+    app.include_router(build_projects_router(projects_service, project_caller))
     return app
