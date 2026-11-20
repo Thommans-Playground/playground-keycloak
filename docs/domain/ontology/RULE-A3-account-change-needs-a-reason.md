@@ -45,4 +45,4 @@ Why no control or override characters: they can hide or reorder text when an adm
 
 ## Related
 
-The audit entry is kept by the Audit context, which also turns away a reason that says nothing.
+The audit entry is kept by the Audit context. Access refuses an empty reason or one that says nothing, and Audit records what it is given and never decides. AC-81 is proved in UC-A4 (TSK-A4.9).

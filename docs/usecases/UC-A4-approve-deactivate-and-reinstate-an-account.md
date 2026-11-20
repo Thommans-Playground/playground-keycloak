@@ -26,6 +26,7 @@ criteria:
   - id: AC-67
   - id: AC-76
   - id: AC-77
+  - id: AC-81
 parameters:
   - account
   - decision (approve, deactivate, reinstate, promote or demote)
@@ -46,7 +47,7 @@ flow_reviewed: 63dc9f3
 <!-- vbench-uc:begin mirror (generated from the requirements files, do not edit here: change the row, then run sync) -->
 
 <details>
-<summary>The requirements and criteria it runs, copied from docs/requirements (2 requirements, 17 criteria). Do not edit.</summary>
+<summary>The requirements and criteria it runs, copied from docs/requirements (2 requirements, 18 criteria). Do not edit.</summary>
 
 ## What this serves
 
@@ -158,9 +159,15 @@ flow_reviewed: 63dc9f3
 - When an administrator deactivates it again, with a reason
 - Then only the Keycloak calls are sent again, our account does not change, the administrator is told whether Keycloak was updated, and each repeat adds one audit entry with its outcome (done, or Keycloak not updated as a second entry) and the reason given for the retry
 
+**AC-81** (acceptance, proves FR-17)
+
+- Given an account change that asks for a reason
+- When the reason is longer than 500 characters, or has a control or bidirectional override character
+- Then it is refused and the account stays as it was, so no such text reaches the audit trail
+
 ## How it is verified
 
-- acceptance: AC-5, AC-6, AC-7, AC-49, AC-50, AC-51, AC-57, AC-58, AC-59, AC-62, AC-63, AC-64, AC-65, AC-67, AC-76, AC-77
+- acceptance: AC-5, AC-6, AC-7, AC-49, AC-50, AC-51, AC-57, AC-58, AC-59, AC-62, AC-63, AC-64, AC-65, AC-67, AC-76, AC-77, AC-81
 - unit: AC-66
 
 Each criterion is run by a test tagged `Verifies AC-<n>`.
@@ -244,7 +251,8 @@ For the product owner to decide.
 - TSK-A4.5: Demote an administrator, with a reason, never oneself and never the last one, the check and the change as one step, rules RULE-A1, RULE-A2 (AC-50, AC-51, AC-62)
 - TSK-A4.6: Deactivate database first, then Keycloak, and a failed Keycloak call leaves the deactivation standing (AC-58)
 - TSK-A4.7: Repeat a deactivation to send the Keycloak calls again (AC-77)
-- TSK-A4.8: A failed Keycloak call after a deactivation adds a second audit entry, a repeated deactivation adds its own entry with the retry's reason, `set_outcome` is removed, and no entry is ever edited (AC-58, AC-77, decisions 21 and 22). This is slice 2 of UC-L1 (TSK-L1.2)
+- TSK-A4.8: A failed Keycloak call after a deactivation adds a second audit entry, a repeated deactivation adds its own entry with the retry's reason, `set_outcome` is removed, and no entry is ever edited (AC-58, AC-77, decisions 21 and 22). This is slice 1 of UC-L1 (TSK-L1.1), and it needs no database role yet
+- TSK-A4.9: A reason has a maximum of 500 characters and no control or bidirectional override characters, checked where the change is made, so the account stays as it was and no such text reaches the audit trail, rules RULE-A3 (AC-81)
 
 
 ## Overview

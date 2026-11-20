@@ -31,3 +31,13 @@ One more context and more files. The permissions need a second database role in 
 
 ## Links
 decisions 21 and 22, decision 14, decision 18; ADR 0003, 0004, 0009, 0010; BC-AUDIT; UC-L1; AC-79, AC-80, AC-81, AC-82.
+
+## Amendments (20 Nov 2026)
+Added after review. They add detail and do not change the meaning above. Where the migration side is concerned, see ADR 0012.
+
+- The API role is a **new role** with no superuser power, no CREATEROLE, no membership in the owner role, and it owns nothing.
+- Grants are made **per table, with no default privileges**. They are an allow list for tables, sequences and schemas: no UPDATE, DELETE, TRUNCATE or TRIGGER, and no write on a sequence. The `id` becomes an identity column, so no sequence grant is needed. CREATE on the schema is revoked from PUBLIC and from the role.
+- INSERT is granted on **chosen columns only**, so the API cannot set the time (the database does, RULE-L2).
+- At start the API **checks its own role** and refuses to run if it is a superuser, owns a table, or can UPDATE the audit table.
+- `MIGRATION_DATABASE_URL` exists **only in the migration container's environment**. The API refuses to start if it is present.
+- The RDS PostgreSQL version must be **15 or later**. Before 15 the PUBLIC role has CREATE on the public schema, so the migration revokes it and the check depends on that.

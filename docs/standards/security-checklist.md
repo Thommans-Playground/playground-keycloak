@@ -52,4 +52,5 @@ None set aside yet. Add a line here, with the decision, when an item does not ap
     built locally; our side is signed out either way (UC-A2, decision 15). Accepted because the product runs inside
     the corporate network; revisit at beta.
   - FastAPI `/docs` and the default backend client secret outside dev;
-  - the audit trail showing current names, not the names at the time. This goes when UC-L1 slice 4 (names at the time, TSK-L1.4) is built.
+  - the RDS PostgreSQL version must be 15 or later, and pgAudit on the owner role is not set up (ADR 0011 amendments, decision 22);
+  - the audit trail showing current names, not the names at the time. This goes when UC-L1 slice 5 (names at the time, TSK-L1.5) is built.
