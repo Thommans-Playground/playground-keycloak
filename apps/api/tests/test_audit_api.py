@@ -115,3 +115,48 @@ def test_a_change_and_its_entry_use_the_same_session_so_a_rolled_back_request_le
     idp.fail = True
     assert client.post(f"/accounts/{maya_id}/reinstate", headers=admin, json={"reason": "Back"}).status_code == 502
     assert client.get("/audit", headers=admin).json() == before
+
+
+@pytest.mark.ac("AC-70")
+@pytest.mark.rule("RULE-L4")
+def test_a_renamed_person_shows_the_name_they_had_at_the_time_of_each_entry(client, admin):
+    maya_h, maya_id = register(client, "sub-maya", "maya@x.test")  # Maya, as the token first names her
+    ada_id = me_id(client, admin)
+    client.post(f"/accounts/{maya_id}/approve", headers=admin)
+    # Maya is renamed: her next request carries a new name and account_for refreshes the account
+    assert client.get("/me", headers=auth("sub-maya", "maya@x.test", name="Maya Lopez")).json()["name"] == "Maya Lopez"
+    client.post(f"/accounts/{maya_id}/deactivate", headers=admin, json={"reason": "Left the team"})
+    # Ada is renamed too, after the deactivation she made
+    assert client.get("/me", headers=auth("sub-ada", "ada@x.test", name="Ada Byron")).json()["name"] == "Ada Byron"
+    admin_renamed = auth("sub-ada", "ada@x.test", name="Ada Byron")
+    _, bob_id = register(client, "sub-bob", "bob@x.test")
+    client.post(f"/accounts/{bob_id}/approve", headers=admin_renamed)
+
+    entries = client.get("/audit", headers=admin_renamed).json()
+    by = {(e["action"], e["target_id"]): e for e in entries}
+    approve, deactivate = by[("approve", maya_id)], by[("deactivate", maya_id)]
+    assert (approve["target_name"], approve["actor_name"]) == ("maya", "Ada")
+    assert (deactivate["target_name"], deactivate["actor_name"]) == ("Maya Lopez", "Ada")
+    assert by[("approve", bob_id)]["actor_name"] == "Ada Byron"
+    assert by[("approve", bob_id)]["actor_id"] == ada_id
+    assert "Maya Lopez" not in (approve["target_name"], approve["actor_name"])
+
+
+@pytest.mark.ac("AC-70")
+@pytest.mark.rule("RULE-L4")
+def test_entries_from_before_names_were_stored_stay_readable(idp):
+    from sqlalchemy import text
+
+    from tests.migrations_support import as_owner
+
+    engine = make_engine()
+    settings = Settings(keycloak_url="http://kc.test", bootstrap_admin_emails="ada@x.test")
+    client = TestClient(create_app(settings, JwtTokenVerifier(ISSUER, AUDIENCE, lambda _t: KEY.public_key()), idp, engine))
+    admin = auth("sub-ada", "ada@x.test", name="Ada")
+    _, maya_id = register(client, "sub-maya", "maya@x.test")
+    with as_owner(engine).begin() as c:  # the API role cannot update the table: the owner makes the old rows
+        c.execute(text("UPDATE audit_entries SET actor_name = NULL, actor_email = NULL, target_name = NULL, target_email = NULL"))
+    r = client.get("/audit", headers=admin)
+    assert r.status_code == 200
+    old = [e for e in r.json() if e["target_id"] == maya_id][0]
+    assert (old["target_name"], old["target_email"], old["actor_name"], old["actor_email"]) == (None, None, None, None)
