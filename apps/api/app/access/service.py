@@ -10,6 +10,7 @@ from app.access.domain.account import (
     AccountNotFound,
     Action,
     DomainError,
+    InvalidTransition,
     Status,
     clean_reason,
     decide,
@@ -100,13 +101,16 @@ class AccessService:
     def change(
         self, actor: Account, target_id: str, action: Action, reason: str | None = None
     ) -> ChangeResult:
+        # Realises UC-A4 AC-62 (ADR 0009): lock first, then judge the actor and target on fresh state.
+        locked_admins = self.accounts.lock_active_administrators()
+        actor = self.accounts.by_id(actor.id)
         target = self.accounts.by_id(target_id)
         if not target:
             raise AccountNotFound("No such account.")
         cleaned = clean_reason(reason) if action in REASON_ACTIONS else None
-        updated = decide(
-            action, actor, target, self.accounts.count_active_administrators()
-        )
+        updated = decide(action, actor, target, len(locked_admins))
+        if not actor or not actor.is_active_administrator:
+            raise InvalidTransition("Only an active administrator can change accounts.")
 
         if action is Action.deactivate:
             # Realises UC-A4 AC-58 (ADR 0009): commit the deactivation first, then call Keycloak, and report a failure.

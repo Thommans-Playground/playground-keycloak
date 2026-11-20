@@ -24,21 +24,28 @@ class FakeIdp:
 
 
 class FakeAccounts:
-    def __init__(self):
+    def __init__(self, events: list[str] | None = None):
         self.rows: dict[str, object] = {}
+        self.events = events if events is not None else []
 
     def by_identity(self, identity):
         return next((a for a in self.rows.values() if a.identity == identity), None)
 
     def by_id(self, account_id): return self.rows.get(account_id)
     def add(self, account): self.rows[account.id] = account
-    def save(self, account): self.rows[account.id] = account
+    def save(self, account):
+        self.events.append("save")
+        self.rows[account.id] = account
 
     def list(self, status=None):
         return [a for a in self.rows.values() if status is None or a.status.value == status]
 
     def count_active_administrators(self):
         return sum(1 for a in self.rows.values() if a.is_active_administrator)
+
+    def lock_active_administrators(self):
+        self.events.append("lock_active_administrators")
+        return [a for a in self.rows.values() if a.is_active_administrator]
 
 
 class FakeAudit:

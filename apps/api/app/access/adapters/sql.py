@@ -100,6 +100,21 @@ class SqlAccounts:
         )
         return self._s.scalar(q) or 0
 
+    def lock_active_administrators(self) -> "list[Account]":
+        # Realises UC-A4 AC-62 (ADR 0009): lock the rows in id order; populate_existing re-reads them fresh.
+        q = (
+            select(AccountRow)
+            .where(
+                AccountRow.role == Role.administrator.value,
+                AccountRow.status == Status.active.value,
+            )
+            .order_by(AccountRow.id)
+            .execution_options(populate_existing=True)
+        )
+        if self._s.get_bind().dialect.name != "sqlite":  # SQLite has no row locks
+            q = q.with_for_update()
+        return [_to_domain(r) for r in self._s.scalars(q)]
+
 
 class SqlUnitOfWork:
     def __init__(self, session: Session):
