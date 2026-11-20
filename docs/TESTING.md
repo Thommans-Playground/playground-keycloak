@@ -60,6 +60,10 @@ The fresh test stack below does not have this problem: its volumes are deleted.
 Only throwaway accounts change state. The tests sign in as `admin@example.test` to approve, deactivate and reinstate
 them, and never change `admin@` or `maya@`.
 
+## The demo seed script
+
+`scripts/seed-demo.py` is development only and has plain unit tests that need no stack: `python3 -m unittest scripts/test_seed_demo.py`. They check the plan, the localhost and production guard, `--yes`, and that the purge matches only demo rows.
+
 ## A fresh test stack
 
 `scripts/test-stack.sh` runs its own stack (compose project `playground-test`, its own volumes), on the SAME ports as
