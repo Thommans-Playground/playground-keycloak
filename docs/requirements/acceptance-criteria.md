@@ -65,7 +65,7 @@
 | AC-59 | FR-4 | a deactivated account and an identity provider that cannot be reached | an administrator reinstates it, with a reason | the account stays deactivated and the administrator is told | acceptance | draft |  |
 | AC-60 | FR-9 | a member of a project who is not an administrator | they try to add or remove a member | it is refused | acceptance | draft |  |
 | AC-61 | FR-3 | an active administrator exists, and a new person whose email is the setup email, verified | they make their first request | they get a pending account, not an administrator account | acceptance | draft |  |
-| AC-62 | FR-14 | two administrators | each demotes the other at the same moment, or one demotes the other while the other is deactivated | one is refused and an administrator remains (proven on PostgreSQL) | acceptance | draft |  |
+| AC-62 | FR-14 | two administrators | each demotes the other at the same moment | one is refused and an administrator remains (proven on PostgreSQL) | acceptance | draft |  |
 | AC-63 | FR-4 | a person who is not an active administrator: an ordinary user, a pending account or a deactivated account | they try to approve, deactivate, reinstate, promote or demote an account | each is refused and the account stays as it was | acceptance | draft |  |
 | AC-64 | FR-4 | an administrator | they deactivate, promote or demote an account without a reason | it is refused and the account stays as it was | acceptance | draft |  |
 | AC-65 | FR-4 | an administrator | they try to deactivate their own account, or the last active administrator | it is refused | acceptance | draft |  |

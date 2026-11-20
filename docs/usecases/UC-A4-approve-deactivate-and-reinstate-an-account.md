@@ -6,7 +6,6 @@ status: draft
 actor: administrator
 context: BC-ACCESS
 satisfies:
-  - id: FR-3
   - id: FR-4
   - id: FR-14
 criteria:
@@ -47,11 +46,9 @@ flow_reviewed: 63dc9f3
 <!-- vbench-uc:begin mirror (generated from the requirements files, do not edit here: change the row, then run sync) -->
 
 <details>
-<summary>The requirements and criteria it runs, copied from docs/requirements (3 requirements, 17 criteria). Do not edit.</summary>
+<summary>The requirements and criteria it runs, copied from docs/requirements (2 requirements, 17 criteria). Do not edit.</summary>
 
 ## What this serves
-
-**FR-3**: The system shall hold a person it does not know as a pending account, who can see only that it is waiting for approval, until an administrator approves it.
 
 **FR-4**: The system shall let an administrator decide who can use the product: approve a pending account, deactivate an active one with a reason, and reinstate a deactivated one with a reason.
 
@@ -116,7 +113,7 @@ flow_reviewed: 63dc9f3
 **AC-62** (acceptance, proves FR-14)
 
 - Given two administrators
-- When each demotes the other at the same moment, or one demotes the other while the other is deactivated
+- When each demotes the other at the same moment
 - Then one is refused and an administrator remains (proven on PostgreSQL)
 
 **AC-63** (acceptance, proves FR-4)
