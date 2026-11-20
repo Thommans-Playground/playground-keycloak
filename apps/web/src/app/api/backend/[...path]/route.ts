@@ -1,11 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { app } from "@/composition";
 import { currentSessionId } from "@/lib/auth/session";
+import { methodHasBody } from "@/domain/proxy-methods";
 
 // The browser talks to this route with its cookie. The access token is added in the use case and goes no further.
 async function forward(request: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {
   const { path } = await ctx.params;
-  const hasBody = request.method !== "GET" && request.method !== "HEAD";
+  const hasBody = methodHasBody(request.method);
   const sessionId = await currentSessionId();
   const result = await app().callBackend(sessionId, {
     method: request.method,
@@ -24,4 +25,5 @@ async function forward(request: NextRequest, ctx: { params: Promise<{ path: stri
   return new NextResponse(result.body, { status: result.status, headers: { "Content-Type": result.contentType } });
 }
 
-export { forward as GET, forward as POST };
+// The methods are listed in domain/proxy-methods.ts (a test keeps the two together). PUT and PATCH stay 405.
+export { forward as GET, forward as POST, forward as DELETE };

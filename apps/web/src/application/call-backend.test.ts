@@ -44,3 +44,11 @@ test("an API that is down is reported as unreachable", async () => {
   backend.fail = true;
   assert.deepEqual(await callBackend("s1", { method: "GET", path: "me" }), { kind: "unreachable" });
 });
+
+test("a DELETE goes through with its method and no body (Verifies AC-20)", async () => {
+  await callBackend("s1", { method: "DELETE", path: "projects/p1/members/a1" });
+  assert.equal(backend.calls[0].req.method, "DELETE");
+  assert.equal(backend.calls[0].req.path, "projects/p1/members/a1");
+  assert.equal(backend.calls[0].req.body, undefined);
+  assert.equal(backend.calls[0].accessToken, "at-1");
+});
