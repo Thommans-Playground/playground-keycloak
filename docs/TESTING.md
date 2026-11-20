@@ -28,6 +28,22 @@ Both name the same `*_test` database. The API refuses to start as the owner (the
 both does not work. CI and `scripts/test-stack.sh` set both. After each test the owner drops everything. The AC-80
 tests, the allow list test and the self check tests run on PostgreSQL only and are skipped on SQLite with a reason.
 
+## Test data on the dev stack
+
+The integration and acceptance tests belong on the fresh stack (`scripts/test-stack.sh`), which wipes itself. Run on
+your own dev stack they leave rows behind: accounts `it-<digits>-<hex>@example.test`, projects with random names, their
+memberships and audit entries (there is no delete route, and the audit trail is append only). On the dev stack use:
+
+```bash
+cd apps/web && npm run test:integration:dev     # the web tests, then the purge, even when a test fails
+scripts/purge-test-data.sh --dry-run            # by hand: print what would go, change nothing
+scripts/purge-test-data.sh --yes                # by hand: remove it, in one transaction
+```
+
+The purge runs as the database owner through `docker compose exec` and refuses anything but the local dev compose
+project. It matches only the exact test patterns, never the demo data or real accounts. Its own test:
+`python3 -m unittest scripts/test_purge_test_data.py` (needs docker; starts a throwaway `postgres:16`).
+
 ## The INTEGRATION=1 switch
 
 The integration and acceptance tests need a running stack. They run only when `INTEGRATION=1` is set. Without it the web

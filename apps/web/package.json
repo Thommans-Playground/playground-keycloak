@@ -9,6 +9,7 @@
     "lint": "eslint",
     "test": "node --test \"src/**/*.test.ts\"",
     "test:integration": "node --test --test-concurrency=1 \"src/**/*.it.ts\"",
+    "test:integration:dev": "INTEGRATION=1 node --test --test-concurrency=1 \"src/**/*.it.ts\"; code=$?; ../../scripts/purge-test-data.sh --yes; exit $code",
     "typecheck": "next typegen && tsc --noEmit"
   },
   "dependencies": {
