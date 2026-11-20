@@ -33,6 +33,9 @@ between agents**. You decide after each one.
    bullet through the whole path, then the refusals and edges). Show the list as normal text, then ask with the four
    answers from conventions.md ("How the skills ask"): **Accept**, **Change it**, **Reject**, **I'll do it myself**.
 
+   Before the first RED, also write down which files you expect the slice to change. When the slice is done, compare
+   that with `git diff --stat` and say what surprised you. A surprise means the design was unclear or the build wandered.
+
 4. **For each behaviour, run the loop. Pause after every step.**
    - **RED.** Start the `vbench-tdd-red` agent (Agent tool, `subagent_type: "vbench-tdd-red"`). Brief it in full, because it starts
      cold: the behaviour in one sentence, the app, the ids (`AC-n`, `UC-..`), where the test goes, and the commands from

@@ -45,14 +45,15 @@ This is the V cycle in small. **Nothing is built until the design has been revie
 
 7. **Comprehension check.** Give a fresh agent only the ADR path and ask it to explain, in its own words, what will be built and why. If its explanation differs from your intent, the draft is ambiguous: fix the draft, not the agent.
 8. **Run the reviewers** when the decision touches a flow, a boundary, a requirement or a decision: `vbench-design-reviewer`, `vbench-spec-challenger` and `vbench-security-reviewer` together, read-only (CLAUDE.md, "Reviews"). Brief each with the file path and its sources only, with no conclusion of yours. Treat their output as advice, not as approval. Resolve each finding, or record it as accepted, and loop until nothing serious is left.
-9. **Readiness check.** Ask a fresh agent: "could you build this from the file alone, or would you have to guess?" List what it would have to guess (paths, names, signatures, error codes) and add it to the draft. Then a person sets the status to `accepted`.
+9. **Readiness check.** Ask a fresh agent: "could you build this from the file alone, or would you have to guess?" List what it would have to guess (paths, names, signatures, error codes) and add it to the draft. Have it also write down **which files it expects the build to change**, and keep that prediction with the draft. End with an explicit verdict: **GO** (it could build the behaviour without guessing) or **NO-GO** with the blockers listed. The bar is that behaviour, names and error codes are unambiguous, not that every function signature is written out: test first leaves the signatures to the code. On NO-GO, go back to step 6. Only on GO does a person set the status to `accepted`.
 
 **Phase 4: build (only now)**
 
 10. **Make it checked.** Add or extend a test that fails when the rule is broken, and make the failure message say why (see `apps/api/tests/test_architecture.py`). Write the failing test first and watch it fail. If the rule cannot be tested, say so in the ADR and name who checks it.
-11. **Leave an example.** The first thing built the new way is the template. Point to it from the ADR and from `docs/GETTING-STARTED.md`.
-12. **Tell the people and the agents.** Update `CLAUDE.md` where it describes the area, and the agents or skills that mention the old way (`grep -rn` the old path or name under `.claude/`). An agent has no hallway conversation: if it is not written there, it will not know.
-13. **Check the three questions before you stop.**
+11. **Compare the prediction with the build.** Run `git diff --stat` and set it beside the predicted file list. A file nobody predicted, or a predicted file that did not change, is a sign the design was unclear or the build wandered outside it. Say which, and fix the draft or the build. Do not keep the file list in the use case or the ADR after the build: it goes stale, and the `Realises UC-...` tags and `uc_tool.py trace` are what trace the code.
+12. **Leave an example.** The first thing built the new way is the template. Point to it from the ADR and from `docs/GETTING-STARTED.md`.
+13. **Tell the people and the agents.** Update `CLAUDE.md` where it describes the area, and the agents or skills that mention the old way (`grep -rn` the old path or name under `.claude/`). An agent has no hallway conversation: if it is not written there, it will not know.
+14. **Check the three questions before you stop.**
     - Is it written down?
     - Does a test fail if someone breaks it?
     - Is there an example to copy?
