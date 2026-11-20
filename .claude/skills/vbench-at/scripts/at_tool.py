@@ -81,6 +81,18 @@ def _decorators_skip(lines, start):
     return False
 
 
+def _with_title_below(lines, i):
+    """The test call on lines[i], and, when the call ends with `(` (a formatter put the title on the next line), the title too."""
+    line = lines[i]
+    if line.rstrip().endswith("("):
+        k = i + 1
+        while k < len(lines) and not lines[k].strip():
+            k += 1
+        if k < len(lines):
+            return line + " " + lines[k]
+    return line
+
+
 def scan_all(root, dirs):
     """Every tag that really sits on a test, as Tag(path, line, kind, id, hash, listed, stack).
     Python: a decorator line `@pytest.mark.ac("AC-n")` or `@pytest.mark.rule("RULE-X")`, and not under a skip.
@@ -116,11 +128,13 @@ def scan_all(root, dirs):
                         k += 1
                     if k >= len(lines) or not TITLE.match(lines[k]):
                         continue
-                    target = lines[k] + " " + line
+                    target = _with_title_below(lines, k) + " " + line
                     if SKIPPED.search(lines[k]):
                         continue
                 elif not TITLE.match(line) or SKIPPED.search(line):
                     continue
+                else:
+                    target = _with_title_below(lines, n - 1)
                 for m in TAG.finditer(target):
                     ids = re.findall(r"AC-\d+", m.group(1))
                     for ac_id in ids:

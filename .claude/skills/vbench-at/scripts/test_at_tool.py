@@ -382,6 +382,20 @@ class Tests(unittest.TestCase):
         self.assertNotIn("CANNOT CARRY A REVIEW HASH", out)
         self.assertIn("RULES WITH NO TEST (0)", out)
 
+    def test_a_title_on_the_line_after_the_call_still_counts(self):
+        # prettier moves a long title under `itest(`; the tag in it is still in the title of the test
+        root = make_root()
+        put(root, "a.it.ts", 'itest(\n  "a long title (Verifies AC-1)",\n  async () => {},\n);\n')
+        code, out = run(root, "report")
+        self.assertEqual(code, 0)
+        self.assertIn("1 Verifies tag(s) found for 1 criterion", out)
+
+    def test_a_title_after_the_call_does_not_count_when_the_test_is_skipped(self):
+        root = make_root()
+        put(root, "a.it.ts", 'it.skip(\n  "x (Verifies AC-1)",\n  () => {},\n);\n')
+        code, out = run(root, "report")
+        self.assertIn("0 Verifies tag(s) found", out)
+
     def test_stamp_with_no_test_says_so(self):
         root = make_root()
         code, out = run(root, "stamp", "AC-1")
