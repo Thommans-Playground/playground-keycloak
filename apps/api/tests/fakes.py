@@ -36,6 +36,9 @@ class FakeAccounts:
     def by_id(self, account_id):
         return self.rows.get(account_id)
 
+    def by_ids(self, account_ids):
+        return [self.rows[i] for i in dict.fromkeys(account_ids) if i in self.rows]
+
     def add(self, account):
         self.rows[account.id] = account
 

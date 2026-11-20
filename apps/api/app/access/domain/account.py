@@ -68,8 +68,12 @@ class Account:
     created_by: str | None = None
 
     @property
+    def is_active(self) -> bool:
+        return self.status is Status.active
+
+    @property
     def is_active_administrator(self) -> bool:
-        return self.status is Status.active and self.role is Role.administrator
+        return self.is_active and self.role is Role.administrator
 
     def with_(self, **changes) -> "Account":
         return replace(self, **changes)
