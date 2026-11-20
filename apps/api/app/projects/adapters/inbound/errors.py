@@ -1,12 +1,12 @@
 """How HTTP answers Projects' refusals: the same body the web reads for every other refusal (detail.code).
-Nothing refuses yet; later slices add their error and its status to HTTP_STATUS."""
+Later slices add their error and its status to HTTP_STATUS."""
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from app.projects.domain.errors import ProjectsError
+from app.projects.domain.errors import NotAnAdministrator, ProjectsError
 
-HTTP_STATUS: dict[type[ProjectsError], int] = {}
+HTTP_STATUS: dict[type[ProjectsError], int] = {NotAnAdministrator: 403}
 
 
 def register_error_handlers(app: FastAPI) -> None:
