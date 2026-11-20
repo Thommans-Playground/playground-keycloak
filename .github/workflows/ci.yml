@@ -79,26 +79,49 @@ jobs:
               if [ -e "$t" ]; then (cd "$d" && python3 -m unittest "$(basename "${t%.py}")"); fi
             done
           done
-      - name: Requirements are well formed
-        run: python3 .claude/skills/vbench-req/scripts/req_tool.py validate
-      - name: Tag report (no tag may name a criterion or rule that does not exist)
-        run: python3 .claude/skills/vbench-at/scripts/at_tool.py report | tail -40
-      # Informational until a person has stamped the use cases and the criteria without tests are built.
-      - name: Use case check (informational)
-        continue-on-error: true
-        run: python3 .claude/skills/vbench-uc/scripts/uc_tool.py validate | tail -5
-      - name: The V cycle of every use case (informational)
-        continue-on-error: true
+      # One report from the same checks, kept as an artifact and shown on the run page. The checks themselves
+      # fail the job (validate, tag report); the use case and V cycle readings are informational for now.
+      - name: Build the traceability report
         run: |
-          python3 .claude/skills/vbench-vcycle/scripts/vcycle.py --all
-          python3 .claude/skills/vbench-vcycle/scripts/vcycle.py --all --json > vcycle.json || true
-      - name: Keep the record of the V cycle run
+          mkdir -p report
+          set +e
+          python3 .claude/skills/vbench-req/scripts/req_tool.py validate > report/req-validate.txt 2>&1; echo $? > report/req-validate.exit
+          python3 .claude/skills/vbench-at/scripts/at_tool.py report > report/tag-report.txt 2>&1; echo $? > report/tag-report.exit
+          python3 .claude/skills/vbench-uc/scripts/uc_tool.py validate > report/uc-validate.txt 2>&1
+          python3 .claude/skills/vbench-vcycle/scripts/vcycle.py --all > report/vcycle.txt 2>&1
+          python3 .claude/skills/vbench-vcycle/scripts/vcycle.py --all --json > report/vcycle.json 2>/dev/null
+          python3 .claude/skills/vbench-req/scripts/req_tool.py duplicates > report/duplicates.txt 2>&1
+          {
+            echo "# Traceability report"
+            echo
+            echo "Commit \`${GITHUB_SHA}\`, branch \`${GITHUB_REF_NAME}\`, run ${GITHUB_RUN_ID}."
+            echo
+            echo "## Requirements and criteria (req_tool validate, exit $(cat report/req-validate.exit))"
+            echo '```'; tail -15 report/req-validate.txt; echo '```'
+            echo "## Test tags (at_tool report, exit $(cat report/tag-report.exit))"
+            echo '```'; tail -40 report/tag-report.txt; echo '```'
+            echo "## The V cycle of every use case (informational)"
+            echo '```'; cat report/vcycle.txt; echo '```'
+            echo "## Use case check (informational)"
+            echo '```'; tail -8 report/uc-validate.txt; echo '```'
+            echo "## Likely duplicates (a prompt for a person)"
+            echo '```'; head -60 report/duplicates.txt; echo '```'
+            echo
+            echo "The report shows that tagged tests exist. That they pass is shown by the other jobs of this run; that a person has reviewed the links is shown by the stamps."
+          } > report/report.md
+          cat report/report.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Keep the traceability report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: vcycle
-          path: vcycle.json
+          name: traceability-report
+          path: report/
           if-no-files-found: ignore
+          retention-days: 90
+      - name: Requirements are well formed (fails the job)
+        run: python3 .claude/skills/vbench-req/scripts/req_tool.py validate
+      - name: Tag report (no tag may name a criterion or rule that does not exist; fails the job)
+        run: python3 .claude/skills/vbench-at/scripts/at_tool.py report > /dev/null
 
   stack:
     name: Fresh stack, integration and acceptance tests
