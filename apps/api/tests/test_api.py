@@ -220,10 +220,11 @@ def test_admin_rules_over_http(client, admin):
 def test_keycloak_failure_changes_nothing(client, admin, idp):
     maya, maya_id = register(client, "sub-maya", "maya@x.test")
     client.post(f"/accounts/{maya_id}/approve", headers=admin)
+    client.post(f"/accounts/{maya_id}/deactivate", headers=admin, json={"reason": "Left the team"})
     idp.fail = True
-    r = client.post(f"/accounts/{maya_id}/deactivate", headers=admin, json={"reason": "Left the team"})
+    r = client.post(f"/accounts/{maya_id}/reinstate", headers=admin, json={"reason": "Came back"})
     assert (r.status_code, r.json()["code"]) == (502, "identity_provider_unavailable")
-    assert client.get("/me", headers=maya).json()["status"] == "active"
+    assert client.get("/me", headers=maya).json()["detail"]["code"] == "account_deactivated"
 
 
 def test_every_change_is_audited_with_its_reason(client, admin):

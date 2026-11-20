@@ -136,15 +136,15 @@ def test_the_service_turns_adapter_failures_into_identity_provider_unavailable()
     from datetime import datetime
     from app.access.domain.account import Account, Action, Role, Status
     from app.access.service import AccessService, IdentityProviderUnavailable
-    from tests.fakes import FakeAccounts, FakeAudit
+    from tests.fakes import FakeAccounts, FakeAudit, FakeUnitOfWork
 
     kc = Kc(fail_on=lambda r: r.url.path == TOKEN_PATH)
     ada = Account("a", "sa", "Ada", "a@x.test", Role.administrator, Status.active, datetime(2026, 1, 1))
-    bo = Account("t", "sub-1", "Bo", "b@x.test", Role.user, Status.active, datetime(2026, 1, 2))
+    bo = Account("t", "sub-1", "Bo", "b@x.test", Role.user, Status.deactivated, datetime(2026, 1, 2))
     accounts = FakeAccounts()
     accounts.add(ada)
     accounts.add(bo)
-    svc = AccessService(accounts, FakeAudit(), kc.admin(), set())
+    svc = AccessService(accounts, FakeAudit(), kc.admin(), set(), uow=FakeUnitOfWork())
     with pytest.raises(IdentityProviderUnavailable):
-        svc.change(ada, "t", Action.deactivate, "left the company")
-    assert accounts.by_id("t").status is Status.active
+        svc.change(ada, "t", Action.reinstate, "back again")
+    assert accounts.by_id("t").status is Status.deactivated

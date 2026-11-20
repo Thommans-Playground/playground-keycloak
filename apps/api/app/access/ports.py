@@ -21,8 +21,21 @@ class AccountRepository(Protocol):
     def count_active_administrators(self) -> int: ...
 
 
+class UnitOfWork(Protocol):
+    """Makes what was saved so far permanent (ADR 0009: commit before Keycloak)."""
+
+    def commit(self) -> None: ...
+
+
 class AuditLog(Protocol):
     def record(
-        self, actor_id: str | None, action: str, target_id: str, reason: str | None, at: datetime
+        self,
+        actor_id: str | None,
+        action: str,
+        target_id: str,
+        reason: str | None,
+        at: datetime,
+        outcome: str | None = None,
     ) -> None: ...
+    def set_outcome(self, target_id: str, action: str, outcome: str) -> None: ...
     def entries(self) -> list[dict]: ...

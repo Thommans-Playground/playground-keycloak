@@ -7,14 +7,14 @@ import pytest
 from app.access.domain.account import Action, Role, Status
 from app.access.service import AccessService, IdentityProviderUnavailable
 
-from tests.fakes import FakeAccounts, FakeAudit, FakeIdp
+from tests.fakes import FakeAccounts, FakeAudit, FakeIdp, FakeUnitOfWork
 
 NOW = datetime(2026, 11, 17, 9, 0, 0)
 
 
 def make(admins=("ada@x.test",)):
     accounts, audit, idp = FakeAccounts(), FakeAudit(), FakeIdp()
-    return AccessService(accounts, audit, idp, set(admins), now=lambda: NOW), accounts, audit, idp
+    return AccessService(accounts, audit, idp, set(admins), now=lambda: NOW, uow=FakeUnitOfWork()), accounts, audit, idp
 
 
 @pytest.mark.ac("AC-3")
@@ -78,11 +78,12 @@ def test_a_keycloak_failure_changes_nothing():
     admin = svc.account_for("sub-ada", "Ada", "ada@x.test", True)
     maya = svc.account_for("sub-1", "Maya", "maya@x.test", True)
     svc.change(admin, maya.id, Action.approve)
+    svc.change(admin, maya.id, Action.deactivate, "left the team")
     idp.fail = True
     before = len(audit.rows)
     with pytest.raises(IdentityProviderUnavailable):
-        svc.change(admin, maya.id, Action.deactivate, "left the team")
-    assert accounts.by_id(maya.id).status is Status.active and len(audit.rows) == before
+        svc.change(admin, maya.id, Action.reinstate, "came back")
+    assert accounts.by_id(maya.id).status is Status.deactivated and len(audit.rows) == before
 
 
 @pytest.mark.ac("AC-73")
@@ -95,3 +96,28 @@ def test_the_list_shows_for_each_account_the_others_with_the_same_email_whatever
     assert set(rows) == {one.id, two.id}  # the filter still filters
     assert [d.id for d in rows[one.id]] == [two.id]
     assert [d.id for d in rows[two.id]] == [one.id]
+
+
+@pytest.mark.ac("AC-58")
+def test_deactivating_commits_first_and_a_keycloak_failure_still_leaves_it_deactivated_and_audited():
+    events: list[str] = []
+    accounts, audit, idp, uow = FakeAccounts(), FakeAudit(), FakeIdp(events), FakeUnitOfWork(events)
+    svc = AccessService(accounts, audit, idp, {"ada@x.test"}, now=lambda: NOW, uow=uow)
+    admin = svc.account_for("sub-ada", "Ada", "ada@x.test", True)
+    maya = svc.account_for("sub-1", "Maya", "maya@x.test", True)
+    svc.change(admin, maya.id, Action.approve)
+    events.clear()
+    idp.fail = True
+
+    raised, result = None, None
+    try:
+        result = svc.change(admin, maya.id, Action.deactivate, "left the team")
+    except Exception as exc:  # noqa: BLE001 - the assertion below names it
+        raised = exc
+
+    assert raised is None
+    assert result.account.status is Status.deactivated and result.keycloak_updated is False
+    assert accounts.by_id(maya.id).status is Status.deactivated
+    assert events == ["commit", "disable_user"]
+    entries = [o for r, o in zip(audit.rows, audit.outcomes) if r[1] == "deactivate"]
+    assert entries == ["keycloak_not_updated"]
