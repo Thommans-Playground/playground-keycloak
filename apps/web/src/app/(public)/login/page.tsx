@@ -29,9 +29,7 @@ export default async function Login({ searchParams }: PageProps<"/login">) {
         <Card>
           <CardHeader>
             <CardTitle className="text-xl">Sign in</CardTitle>
-            <CardDescription>
-              You will be taken to Keycloak to sign in, then brought back here.
-            </CardDescription>
+            <CardDescription>You will be taken to Keycloak to sign in, then brought back here.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <a href="/auth/login" className={buttonVariants({ size: "lg", className: "w-full" })}>
@@ -47,7 +45,9 @@ export default async function Login({ searchParams }: PageProps<"/login">) {
           </CardContent>
         </Card>
         <p className="text-center text-sm">
-          <Link href="/" className="text-muted-foreground hover:text-foreground">Back to home</Link>
+          <Link href="/" className="text-muted-foreground hover:text-foreground">
+            Back to home
+          </Link>
         </p>
       </div>
     </div>

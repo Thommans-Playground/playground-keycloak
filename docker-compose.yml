@@ -31,9 +31,27 @@ services:
       interval: 5s
       retries: 10
 
+  # One-off: brings the schema to head, then stops. The API never changes structure (ADR 0012). Run by hand with
+  #   docker compose run --rm api-migrate
+  # On AWS this is a one-off ECS task with the owner secret.
+  api-migrate:
+    build: ./apps/api
+    command: ["alembic", "upgrade", "head"]
+    restart: "no"
+    depends_on:
+      api-db:
+        condition: service_healthy
+    environment:
+      # The owner role runs the migrations and creates the API role (migration 0002). Only this service gets the
+      # owner's URL: the API refuses to start if it sees MIGRATION_DATABASE_URL.
+      MIGRATION_DATABASE_URL: postgresql+psycopg://playground:playground@api-db:5432/playground
+      API_DB_PASSWORD: playground-api-dev   # DEVELOPMENT ONLY. On AWS both passwords come from Secrets Manager.
+
   api:
     build: ./apps/api
     depends_on:
+      api-migrate:
+        condition: service_completed_successfully
       keycloak:
         condition: service_started
       api-db:
@@ -41,7 +59,8 @@ services:
     environment:
       KEYCLOAK_URL: http://localhost:8080            # the address in tokens (iss)
       KEYCLOAK_INTERNAL_URL: http://keycloak:8080    # where this container reaches Keycloak
-      DATABASE_URL: postgresql+psycopg://playground:playground@api-db:5432/playground
+      # The API role, not the owner: it cannot change structure or the audit trail (ADR 0011). Development password.
+      DATABASE_URL: postgresql+psycopg://playground_api:playground-api-dev@api-db:5432/playground
       BOOTSTRAP_ADMIN_EMAILS: admin@example.test
     ports:
       - "8000:8000"

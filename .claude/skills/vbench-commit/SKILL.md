@@ -30,6 +30,7 @@ The reasoning: the scope carries the use case id from the id scheme, so a commit
 
 6. **Add a body only when it earns its place.** Add one when the reason is not obvious from the summary: why this approach, what was rejected, what to watch for. Skip it for small, clear changes.
 
+6b. **Check the code first.** Run `scripts/check.sh` (ADR 0014). A commit with a failing format or lint check will fail in CI.
 7. **Validate.** Run `python3 .claude/skills/vbench-commit/scripts/check_message.py "<the summary line>"`. If it fails, fix the line and run it again.
 
 8. **Explain and ask.** Follow "How the skills ask" in `_vbench/standards/conventions.md`. Before changing anything, explain in plain words what the changes are and why you would split them this way. Show the plan: for each commit, its message and the files it will hold, plus any file you are leaving out and why. Then ask with the AskUserQuestion tool (or a plain question in chat if the tool is not available), with four answers: **Accept** (make these commits), **Change it** (the user says what to change, then show the plan again), **Reject** (do nothing), **I'll do it myself** (print the commands and run nothing). Also ask about anything unclear, for example whether a file belongs in this work at all.

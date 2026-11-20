@@ -1,17 +1,19 @@
 @startuml access-design
 !include _style.puml
-title Playground Access: ports and adapters (built)
+title Playground Access: ports and adapters (built, AuditLog planned)
 ' palette: boundary=blue · service=green · domain=amber · port=lavender · adapter/infra=gray
 ' Shows the Access hexagon as built in apps/api: the Account, the use case service, the ports and the adapters.
 ' It is the design shared by UC-A4 and UC-A1 to UC-A7.
 ' MK3 drew one class diagram for each use case. One serves them all here, because Keycloak removed the token,
 ' whitelist, credential and session classes.
+' AuditLog (decisions 21 and 22): record() only, with the names and emails at the time. The adapter is a bridge in composition/ to the
+' Audit context, on the request's one session. Today SqlAdapters still writes the table and has set_outcome, which goes (TSK-A4.8).
 ' Not drawn: the web server (Next.js) and its session store, which hold the tokens and are not part of the API.
 ' Role (user, administrator) and status (pending, active, deactivated) are value objects, shown as fields.
 
 skinparam classAttributeIconSize 0
 skinparam linetype ortho
-left to right direction
+top to bottom direction
 
 class "«root entity»\nAccount" as ACC #FFE6CC {
   identity
@@ -29,11 +31,12 @@ class "«service»\nTokenVerifier" as TV #E7F4EA {
 }
 
 class "«port»\nAccountRepository" as PAR #EEE7F7
-class "«port»\nAuditLog" as PAL #EEE7F7
+class "«port»\nAuditLog\n+record(entry, names, emails)\n(no set_outcome)" as PAL #EEE7F7
 class "«port»\nIdentityProvider" as PIDP #EEE7F7
 
 class "«adapter»\nSqlAdapters" as SQL #EEE7F7
 class "«adapter»\nKeycloakAdmin" as KCA #EEE7F7
+class "«adapter»\nAuditBridge" as BRG #EEE7F7
 
 class "API database\n(PostgreSQL)" as DB #ECECEC
 class "Keycloak" as KC #ECECEC
@@ -43,7 +46,7 @@ SVC --> PAR
 SVC --> PAL
 SVC --> PIDP
 PAR <|.. SQL
-PAL <|.. SQL
+PAL <|.. BRG
 PIDP <|.. KCA
 SQL --> DB
 KCA ..> KC : ACL

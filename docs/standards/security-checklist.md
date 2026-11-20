@@ -30,7 +30,9 @@ None set aside yet. Add a line here, with the decision, when an item does not ap
   database's unique identity keeps it to one account. Reason: alpha, inside the corporate network. Revisit it with
   UC-A3's build, or before the product is reachable from outside.
 - **One web container** (decision 20): the refresh lock of UC-A6 is a map inside one web process. With a second web container two requests of one session could refresh at once, and Keycloak would end the session. Reason: the alpha runs as one set of containers on one EC2 instance, with only the data on RDS. Revisit it before a second web container runs (a lock in Redis, test first), or when the web tier moves to ECS Fargate.
-- **Before beta (decision 13).** Deferred hardening, accepted for the alpha because the product runs inside the corporate
+- **The database owner can edit audit rows** (decision 22, ADR 0011): the API role can only add and read, but the owner role (the RDS master user, which also runs the migrations) can still change or delete rows. Reason: the alpha runs inside the corporate network and few people hold the owner secret. Revisit it before the beta, with a hash chain or an immutable copy (S3 Object Lock, CloudWatch), and keep the owner secret to the migration step.
+- **Personal data is kept in the audit trail** (decision 22): names, emails and free text reasons stay in the entries, with no retention limit. Reason: the trail has to say who did what, and the alpha has few people. Revisit it before the beta, when retention is decided (BC-AUDIT open question 2).
+- **Before beta (decision 13). Deferred hardening, accepted for the alpha because the product runs inside the corporate
   network (as decisions 10 and 13). Revisit all of it at beta, or before the product is reachable from outside the
   corporate network, whichever comes first:
   - the CSRF check (`Sec-Fetch-Site` or `Origin`) on state changing requests;
@@ -50,4 +52,4 @@ None set aside yet. Add a line here, with the decision, when an item does not ap
     built locally; our side is signed out either way (UC-A2, decision 15). Accepted because the product runs inside
     the corporate network; revisit at beta.
   - FastAPI `/docs` and the default backend client secret outside dev;
-  - the audit trail showing current names, not the names at the time.
+  - the RDS PostgreSQL version must be 15 or later, and pgAudit on the owner role is not set up (ADR 0011 amendments, decision 22).

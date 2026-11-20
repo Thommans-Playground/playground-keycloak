@@ -37,3 +37,5 @@ Three read-only agents review the specs, and each teaches (what is wrong, why it
 
 The owner's decisions (scope, people, who may do what, accepted risk) go in `docs/domain/decisions.md`. Technical decisions (how it is built) go in `docs/adr/`, one short file each, numbered and never edited to change their meaning (see `docs/adr/README.md`). The agent decides the technical ones and records them there, and asks the owner only about scope, people, permissions and risk.
 
+
+A decision is finished only when it is written down, a test fails if it is broken, and there is an example to copy. The `vbench-decide` skill walks through it, including which part is the owner's and which is the agent's.

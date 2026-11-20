@@ -1,4 +1,5 @@
-# The same checks as `scripts/test-stack.sh all`, split into jobs so a failure says which part broke.
+# The same checks as `scripts/check.sh full`, split into jobs so a failure says which part broke. Each job calls one mode of
+# that script (ADR 0014), so what runs here and what runs on a laptop cannot drift apart.
 # Branch protection (a required human review and these jobs as required checks) is set in the GitHub settings, not here.
 name: ci
 
@@ -36,11 +37,14 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
       - run: uv sync --frozen
-      - name: Tests on SQLite
-        run: uv run pytest -q
+      - name: Format, lint and tests on SQLite
+        run: ../../scripts/check.sh api
       - name: Tests on PostgreSQL
         env:
-          TEST_DATABASE_URL: postgresql+psycopg://playground:playground@localhost:5432/playground_test
+          # The API role: migration 0002 creates it, with the password in this URL. The app and the tests connect as it.
+          TEST_DATABASE_URL: postgresql+psycopg://playground_api:playground-api-dev@localhost:5432/playground_test
+          # The owner role (the service's POSTGRES_USER) runs Alembic and drops the tables between tests (ADR 0012).
+          TEST_MIGRATION_DATABASE_URL: postgresql+psycopg://playground:playground@localhost:5432/playground_test
         run: uv run pytest -q
 
   web:
@@ -58,9 +62,8 @@ jobs:
           cache: npm
           cache-dependency-path: apps/web/package-lock.json
       - run: npm ci
-      - run: npm test
-      - run: npm run lint
-      - run: npm run typecheck
+      - name: Format, lint, types and unit tests
+        run: ../../scripts/check.sh web
       - run: npm run build
 
   traceability:
@@ -72,13 +75,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      - name: Tests of the traceability tools
-        run: |
-          for d in .claude/skills/vbench-*/scripts; do
-            for t in "$d"/test_*.py; do
-              if [ -e "$t" ]; then (cd "$d" && python3 -m unittest "$(basename "${t%.py}")"); fi
-            done
-          done
       # One report from the same checks, kept as an artifact and shown on the run page. The checks themselves
       # fail the job (validate, tag report); the use case and V cycle readings are informational for now.
       - name: Build the traceability report
@@ -118,10 +114,8 @@ jobs:
           path: report/
           if-no-files-found: ignore
           retention-days: 90
-      - name: Requirements are well formed (fails the job)
-        run: python3 .claude/skills/vbench-req/scripts/req_tool.py validate
-      - name: Tag report (no tag may name a criterion or rule that does not exist; fails the job)
-        run: python3 .claude/skills/vbench-at/scripts/at_tool.py report > /dev/null
+      - name: Tests of the tools, requirements are well formed, tags name real criteria (fails the job)
+        run: scripts/check.sh trace
 
   stack:
     name: Fresh stack, integration and acceptance tests

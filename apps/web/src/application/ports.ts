@@ -4,7 +4,9 @@ import type { Session } from "../domain/session.ts";
 
 /** Sign in, refresh and sign out, spoken in the use cases' words. Keycloak is one adapter. */
 export interface IdentityProvider {
-  beginLogin(opts: { register: boolean }): Promise<{ redirectTo: string; state: string; nonce: string; pkceVerifier: string }>;
+  beginLogin(opts: {
+    register: boolean;
+  }): Promise<{ redirectTo: string; state: string; nonce: string; pkceVerifier: string }>;
   /** Checks state, nonce and PKCE, and swaps the code for tokens. Throws if anything is wrong. */
   completeLogin(callbackUrl: URL, attempt: { state: string; nonce: string; pkceVerifier: string }): Promise<Session>;
   refresh(session: Session): Promise<Session>;

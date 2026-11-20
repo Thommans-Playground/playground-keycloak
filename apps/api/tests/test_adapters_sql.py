@@ -1,25 +1,30 @@
 """The SQL adapters keep the promises of the ports. Characterization tests: SQLite by default, PostgreSQL with TEST_DATABASE_URL."""
 
+import os
 from datetime import datetime, timedelta
 
 import pytest
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.access.adapters.outbound.sql import Base, SqlAccounts, SqlAudit
+from app.access.adapters.outbound.sql import SqlAccounts
 from app.access.domain.account import Account, Role, Status
 from tests.conftest import make_engine
+from tests.migrations_support import drop_everything, owner_engine
 
 T0 = datetime(2026, 1, 1, 12, 0, 0)
 
 
 @pytest.fixture
 def session():
-    engine = make_engine()
-    Base.metadata.create_all(engine)
+    engine = make_engine()  # migrated to head by Alembic, as the owner
     with Session(engine) as s:
         yield s
-    Base.metadata.drop_all(engine)
+    engine.dispose()
+    if os.environ.get("TEST_DATABASE_URL"):
+        owner = owner_engine()
+        drop_everything(owner)
+        owner.dispose()
 
 
 @pytest.fixture
@@ -27,14 +32,17 @@ def accounts(session):
     return SqlAccounts(session)
 
 
-@pytest.fixture
-def audit(session):
-    return SqlAudit(session)
-
-
 def acct(n: int, role=Role.user, status=Status.active, created=None, created_by=None) -> Account:
-    return Account(f"id-{n}", f"sub-{n}", f"Person {n}", f"p{n}@x.test", role, status,
-                   created or T0 + timedelta(minutes=n), created_by)
+    return Account(
+        f"id-{n}",
+        f"sub-{n}",
+        f"Person {n}",
+        f"p{n}@x.test",
+        role,
+        status,
+        created or T0 + timedelta(minutes=n),
+        created_by,
+    )
 
 
 def test_add_then_get_by_id_and_by_identity(accounts):
@@ -114,26 +122,3 @@ def test_save_of_an_unknown_account_fails(accounts):
     # The port does not say; the adapter raises AttributeError (None has no attributes). Pinned here.
     with pytest.raises(AttributeError):
         accounts.save(acct(1))
-
-
-def test_audit_records_an_entry_with_all_its_fields(audit):
-    audit.record("actor-1", "deactivate", "target-1", "left the company", T0)
-    assert audit.entries() == [{"id": audit.entries()[0]["id"], "at": T0, "actor_id": "actor-1",
-                                "action": "deactivate", "target_id": "target-1", "reason": "left the company"}]
-
-
-def test_audit_returns_newest_first(audit):
-    audit.record("a", "approve", "t1", None, T0)
-    audit.record("a", "deactivate", "t1", "reason one", T0 + timedelta(minutes=1))
-    audit.record("a", "reinstate", "t1", "reason two", T0 + timedelta(minutes=2))
-    assert [e["action"] for e in audit.entries()] == ["reinstate", "deactivate", "approve"]
-
-
-def test_audit_reason_and_actor_of_none_round_trip(audit):
-    audit.record(None, "approve", "t1", None, T0)
-    e = audit.entries()[0]
-    assert e["reason"] is None and e["actor_id"] is None
-
-
-def test_audit_with_nothing_recorded_is_empty(audit):
-    assert audit.entries() == []

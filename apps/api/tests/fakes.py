@@ -1,7 +1,5 @@
 """In-memory stand-ins for the ports, so a use case can be tested with no database and no Keycloak."""
 
-from datetime import datetime
-
 
 class FakeIdp:
     """Stands in for Keycloak's admin API and records what it was asked."""
@@ -16,11 +14,15 @@ class FakeIdp:
             raise RuntimeError("keycloak down")
         self.calls.append((what, identity))
 
-    def enable_user(self, identity): self._do("enable", identity)
+    def enable_user(self, identity):
+        self._do("enable", identity)
+
     def disable_user(self, identity):
         self.events.append("disable_user")
         self._do("disable", identity)
-    def end_sessions(self, identity): self._do("logout", identity)
+
+    def end_sessions(self, identity):
+        self._do("logout", identity)
 
 
 class FakeAccounts:
@@ -31,8 +33,12 @@ class FakeAccounts:
     def by_identity(self, identity):
         return next((a for a in self.rows.values() if a.identity == identity), None)
 
-    def by_id(self, account_id): return self.rows.get(account_id)
-    def add(self, account): self.rows[account.id] = account
+    def by_id(self, account_id):
+        return self.rows.get(account_id)
+
+    def add(self, account):
+        self.rows[account.id] = account
+
     def save(self, account):
         self.events.append("save")
         self.rows[account.id] = account
@@ -49,19 +55,46 @@ class FakeAccounts:
 
 
 class FakeAudit:
+    """Stands in for Access's own AuditLog port: keeps the events Access built, with the names it passed."""
+
     def __init__(self):
-        self.rows: list[tuple[str | None, str, str, str | None, datetime]] = []
-        self.outcomes: list[str | None] = []  # parallel to rows
+        self.rows: list = []
 
-    def record(self, actor_id, action, target_id, reason, at, outcome=None):
-        self.rows.append((actor_id, action, target_id, reason, at))
-        self.outcomes.append(outcome)
+    def record(self, event):
+        self.rows.append(event)
 
-    def set_outcome(self, target_id, action, outcome):
-        i = max(i for i, r in enumerate(self.rows) if r[1] == action and r[2] == target_id)
-        self.outcomes[i] = outcome
+    def entries(self):
+        return [
+            {
+                "actor_id": e.actor.id if e.actor else None,
+                "action": e.action,
+                "target_id": e.target.id,
+                "reason": e.reason,
+            }
+            for e in self.rows
+        ]
 
-    def entries(self): return [dict(zip(("actor_id", "action", "target_id", "reason", "at"), r)) for r in self.rows]
+    def shapes(self):
+        """(actor id, action, target id, reason) for each event, in the order they were recorded."""
+        return [(e["actor_id"], e["action"], e["target_id"], e["reason"]) for e in self.entries()]
+
+
+class FakeAuditEntries:
+    """Stands in for Audit's AuditEntries port. Like the database, it sets the time itself (RULE-L2)."""
+
+    def __init__(self, clock=None):
+        from datetime import UTC, datetime
+
+        self.stored: list = []
+        self._clock = clock or (lambda: datetime.now(UTC).replace(tzinfo=None))
+
+    def add(self, entry):
+        from app.audit.application.ports import RecordedEntry
+
+        self.stored.append(RecordedEntry(len(self.stored) + 1, self._clock(), entry))
+
+    def list_newest_first(self):
+        return list(reversed(self.stored))
 
 
 class FakeUnitOfWork:
@@ -70,4 +103,17 @@ class FakeUnitOfWork:
     def __init__(self, events: list[str] | None = None):
         self.events = events if events is not None else []
 
-    def commit(self): self.events.append("commit")
+    def commit(self):
+        self.events.append("commit")
+
+
+class FakeSecurityLog:
+    """Records the security events, so a test can see what was raised. Satisfies both contexts' SecurityLog ports."""
+
+    def __init__(self):
+        self.events: list[dict] = []
+
+    def event(self, name, result, person_id=None, session_id=None, reason=None):
+        self.events.append(
+            {"event": name, "result": result, "person_id": person_id, "session_id": session_id, "reason": reason}
+        )

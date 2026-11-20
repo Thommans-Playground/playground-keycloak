@@ -38,14 +38,20 @@ itest("beginLogin builds an authorization URL with PKCE S256, state, nonce, the 
   assert.ok(pkceVerifier.length >= 43);
 });
 
-itest("completeLogin with the real callback gives a session with tokens and a sensible expiry (Verifies AC-1)", async () => {
-  const idp = newIdp();
-  const { attempt, callbackUrl } = await realCallback(idp);
-  const before = Date.now();
-  const session = await idp.completeLogin(callbackUrl, attempt);
-  assert.ok(session.idToken && session.accessToken && session.refreshToken);
-  assert.ok(session.accessExpiresAt > before && session.accessExpiresAt <= before + 3_600_000, `expiry ${session.accessExpiresAt}`);
-});
+itest(
+  "completeLogin with the real callback gives a session with tokens and a sensible expiry (Verifies AC-1)",
+  async () => {
+    const idp = newIdp();
+    const { attempt, callbackUrl } = await realCallback(idp);
+    const before = Date.now();
+    const session = await idp.completeLogin(callbackUrl, attempt);
+    assert.ok(session.idToken && session.accessToken && session.refreshToken);
+    assert.ok(
+      session.accessExpiresAt > before && session.accessExpiresAt <= before + 3_600_000,
+      `expiry ${session.accessExpiresAt}`,
+    );
+  },
+);
 
 itest("a callback with another state is refused (Verifies AC-39)", async () => {
   const idp = newIdp();

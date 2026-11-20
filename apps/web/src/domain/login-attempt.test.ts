@@ -2,7 +2,13 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { isExpired, LOGIN_ATTEMPT_TTL_MS, type LoginAttempt } from "./login-attempt.ts";
 
-const attempt = (startedAt: number): LoginAttempt => ({ state: "s", nonce: "n", pkceVerifier: "v", returnTo: "/dashboard", startedAt });
+const attempt = (startedAt: number): LoginAttempt => ({
+  state: "s",
+  nonce: "n",
+  pkceVerifier: "v",
+  returnTo: "/dashboard",
+  startedAt,
+});
 
 test("an attempt lasts ten minutes (Verifies RULE-A8)", () => {
   assert.equal(LOGIN_ATTEMPT_TTL_MS, 10 * 60 * 1000);

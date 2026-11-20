@@ -42,7 +42,7 @@ def test_a_real_token_is_accepted_with_the_right_identity(verifier, token, throw
 @pytest.mark.ac("AC-33")
 def test_a_token_with_a_tampered_signature_is_refused(verifier, token):
     head, payload, sig = token.split(".")
-    flipped = ("A" if sig[10] != "A" else "B")
+    flipped = "A" if sig[10] != "A" else "B"
     tampered = ".".join([head, payload, sig[:10] + flipped + sig[11:]])
     with pytest.raises(InvalidToken):
         verifier.verify(tampered)
@@ -55,7 +55,7 @@ def test_an_expired_token_is_refused(verifier, token, monkeypatch):
 
     import jwt.api_jwt as api_jwt
 
-    later = dt.datetime.fromtimestamp(claims_of(token)["exp"] + 3600, dt.timezone.utc)
+    later = dt.datetime.fromtimestamp(claims_of(token)["exp"] + 3600, dt.UTC)
 
     class Later(dt.datetime):
         @classmethod

@@ -10,7 +10,12 @@ let now = 1_000_000;
 let idp: FakeIdentityProvider;
 let sessions: InMemorySessionStore;
 let accessTokenFor: (id: string | undefined) => Promise<string | null>;
-const session = (accessExpiresAt: number): Session => ({ idToken: "i", accessToken: "at-old", refreshToken: "r", accessExpiresAt });
+const session = (accessExpiresAt: number): Session => ({
+  idToken: "i",
+  accessToken: "at-old",
+  refreshToken: "r",
+  accessExpiresAt,
+});
 
 beforeEach(() => {
   now = 1_000_000;

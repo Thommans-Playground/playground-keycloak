@@ -34,11 +34,13 @@ export default async function Landing() {
             A small app to learn Keycloak with
           </h1>
           <p className="mt-4 max-w-2xl text-lg text-muted-foreground">
-            Sign in, get approved, and see how identity and permissions fit together between Keycloak, a Next.js
-            front end and a FastAPI back end.
+            Sign in, get approved, and see how identity and permissions fit together between Keycloak, a Next.js front
+            end and a FastAPI back end.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link href="/login" className={buttonVariants({ size: "lg" })}>Sign in</Link>
+            <Link href="/login" className={buttonVariants({ size: "lg" })}>
+              Sign in
+            </Link>
             <a href="/auth/login?register=1" className={buttonVariants({ size: "lg", variant: "outline" })}>
               Create account
             </a>

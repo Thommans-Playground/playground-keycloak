@@ -45,8 +45,11 @@ def calls(kc):
 def test_disable_gets_the_user_then_puts_the_whole_user_with_enabled_false():
     kc = Kc()
     kc.admin().disable_user("sub-1")
-    assert calls(kc) == [("POST", TOKEN_PATH), ("GET", "/admin/realms/playground/users/sub-1"),
-                         ("PUT", "/admin/realms/playground/users/sub-1")]
+    assert calls(kc) == [
+        ("POST", TOKEN_PATH),
+        ("GET", "/admin/realms/playground/users/sub-1"),
+        ("PUT", "/admin/realms/playground/users/sub-1"),
+    ]
     put = kc.requests[-1]
     assert json.loads(put.content) == {**USER, "enabled": False}
     assert put.headers["Authorization"] == "Bearer tok-1"
@@ -73,8 +76,11 @@ def test_the_admin_token_is_asked_for_with_client_credentials():
     kc = Kc()
     kc.admin().end_sessions("sub-1")
     body = dict(p.split("=") for p in kc.requests[0].content.decode().split("&"))
-    assert body == {"grant_type": "client_credentials", "client_id": "playground-backend",
-                    "client_secret": "playground-backend-dev-secret"}
+    assert body == {
+        "grant_type": "client_credentials",
+        "client_id": "playground-backend",
+        "client_secret": "playground-backend-dev-secret",
+    }
     assert kc.requests[0].method == "POST"
 
 
@@ -108,15 +114,27 @@ def test_internal_url_is_used_for_calls_when_set():
     assert {r.url.host for r in kc.requests} == {"keycloak"}
 
 
-@pytest.mark.parametrize("call,failing", [
-    ("enable_user", "token"), ("enable_user", "get"), ("enable_user", "put"),
-    ("disable_user", "token"), ("disable_user", "get"), ("disable_user", "put"),
-    ("end_sessions", "token"), ("end_sessions", "logout"),
-])
+@pytest.mark.parametrize(
+    "call,failing",
+    [
+        ("enable_user", "token"),
+        ("enable_user", "get"),
+        ("enable_user", "put"),
+        ("disable_user", "token"),
+        ("disable_user", "get"),
+        ("disable_user", "put"),
+        ("end_sessions", "token"),
+        ("end_sessions", "logout"),
+    ],
+)
 def test_a_5xx_is_raised_as_an_http_status_error(call, failing):
     def hit(r):
-        return {"token": r.url.path == TOKEN_PATH, "get": r.method == "GET", "put": r.method == "PUT",
-                "logout": r.url.path.endswith("/logout")}[failing]
+        return {
+            "token": r.url.path == TOKEN_PATH,
+            "get": r.method == "GET",
+            "put": r.method == "PUT",
+            "logout": r.url.path.endswith("/logout"),
+        }[failing]
 
     with pytest.raises(httpx.HTTPStatusError):
         getattr(Kc(fail_on=hit).admin(), call)("sub-1")
@@ -134,8 +152,9 @@ def test_a_connection_error_is_raised_as_an_httpx_error():
 def test_the_service_turns_adapter_failures_into_identity_provider_unavailable():
     """The adapter raises httpx errors; the conversion is the service's job (service.py), not the adapter's."""
     from datetime import datetime
-    from app.access.domain.account import Account, Action, Role, Status
+
     from app.access.application.service import AccessService, IdentityProviderUnavailable
+    from app.access.domain.account import Account, Action, Role, Status
     from tests.fakes import FakeAccounts, FakeAudit, FakeUnitOfWork
 
     kc = Kc(fail_on=lambda r: r.url.path == TOKEN_PATH)

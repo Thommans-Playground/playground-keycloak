@@ -15,8 +15,12 @@ export const config = {
   // The service account the API itself uses (apps/api/app/config.py). Here it only makes and removes throwaway people.
   backendClientId: process.env.KEYCLOAK_BACKEND_CLIENT_ID || "playground-backend",
   backendClientSecret: process.env.KEYCLOAK_BACKEND_CLIENT_SECRET || "playground-backend-dev-secret",
-  get issuer() { return `${this.keycloakUrl}/realms/${this.realm}`; },
-  get callbackUrl() { return `${this.appUrl}/auth/callback`; },
+  get issuer() {
+    return `${this.keycloakUrl}/realms/${this.realm}`;
+  },
+  get callbackUrl() {
+    return `${this.appUrl}/auth/callback`;
+  },
 };
 
 export const INTEGRATION = process.env.INTEGRATION === "1";
@@ -24,7 +28,11 @@ export const TEST_TIMEOUT = 60_000;
 
 /** A test that runs only when INTEGRATION=1, one at a time, with a generous timeout. */
 export function itest(name: string, fn: () => Promise<void>) {
-  test(name, { skip: INTEGRATION ? false : "set INTEGRATION=1 to run against a running stack", timeout: TEST_TIMEOUT }, fn);
+  test(
+    name,
+    { skip: INTEGRATION ? false : "set INTEGRATION=1 to run against a running stack", timeout: TEST_TIMEOUT },
+    fn,
+  );
 }
 
 /** With INTEGRATION=1 an unreachable stack FAILS the suite: it never goes green by skipping. */
@@ -200,7 +208,11 @@ export async function createThrowawayUser(): Promise<ThrowawayUser> {
   const id = res.headers.get("location")!.split("/").pop()!;
   let deleted = false;
   const user: ThrowawayUser = {
-    id, email, password, firstName, lastName,
+    id,
+    email,
+    password,
+    firstName,
+    lastName,
     async delete() {
       if (deleted) return;
       const r = await kcAdmin("DELETE", `/users/${id}`);
@@ -224,15 +236,20 @@ export async function cleanupThrowaways() {
   if (errors.length) throw new Error(`cleanup failed: ${errors.join("; ")}`);
 }
 
-export const keycloakUser = async (id: string) => (await (await kcAdmin("GET", `/users/${id}`)).json()) as { enabled: boolean };
+export const keycloakUser = async (id: string) =>
+  (await (await kcAdmin("GET", `/users/${id}`)).json()) as { enabled: boolean };
 
 // ---------------------------------------------------------------- the real login, without a browser
 
 export type KeycloakResult =
-  | { kind: "callback"; url: string; code: string; state: string }
-  | { kind: "form"; html: string };
+  { kind: "callback"; url: string; code: string; state: string } | { kind: "form"; html: string };
 
-const unescapeHtml = (s: string) => s.replace(/&amp;/g, "&").replace(/&#x3D;/gi, "=").replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+const unescapeHtml = (s: string) =>
+  s
+    .replace(/&amp;/g, "&")
+    .replace(/&#x3D;/gi, "=")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
 
 function loginFormAction(html: string): string | null {
   const form = html.match(/<form\b[^>]*\bid="kc-form-login"[^>]*>/i)?.[0];
@@ -281,7 +298,13 @@ export async function loginAtKeycloak(
   return { kind: "form", html: await res.text() };
 }
 
-export type SignedIn = { jar: CookieJar; location: string; callbackUrl: string; loginCookie: string | undefined; sessionCookie: string | undefined };
+export type SignedIn = {
+  jar: CookieJar;
+  location: string;
+  callbackUrl: string;
+  loginCookie: string | undefined;
+  sessionCookie: string | undefined;
+};
 
 /** GET /auth/login, log in at Keycloak, GET the callback. The jar then holds the session cookie. */
 export async function signIn(
@@ -325,7 +348,11 @@ export async function backend(jar: CookieJar, method: string, path: string, body
   });
   const text = await res.text();
   let json: any = null; // eslint-disable-line @typescript-eslint/no-explicit-any
-  try { json = JSON.parse(text); } catch { /* not JSON */ }
+  try {
+    json = JSON.parse(text);
+  } catch {
+    /* not JSON */
+  }
   // FastAPI wraps a refusal raised in a dependency as {detail: {code}}, a domain refusal as {code}
   const code: string | undefined = json?.code ?? json?.detail?.code;
   return { status: res.status, json, text, code };

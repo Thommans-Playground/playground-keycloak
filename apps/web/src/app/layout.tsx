@@ -8,7 +8,8 @@ const robotoMono = Roboto_Mono({ variable: "--font-roboto-mono", subsets: ["lati
 
 export const metadata: Metadata = {
   title: "Playground",
-  description: "Keycloak sign in playground: Next.js, shadcn, FastAPI, styled with the Singapore Government Design System",
+  description:
+    "Keycloak sign in playground: Next.js, shadcn, FastAPI, styled with the Singapore Government Design System",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

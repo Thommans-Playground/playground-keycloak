@@ -655,3 +655,31 @@ records the technical side (commit order, locking).
 **Changes.** UC-A6's open question 2 is decided; the overlay lists the accepted risk with when to revisit it (before a second web container, or the move to ECS Fargate).
 
 **Still open.** Nothing for the alpha.
+
+## 21. The audit trail is append only and read only (20 Nov 2026)
+
+**Decided.** By the owner.
+- **No entry is ever changed or deleted**, by anyone, through the application. The trail only grows (AC-79). A mistake is corrected by adding an entry.
+- **The database enforces it.** The database user the API uses may add and read audit rows, and may not update or delete them (AC-80). A bug or stolen API credentials cannot rewrite history. Tamper evidence (a hash chain) and a copy in storage that cannot be changed are left for later.
+- **The Audit trail is its own bounded context (BC-AUDIT)**, with the same folder layout as every context (ADR 0010). Access and Projects each keep a small `AuditLog` port, wired to Audit in the composition root.
+- **A failed Keycloak call after a deactivation adds a second entry** that says Keycloak was not updated. The first entry is not edited. This changes decision 18's "one audit entry with an outcome" to "one entry for each fact".
+
+**Why.** An audit trail that can be edited proves nothing. Enforcing it in the database is the guarantee; the code alone is only good manners.
+
+**Changes.** AC-79 and AC-80 added; AC-58 and UC-A4 reworded; UC-L1's design gains the permission step; ADR 0011 records the technical choices (and supersedes the audit part of ADR 0009); `set_outcome` goes away when the Audit context is built.
+
+**Still open.** Retention (how long entries are kept) is not decided. Whether UC-A3 (register) writes an audit entry is still open from decision 17.
+
+## 22. The audit trail after the review: retries, personal data, the owner role, register (20 Nov 2026)
+
+**Decided.** By the owner, after the three reviews of UC-L1.
+- **Every repeated deactivation (AC-77) adds one audit entry** with its outcome (done, or Keycloak not updated as a second entry) and the reason given for the retry. This changes decision 18's "retry changes nothing in our database": it still changes no account, and it now adds an entry.
+- **Personal data in the trail is kept for the alpha:** names, emails and free text reasons. It is listed in the security overlay's "Accepted for now". Retention is open; revisit before the beta.
+- **The database owner (the RDS master user) can still edit audit rows.** Accepted for the alpha and listed in "Accepted for now". Closing it needs a hash chain or an immutable copy, later.
+- **`register` writes an audit entry**, as today. This answers decision 17's open question for UC-A3.
+
+**Why.** An audit trail with gaps (a retry nobody sees) proves less than one without. The alpha runs inside the corporate network, so the two accepted risks are cheaper to hold than to close now.
+
+**Changes.** AC-68, AC-77, AC-79 and AC-80 reworded, AC-81 and AC-82 added, AC-29 and AC-30 stay with UC-P1 and UC-P2 and leave UC-L1 (with FR-13). UC-L1 and UC-A4 text, slices and three diagrams; BC-AUDIT gains the table of what an entry records. ADR 0011 records the technical side (one role and one session, a separate owner role for migrations, names at the time, the `Caller` of Audit, reasons limits, log lines). The security overlay lists the two accepted risks.
+
+**Still open.** Retention of the trail and its personal data. Whether a refused change should ever be an entry (today it goes to the log).

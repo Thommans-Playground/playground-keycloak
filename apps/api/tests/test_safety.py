@@ -11,6 +11,10 @@ def test_a_database_named_for_tests_is_allowed():
 
 
 def test_the_apps_own_database_is_refused():
-    for url in ("postgresql+psycopg://u:p@localhost:5433/playground", "postgresql://u:p@db/prod", "postgresql://u:p@db/"):
+    for url in (
+        "postgresql+psycopg://u:p@localhost:5433/playground",
+        "postgresql://u:p@db/prod",
+        "postgresql://u:p@db/",
+    ):
         with pytest.raises(RuntimeError, match="_test"):
             check_test_database(url)

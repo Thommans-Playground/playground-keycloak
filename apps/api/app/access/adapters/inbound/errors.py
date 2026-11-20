@@ -3,6 +3,7 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
+from app.access.application.ports import SecurityLog
 from app.access.application.service import IdentityProviderUnavailable
 from app.access.domain.account import (
     AccountNotFound,
@@ -23,9 +24,12 @@ HTTP_STATUS: dict[type[DomainError], int] = {
 }
 
 
-def register_error_handlers(app: FastAPI) -> None:
+def register_error_handlers(app: FastAPI, security_log: SecurityLog) -> None:
     @app.exception_handler(DomainError)
-    async def domain_error(_: Request, exc: DomainError):
+    async def domain_error(request: Request, exc: DomainError):
+        security_log.event(
+            "request_refused", "refused", person_id=getattr(request.state, "person_id", None), reason=exc.code
+        )
         return JSONResponse(
             {"code": exc.code, "message": exc.message},
             status_code=HTTP_STATUS.get(type(exc), 400),

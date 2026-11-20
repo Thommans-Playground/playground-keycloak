@@ -16,7 +16,10 @@ KEYCLOAK_URL=${KEYCLOAK_URL:-http://localhost:8080}
 API_URL=${API_URL:-http://localhost:8000}
 APP_URL=${APP_URL:-http://localhost:3000}
 PORTS=(8080 8000 3000 5433 6380)
-TEST_DB_URL=${TEST_DATABASE_URL:-postgresql+psycopg://playground:playground@localhost:5433/playground_test}
+# Two roles (ADR 0011, 0012): the API role is what the app and the tests connect as; the owner runs the migrations,
+# which create the API role (its password is the one in the first URL) and drop the tables between tests.
+TEST_DB_URL=${TEST_DATABASE_URL:-postgresql+psycopg://playground_api:playground-api-dev@localhost:5433/playground_test}
+TEST_MIGRATION_DB_URL=${TEST_MIGRATION_DATABASE_URL:-postgresql+psycopg://playground:playground@localhost:5433/playground_test}
 
 # A port that is already taken means the dev stack (or something else) is running: stop here, with a clear message.
 check_ports() {
@@ -64,7 +67,7 @@ start() {
 stack_tests() {
   export INTEGRATION=1
   echo "== API on the stack's PostgreSQL (playground_test)"
-  (cd apps/api && TEST_DATABASE_URL="$TEST_DB_URL" uv run pytest -q)
+  (cd apps/api && TEST_DATABASE_URL="$TEST_DB_URL" TEST_MIGRATION_DATABASE_URL="$TEST_MIGRATION_DB_URL" uv run pytest -q)
   echo "== API integration tests"
   (cd apps/api && uv run pytest -q tests/integration)
   echo "== web integration and acceptance tests"

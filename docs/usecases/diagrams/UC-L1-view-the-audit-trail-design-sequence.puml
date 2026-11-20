@@ -8,31 +8,41 @@ title UC-L1 View the audit trail (design sequence)
 ' BUILT today, inside Access: GET /audit, the administrator guard, SqlAudit.entries() and the admin accounts page. Account entries only.
 ' PLANNED (decision 14): the Audit context, AuditService.read(caller), AuditRepository, the Caller, kind and details columns,
 ' names and emails at the time, and project entries. The lower part shows how entries arrive (AC-29, AC-30), a flow of UC-A4, UC-P1 and UC-P2.
+' Decisions 21 and 22, ADR 0011: one API database session for each request, shared by the change and its entry; the API role has INSERT and SELECT only;
+' the database sets the time; reading and every refusal write a security log line (decision 17) and no audit entry.
 ' Not drawn: the token check (UC-A1 step 9) and the web page.
 
 actor "Administrator" as AD
 participant "Routes\n(API)" as R #E6F0FB
 participant "Audit-\nService\n(planned)" as S #E7F4EA
-participant "Audit-\nRepository\n(SqlAudit)" as AR #EEE7F7
+participant "Audit-\nRepository\n(SqlAuditEntries)" as AR #EEE7F7
+participant "Security\nlog" as SL #EEE7F7
 participant "Access or\nProjects\nservice" as OS #E7F4EA
 participant "AuditLog\n(own port)" as AL #EEE7F7
-participant "Bridge\n(root)" as BR #EEE7F7
+participant "Bridge\n(composition/)" as BR #EEE7F7
 
 AD -> R : 1 GET /audit
-R -> R : 2 guard: token, account found, active, administrator, so a Caller
-alt not an administrator
-  R --> AD : 2 403 forbidden, no entry
+R -> R : 2 guard: token, account found, active, administrator, so a Caller (Audit's own)
+alt no token, or not an administrator
+  R -> SL : 6 log line: refused (401 no token, 403 others)
+  R --> AD : 2 401 or 403, no entry
 else
   R -> S : 2 read(caller)
-  S -> AR : 3 list_newest_first()
+  S -> AR : 3 list_newest_first() (same session as the request)
   AR --> S : 3 entries of both kinds
+  S -> SL : 6 log line: the trail was read
   S --> R : entries
   R --> AD : 4, 5 200 the entries, with kind, details and the names at the time
 end
 
-== How the entries got there (other flows, AC-29 and AC-30) ==
-OS -> AL : record(actor, action, target, people, reason)
+== How the entries got there (other flows: AC-29 and AC-30 are UC-P1 and UC-P2; AC-77 is UC-A4) ==
+OS -> AL : record(actor, action, target, people, names and emails, reason)
 AL -> BR : the same call, in the context's own words
-BR -> S : record(entry), with names and emails copied at that moment
-S -> AR : add(entry)
+BR -> S : record(entry), the Caller translated here
+S -> AR : add(entry), on the same session as the change (the database sets the time)
+note over AR
+  The API role may INSERT and SELECT only.
+  A repeated deactivation or a Keycloak failure
+  adds another entry, never an edit.
+end note
 @enduml

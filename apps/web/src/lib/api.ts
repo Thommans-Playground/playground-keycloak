@@ -20,14 +20,16 @@ export type AuditEntry = {
   id: number;
   at: string;
   actor_id: string | null;
+  actor_name: string | null;
+  actor_email: string | null;
   action: string;
   target_id: string;
+  target_name: string | null;
+  target_email: string | null;
   reason: string | null;
 };
 
-export type ApiResult<T> =
-  | { ok: true; data: T }
-  | { ok: false; status: number; code: string };
+export type ApiResult<T> = { ok: true; data: T } | { ok: false; status: number; code: string };
 
 /** Server side call to the FastAPI API, for the signed-in person. */
 export async function api<T>(path: string): Promise<ApiResult<T>> {

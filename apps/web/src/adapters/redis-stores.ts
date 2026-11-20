@@ -54,7 +54,9 @@ export class RedisSessionStore implements SessionStore {
   }
 
   async put(id: string, session: Session) {
-    await this.redis.set(this.prefix + id, JSON.stringify(session), { expiration: { type: "EX", value: this.ttlSeconds } });
+    await this.redis.set(this.prefix + id, JSON.stringify(session), {
+      expiration: { type: "EX", value: this.ttlSeconds },
+    });
   }
 
   async take(id: string | undefined) {

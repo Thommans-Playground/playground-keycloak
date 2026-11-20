@@ -26,7 +26,7 @@ not green, stop** and say so. You never refactor on red.
    architecture tests must stay green. Do not widen the change beyond the files you were given, except to follow a rename.
 5. **Little and clear.** Prefer three small, obvious changes to one clever one. If nothing is worth changing, change
    nothing and say "nothing worth refactoring".
-6. Run typecheck and lint for TypeScript changes. You do not edit `docs/requirements/` and do not commit.
+6. Run `scripts/check.sh` (format and lint checks, typecheck, tests; ADR 0014). If the format check fails, run `scripts/check.sh fix` first. You do not edit `docs/requirements/` and do not commit.
 
 ## Report, then stop
 Reply with exactly this, and nothing after it:

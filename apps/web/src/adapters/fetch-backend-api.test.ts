@@ -15,7 +15,12 @@ before(async () => {
   server = createServer(async (req, res) => {
     const chunks: Buffer[] = [];
     for await (const c of req) chunks.push(c as Buffer);
-    seen = { method: req.method ?? "", url: req.url ?? "", headers: req.headers, body: Buffer.concat(chunks).toString("utf8") };
+    seen = {
+      method: req.method ?? "",
+      url: req.url ?? "",
+      headers: req.headers,
+      body: Buffer.concat(chunks).toString("utf8"),
+    };
     res.statusCode = reply.status;
     if (reply.contentType) res.setHeader("Content-Type", reply.contentType);
     res.end(reply.body);

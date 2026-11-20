@@ -17,7 +17,10 @@ import ast
 import sys
 from pathlib import Path
 
+import pytest
+
 APP = Path(__file__).resolve().parents[1] / "app"
+MIGRATIONS = Path(__file__).resolve().parents[1] / "migrations"
 STDLIB = set(sys.stdlib_module_names)
 
 SHARED_PACKAGES = {"composition", "infrastructure"}
@@ -64,19 +67,23 @@ def outside(path: Path, allowed_prefixes: list[str], libraries: set[str] = froze
     return sorted(bad)
 
 
-def test_there_is_at_least_the_access_context():
-    assert "access" in contexts()
+def test_there_is_at_least_the_access_and_audit_contexts():
+    assert {"access", "audit"} <= set(contexts())
 
 
 def test_only_known_packages_sit_next_to_the_contexts():
     # A package nobody named is outside every rule below. Add it to the ADR and to SHARED_PACKAGES on purpose.
     top = folders(APP)
-    assert top <= set(contexts()) | SHARED_PACKAGES, f"unknown top level packages: {sorted(top - set(contexts()) - SHARED_PACKAGES)}"
+    assert top <= set(contexts()) | SHARED_PACKAGES, (
+        f"unknown top level packages: {sorted(top - set(contexts()) - SHARED_PACKAGES)}"
+    )
 
 
 def test_no_loose_files_at_the_top_but_the_entry_point():
     loose = sorted(f.name for f in APP.glob("*.py") if f.name not in {"__init__.py", "main.py"})
-    assert loose == [], f"loose files {loose}: settings go in infrastructure/, wiring in composition/, the rest in a context"
+    assert loose == [], (
+        f"loose files {loose}: settings go in infrastructure/, wiring in composition/, the rest in a context"
+    )
 
 
 def test_every_context_has_the_same_shape():
@@ -97,14 +104,18 @@ def test_the_application_knows_the_domain_and_its_own_ports_never_a_framework_or
     for c in contexts():
         for f in py_files(APP / c / "application"):
             bad = outside(f, [f"app.{c}.domain", f"app.{c}.application"])
-            assert bad == [], f"{f.relative_to(APP)} imports {bad}: use cases talk to ports, not to adapters or frameworks"
+            assert bad == [], (
+                f"{f.relative_to(APP)} imports {bad}: use cases talk to ports, not to adapters or frameworks"
+            )
 
 
 def test_inbound_adapters_call_the_application_and_use_only_web_libraries():
     for c in contexts():
         for f in py_files(APP / c / "adapters" / "inbound"):
             bad = outside(f, [f"app.{c}.domain", f"app.{c}.application", f"app.{c}.adapters.inbound"], WEB_LIBS)
-            assert bad == [], f"{f.relative_to(APP)} imports {bad}: an inbound adapter only translates HTTP into use cases"
+            assert bad == [], (
+                f"{f.relative_to(APP)} imports {bad}: an inbound adapter only translates HTTP into use cases"
+            )
 
 
 def test_outbound_adapters_implement_ports_and_use_infrastructure_libraries():
@@ -148,3 +159,83 @@ def test_contexts_do_not_import_each_other():
             for mod in imports_of(f):
                 for other in cs:
                     assert other == c or not mod.startswith(f"app.{other}"), f"{f.relative_to(APP)} imports {mod}"
+
+
+# ADR 0012: migrations/ sits outside app/, is neither a context nor a layer, and sees only the tables.
+MIGRATION_LIBS = {"alembic", "sqlalchemy"}
+
+
+def migration_violations(path: Path) -> list[str]:
+    """Imports a migration file may not have: only infrastructure and the outbound table definitions of a context."""
+    allowed = ["app.infrastructure"] + [f"app.{c}.adapters.outbound.sql" for c in contexts()]
+    return outside(path, allowed, MIGRATION_LIBS)
+
+
+def test_migrations_import_only_infrastructure_and_the_table_definitions():
+    for f in py_files(MIGRATIONS):
+        bad = migration_violations(f)
+        assert bad == [], (
+            f"{f.relative_to(MIGRATIONS.parent)} imports {bad}: a migration sees the tables only, "
+            "never a domain or application module, or the schema would follow the rules of the day (ADR 0012)"
+        )
+
+
+def test_migrations_may_import_the_table_definition_of_the_audit_context(tmp_path):
+    f = tmp_path / "m.py"
+    f.write_text("import app.audit.adapters.outbound.sql\nimport app.access.adapters.outbound.sql\n", encoding="utf-8")
+    assert migration_violations(f) == []
+    f.write_text("from app.audit.application.service import AuditService\n", encoding="utf-8")
+    assert migration_violations(f) == ["app.audit.application.service"]
+
+
+def test_the_alembic_environment_sees_the_tables_of_every_context():
+    imported = imports_of(MIGRATIONS / "env.py")
+    for c in contexts():
+        assert f"app.{c}.adapters.outbound.sql" in imported, (
+            f"migrations/env.py must import the tables of {c}, or Alembic drops them"
+        )
+
+
+@pytest.mark.ac("AC-79")
+@pytest.mark.rule("RULE-L1")
+def test_the_audit_port_has_no_way_to_change_an_entry():
+    # AC-79: the port has add and list_newest_first only (the routes are proved in test_audit_api.py).
+    from app.audit.application.ports import AuditEntries
+
+    public = {n for n in vars(AuditEntries) if not n.startswith("_")}
+    assert public == {"add", "list_newest_first"}
+
+
+def test_the_migration_rule_refuses_a_domain_or_an_application_import(tmp_path):
+    for module in ("app.access.domain.account", "app.access.application.service", "app.composition.app"):
+        f = tmp_path / "m.py"
+        f.write_text(f"from {module} import x\n", encoding="utf-8")
+        assert migration_violations(f) == [module]
+
+
+def test_nothing_in_the_app_imports_migrations():
+    for f in py_files(APP):
+        for mod in imports_of(f):
+            assert mod.split(".")[0] != "migrations", (
+                f"{f.relative_to(APP)} imports {mod}: the app never runs or reads migrations"
+            )
+
+
+def test_infrastructure_imports_no_context():
+    # The JSON stdout adapter satisfies each context's SecurityLog port structurally, so it needs none of them.
+    for f in py_files(APP / "infrastructure"):
+        for mod in imports_of(f):
+            assert not any(mod == f"app.{c}" or mod.startswith(f"app.{c}.") for c in contexts()), (
+                f"{f.relative_to(APP)} imports {mod}: infrastructure belongs to no context"
+            )
+
+
+def test_each_context_declares_its_own_security_log_port_and_none_imports_the_other():
+    for c in ("access", "audit"):
+        ports = APP / c / "application" / "ports.py"
+        tree = ast.parse(ports.read_text(encoding="utf-8"))
+        assert any(isinstance(n, ast.ClassDef) and n.name == "SecurityLog" for n in tree.body), (
+            f"{c}/application/ports.py must declare its own SecurityLog port, no shared kernel (ADR 0013)"
+        )
+        other = "audit" if c == "access" else "access"
+        assert not any(m.startswith(f"app.{other}") for m in imports_of(ports)), f"{c} ports import {other}"

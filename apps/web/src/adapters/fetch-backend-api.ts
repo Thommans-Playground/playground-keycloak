@@ -19,6 +19,10 @@ export class FetchBackendApi implements BackendApi {
       body: req.body,
       cache: "no-store",
     });
-    return { status: res.status, body: await res.text(), contentType: res.headers.get("content-type") ?? "application/json" };
+    return {
+      status: res.status,
+      body: await res.text(),
+      contentType: res.headers.get("content-type") ?? "application/json",
+    };
   }
 }

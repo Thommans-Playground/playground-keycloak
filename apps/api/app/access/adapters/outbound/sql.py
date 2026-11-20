@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, Integer, String, Text, func, select
+from sqlalchemy import DateTime, String, func, select
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from app.access.domain.account import Account, Role, Status
@@ -17,17 +17,6 @@ class AccountRow(Base):
     status: Mapped[str] = mapped_column(String)
     created: Mapped[datetime] = mapped_column(DateTime)
     created_by: Mapped[str | None] = mapped_column(String, nullable=True)
-
-
-class AuditRow(Base):
-    __tablename__ = "audit_entries"
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    at: Mapped[datetime] = mapped_column(DateTime)
-    actor_id: Mapped[str | None] = mapped_column(String, nullable=True)
-    action: Mapped[str] = mapped_column(String)
-    target_id: Mapped[str] = mapped_column(String)
-    reason: Mapped[str | None] = mapped_column(Text, nullable=True)
-    outcome: Mapped[str | None] = mapped_column(String, nullable=True)
 
 
 def _to_domain(r: AccountRow) -> Account:
@@ -119,41 +108,3 @@ class SqlUnitOfWork:
 
     def commit(self) -> None:
         self._s.commit()
-
-
-class SqlAudit:
-    def __init__(self, session: Session):
-        self._s = session
-
-    def record(self, actor_id, action, target_id, reason, at, outcome=None) -> None:
-        self._s.add(
-            AuditRow(
-                at=at,
-                actor_id=actor_id,
-                action=action,
-                target_id=target_id,
-                reason=reason,
-                outcome=outcome,
-            )
-        )
-        self._s.flush()
-
-    def set_outcome(self, target_id, action, outcome) -> None:
-        row = self._s.scalars(select(AuditRow).where(AuditRow.target_id == target_id, AuditRow.action == action)
-                              .order_by(AuditRow.id.desc())).first()
-        row.outcome = outcome
-        self._s.flush()
-
-    def entries(self) -> list[dict]:
-        rows = self._s.scalars(select(AuditRow).order_by(AuditRow.id.desc()))
-        return [
-            {
-                "id": r.id,
-                "at": r.at,
-                "actor_id": r.actor_id,
-                "action": r.action,
-                "target_id": r.target_id,
-                "reason": r.reason,
-            }
-            for r in rows
-        ]

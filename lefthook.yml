@@ -1,0 +1,15 @@
+# Git hooks (ADR 0014). Install once with: lefthook install   (brew install lefthook)
+# The pre-commit hook formats and fixes the staged files, and re-stages them. CI is the real gate.
+pre-commit:
+  parallel: false
+  commands:
+    api:
+      root: apps/api/
+      glob: "*.py"
+      run: uv run ruff check --fix {staged_files} && uv run ruff format {staged_files}
+      stage_fixed: true
+    web:
+      root: apps/web/
+      glob: "*.{ts,tsx,json}"
+      run: npx --no-install prettier --write {staged_files}
+      stage_fixed: true

@@ -12,6 +12,22 @@ Each level proves more and runs slower. Most tests sit at the bottom.
 
 `npm test` runs only `*.test.ts`. The slow tests are `*.it.ts`, so a normal run never needs the stack.
 
+## The test database and migrations
+
+The API creates no tables, so every API test database is built by `alembic upgrade head` (ADR 0012): SQLite in memory
+by default, or PostgreSQL with `TEST_DATABASE_URL` (always a `*_test` database). Alembic runs as the owner role,
+with `TEST_MIGRATION_DATABASE_URL`, and the app and the tests connect as the API role with `TEST_DATABASE_URL`
+(ADR 0011). Both are needed on PostgreSQL:
+
+| Variable | Role | Used for |
+|---|---|---|
+| `TEST_MIGRATION_DATABASE_URL` | the owner (the server's `POSTGRES_USER`) | `alembic upgrade head`, dropping every table after each test, the control of the AC-80 test |
+| `TEST_DATABASE_URL` | the API role, `playground_api` | the app under test and AC-80 itself. Migration 0002 creates the role, and the password in this URL becomes its password |
+
+Both name the same `*_test` database. The API refuses to start as the owner (the start-up self check), so one URL for
+both does not work. CI and `scripts/test-stack.sh` set both. After each test the owner drops everything. The AC-80
+tests, the allow list test and the self check tests run on PostgreSQL only and are skipped on SQLite with a reason.
+
 ## The INTEGRATION=1 switch
 
 The integration and acceptance tests need a running stack. They run only when `INTEGRATION=1` is set. Without it the web

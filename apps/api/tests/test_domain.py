@@ -3,8 +3,19 @@ from datetime import datetime
 import pytest
 
 from app.access.domain.account import (
-    Account, AccountNotFound, Action, CannotChangeSelf, InvalidTransition, LastAdministrator, ReasonRequired, Role,
-    Status, clean_reason, decide, duplicates_by_email, new_account,
+    Account,
+    AccountNotFound,
+    Action,
+    CannotChangeSelf,
+    InvalidTransition,
+    LastAdministrator,
+    ReasonRequired,
+    Role,
+    Status,
+    clean_reason,
+    decide,
+    duplicates_by_email,
+    new_account,
 )
 
 
@@ -76,7 +87,12 @@ def _new(email="ada@x.test", verified=True, setup=("ada@x.test",), admins=0):
 @pytest.mark.rule("RULE-A5")
 def test_rule_a5_only_a_verified_setup_email_with_no_active_administrator_makes_an_administrator():
     first = _new()
-    assert (first.role, first.status, first.created, first.identity) == (Role.administrator, Status.active, NOW, "sub-n")
+    assert (first.role, first.status, first.created, first.identity) == (
+        Role.administrator,
+        Status.active,
+        NOW,
+        "sub-n",
+    )
     assert _new(email=" ADA@x.test ").role is Role.administrator  # case and spaces do not matter
     for other in (_new(admins=1), _new(verified=False), _new(email="bob@x.test"), _new(setup=())):
         assert (other.role, other.status) == (Role.user, Status.pending)
