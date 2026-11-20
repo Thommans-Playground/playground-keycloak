@@ -6,7 +6,6 @@ status: draft
 actor: administrator
 context: BC-ACCESS
 satisfies:
-  - id: FR-3
   - id: FR-4
   - id: FR-14
 criteria:
@@ -26,6 +25,7 @@ criteria:
   - id: AC-66
   - id: AC-67
   - id: AC-76
+  - id: AC-77
 parameters:
   - account
   - decision (approve, deactivate, reinstate, promote or demote)
@@ -46,11 +46,9 @@ flow_reviewed: 63dc9f3
 <!-- vbench-uc:begin mirror (generated from the requirements files, do not edit here: change the row, then run sync) -->
 
 <details>
-<summary>The requirements and criteria it runs, copied from docs/requirements (3 requirements, 16 criteria). Do not edit.</summary>
+<summary>The requirements and criteria it runs, copied from docs/requirements (2 requirements, 17 criteria). Do not edit.</summary>
 
 ## What this serves
-
-**FR-3**: The system shall hold a person it does not know as a pending account, who can see only that it is waiting for approval, until an administrator approves it.
 
 **FR-4**: The system shall let an administrator decide who can use the product: approve a pending account, deactivate an active one with a reason, and reinstate a deactivated one with a reason.
 
@@ -104,7 +102,7 @@ flow_reviewed: 63dc9f3
 
 - Given an active account and an identity provider that cannot be reached
 - When an administrator deactivates it, with a reason
-- Then the account is deactivated, the person's next request is refused, and the administrator is told Keycloak was not updated
+- Then the account is deactivated, the person's next request is refused, and the administrator gets a success that says Keycloak was not updated and the call can be repeated
 
 **AC-59** (acceptance, proves FR-4)
 
@@ -116,7 +114,7 @@ flow_reviewed: 63dc9f3
 
 - Given two administrators
 - When each demotes the other at the same moment
-- Then one is refused and an administrator remains
+- Then one is refused and an administrator remains (proven on PostgreSQL)
 
 **AC-63** (acceptance, proves FR-4)
 
@@ -154,9 +152,15 @@ flow_reviewed: 63dc9f3
 - When they approve an account that does not exist, or one that is not pending
 - Then it is refused with a clear answer and nothing changes
 
+**AC-77** (acceptance, proves FR-4)
+
+- Given a deactivated account whose Keycloak user is still enabled
+- When an administrator deactivates it again, with a reason
+- Then only the Keycloak calls are sent again, our account does not change, and the administrator is told whether Keycloak was updated
+
 ## How it is verified
 
-- acceptance: AC-5, AC-6, AC-7, AC-49, AC-50, AC-51, AC-57, AC-58, AC-59, AC-62, AC-63, AC-64, AC-65, AC-67, AC-76
+- acceptance: AC-5, AC-6, AC-7, AC-49, AC-50, AC-51, AC-57, AC-58, AC-59, AC-62, AC-63, AC-64, AC-65, AC-67, AC-76, AC-77
 - unit: AC-66
 
 Each criterion is run by a test tagged `Verifies AC-<n>`.
@@ -184,9 +188,9 @@ In the alpha there are two account roles, user and administrator (decision 13). 
 2. The administrator chooses what to do: approve a pending account, deactivate an active one, reinstate a deactivated one, promote a user to administrator, or demote an administrator. (FR-4, FR-14)
 3. For every choice except an approval, the administrator gives a reason: a deactivation, a reinstatement, a promotion and a demotion all need one. (FR-4, FR-14, AC-57)
 4. The system checks that the person asking is an administrator. (FR-4, FR-14)
-5. The system checks the rules and makes the change as one step, so that the check that an administrator remains and the change cannot be split by a second administrator acting at the same moment (a lock, or one conditional update). (FR-14, AC-51, AC-62, decision 14)
-6. For a deactivation the system first sets the account to deactivated in our database (AC-6), so the API refuses the person at once, then disables the person in Keycloak and ends their sessions. For a reinstatement it first enables the person in Keycloak, then sets the account to active again in our database (AC-7). For an approval it sets the account to active (AC-5) and does not call Keycloak. For a promotion it sets the role to administrator (AC-49), and for a demotion it sets the role to user (AC-50), and neither calls Keycloak. (FR-4, FR-14, AC-5, AC-6, AC-7, AC-49, AC-50, decision 10, decision 13, decision 14)
-7. If a Keycloak call fails, the system keeps the safe side of the order, tells the administrator "Keycloak was not updated" and leaves an audit entry for the half-done change (see other flows). (FR-4, AC-58, AC-59, decision 14)
+5. The system checks the rules and makes the change as one step, so that the check that an administrator remains and the change cannot be split by a second administrator acting at the same moment (a lock on the active administrators, ADR 0009). (FR-14, AC-51, AC-62, decision 14)
+6. For a deactivation the system first sets the account to deactivated in our database (AC-6), and commits it with its audit entry, so the API refuses the person at once, then disables the person in Keycloak and ends their sessions. For a reinstatement it first enables the person in Keycloak, then sets the account to active again in our database (AC-7). For an approval it sets the account to active (AC-5) and does not call Keycloak. For a promotion it sets the role to administrator (AC-49), and for a demotion it sets the role to user (AC-50), and neither calls Keycloak. (FR-4, FR-14, AC-5, AC-6, AC-7, AC-49, AC-50, decision 10, decision 13, decision 14)
+7. If a Keycloak call fails, the system keeps the safe side of the order, answers with a success that says "Keycloak was not updated" and records that outcome on the one audit entry (see other flows). (FR-4, AC-58, AC-59, decisions 14 and 18)
 8. The system sends the audit entry, with who, what, whom and why, to the Audit context (BC-AUDIT) through the AuditLog port. (FR-4, FR-14, AC-49, AC-50)
 9. The person can now use the product, or can no longer sign in and is refused if they still hold a token, or holds the new role from their next request. (FR-3, FR-4, FR-14)
 
@@ -207,8 +211,9 @@ In the alpha there are two account roles, user and administrator (decision 13). 
 - A deactivated person whose token has not yet expired makes a request: it is refused at once, because the account is read on every request, and Keycloak sessions are ended too. (AC-6)
 - A demoted person whose session is still open makes a request: the account is read on every request, so they are a user from that request and the administrator actions are refused. (AC-50)
 - All data of a deactivated account is kept. (AC-7)
-- The Keycloak call fails during a deactivation: the deactivation stands, because our database already changed and the API refuses the person. The administrator is told "Keycloak was not updated", an audit entry records the half-done change, and the call can be repeated. (AC-58, decision 14)
-- The Keycloak call fails during a reinstatement: our account stays deactivated, the administrator is told "Keycloak was not updated", and an audit entry records the half-done change. The person stays locked out rather than let in. The call can be repeated. (AC-59, decision 14)
+- The Keycloak call fails during a deactivation: the deactivation stands, because our database already changed and the API refuses the person. The administrator gets a success that says "Deactivated here. Keycloak was not updated. Press again to retry.", and the audit entry records the outcome. (AC-58, decisions 14 and 18)
+- Deactivating an account that is already deactivated, with a reason, only sends the Keycloak calls again and changes nothing in our database, the one exception to the wrong state refusal. (AC-77, decision 18)
+- The Keycloak call fails during a reinstatement: our account stays deactivated and nothing changes, so no audit entry is written (the failure goes to the log, decision 17). The administrator is told that Keycloak could not be reached. The person stays locked out rather than let in. The call can be repeated. (AC-59, decision 14)
 - Retrying: disabling a person who is already disabled in Keycloak, and enabling one who is already enabled, succeed and change nothing, so both Keycloak calls are safe to repeat. (decision 10, decision 14)
 
 ## Postconditions
@@ -216,28 +221,29 @@ In the alpha there are two account roles, user and administrator (decision 13). 
 - The account is active or deactivated, and its role is user or administrator. A deactivated person is disabled in Keycloak, and an active one who was deactivated before is enabled again. An approved, promoted or demoted person's Keycloak account is unchanged.
 - At least one active administrator exists, even when two changes ran at once. (AC-51, AC-62)
 - If a Keycloak call failed, the account change of a deactivation stands and the account of a reinstatement stays deactivated, until the call is repeated. (AC-58, AC-59)
-- An audit entry records who made the change, to whom, and why, and is held by the Audit context (BC-AUDIT). A half-done change leaves an audit entry too.
+- An audit entry records who made the change, to whom, and why, and is held by the Audit context (BC-AUDIT). A deactivation whose Keycloak call failed has that entry with the outcome Keycloak not updated. A reinstatement that failed changes nothing and writes no entry.
 - No data of the account is removed.
 
 ## Open questions
 
 For the product owner to decide.
 
-1. Decided (decision 10, decision 14): a deactivation changes our database first, then Keycloak, and if Keycloak fails the deactivation stands, the administrator is told "Keycloak was not updated" and the call can be repeated. A reinstatement is the reverse: Keycloak first, then our database, so a failure locks the person out. Both Keycloak calls are safe to repeat.
+1. Decided (decision 10, decision 14): a deactivation changes our database first, then Keycloak, and if Keycloak fails the deactivation stands, the administrator is told "Keycloak was not updated" and the call can be repeated by deactivating again (decision 18, AC-77). A reinstatement is the reverse: Keycloak first, then our database, so a failure locks the person out. Both Keycloak calls are safe to repeat.
 2. Decided (decision 13): promoting and demoting administrators belongs to this use case, with a reason and an audit entry.
 3. An evaluation that a deactivated person had running should reach its end. No criterion yet, because evaluations do not exist.
 4. Decided: promoting needs an active user. A pending or deactivated account is refused.
 5. Decided (decision 14): a reinstatement needs a reason, like every change except an approval (AC-7, AC-57).
-6. How the audit entry of a half-done change is worded (its action name) is for the Audit context (BC-AUDIT) to settle. This use case only needs that one entry exists.
+6. Decided (decision 18): one entry for each change, with an outcome (done, or Keycloak not updated). Refused changes go to the log.
 
 ## Slices
 
-- TSK-A4.1: Approve a pending account (AC-5)
-- TSK-A4.2: Deactivate an account with a reason (AC-6)
+- TSK-A4.1: Approve a pending account, and refuse a wrong state or an unknown account (AC-5, AC-66, AC-76)
+- TSK-A4.2: Deactivate an account with a reason, only an active administrator may, never oneself, and a deactivated person is refused at once (AC-6, AC-63, AC-64, AC-65, AC-67)
 - TSK-A4.3: Reinstate a deactivated account with a reason, and a failed Keycloak call leaves it deactivated (AC-7, AC-57, AC-59)
 - TSK-A4.4: Promote an active user to administrator, with a reason, rules RULE-A3 (AC-49)
 - TSK-A4.5: Demote an administrator, with a reason, never oneself and never the last one, the check and the change as one step, rules RULE-A1, RULE-A2 (AC-50, AC-51, AC-62)
 - TSK-A4.6: Deactivate database first, then Keycloak, and a failed Keycloak call leaves the deactivation standing (AC-58)
+- TSK-A4.7: Repeat a deactivation to send the Keycloak calls again (AC-77)
 
 
 ## Overview
@@ -278,8 +284,8 @@ The parts that do the work. The class diagram is [access-design.puml](../domain/
 **Built:** the API for all five decisions, with the rules, the reason for a reinstatement, an audit entry written by the Access context and the Keycloak calls, and the administrator accounts page of the web server, which offers promote and demote with a reason. The API's `AccessService.change` already handles promote and demote (the domain rules, the reason and the audit entry), and its tests cover them.
 
 **Planned for the alpha, not built:**
-- D11: the order of a deactivation (decisions 10 and 14). The code today calls Keycloak first and changes nothing if Keycloak fails, which is the reinstatement order. The planned order is our database, then Keycloak, with the failure branch (AC-58). The reinstatement order is already built, but its failure branch needs the audit entry of the half-done change and the message "Keycloak was not updated" (AC-59).
-- D13: the check and the change as one step (a lock or a conditional update in the repository), proved by a test that runs two changes at once (AC-62). Today `count_active_administrators` and `save` are two separate calls.
+- D11: the order of a deactivation (decisions 10 and 14). BUILT: a deactivation saves our account, records its audit entry, commits, then calls Keycloak, and returns an outcome instead of raising (AC-58, AC-77, ADR 0009). A reinstatement calls Keycloak first, and a failure changes nothing and answers 502 (AC-59).
+- D13: the check and the change as one step (a lock on the active administrator rows, ADR 0009), proved by a test that runs two changes at once (AC-62). Today `count_active_administrators` and `save` are two separate calls.
 - D14: the audit entry goes to the Audit context (BC-AUDIT) through the AuditLog port. Today the Access adapter writes an `audit_entries` table of its own, which moves to Audit (decision 14).
 
 - D1 (route): The five routes `POST /accounts/{id}/approve`, `deactivate`, `reinstate`, `promote` and `demote`, with `GET /accounts` and `GET /audit`, each behind the administrator guard
@@ -288,13 +294,13 @@ The parts that do the work. The class diagram is [access-design.puml](../domain/
 - D4 (domain rule): decide() and clean_reason(): the transitions, no self change, the last administrator, the reason
 - D5 (aggregate): Account, with its role and status
 - D6 (port): AccountRepository, with the count of active administrators
-- D7 (port): AuditLog, answered by the Audit context (BC-AUDIT) and no longer by an Access table; it also records the half-done change
+- D7 (port): AuditLog, answered by the Audit context (BC-AUDIT) and no longer by an Access table; it also records the outcome of a change
 - D8 (port): IdentityProvider of the API (disable, enable, end sessions), not called for approve, promote or demote
 - D9 (adapter): SqlAdapters on PostgreSQL (RDS on AWS) and KeycloakAdmin
 - D10 (mapping): Domain errors answered as HTTP statuses in main.py (422 reason, 409 last administrator and wrong state, a self change refused, 404 no account)
-- D11 (use case): ALPHA, planned, not built: a deactivation changes our account first, then Keycloak, and the reinstatement reverse, each with its failure branch (decisions 10 and 14)
+- D11 (use case): BUILT: a deactivation changes our account first, then Keycloak, and the reinstatement reverse, each with its failure branch (decisions 10, 14 and 18)
 - D12 (web): The administrator accounts page and its table, with the reason dialog, calling the API through the BackendApi port
-- D13 (port): ALPHA, planned, not built: AccountRepository makes the last-administrator check and the change as one step (a lock or a conditional update), with a test that runs two changes at once
+- D13 (port): ALPHA, planned, not built: AccountRepository makes the last-administrator check and the change as one step (a lock on the active administrator rows), with a PostgreSQL test that runs two changes at once
 - D14 (adapter): ALPHA, planned, not built: the AuditLog adapter wired by the composition root to the Audit context (BC-AUDIT)
 
 ## Changes from analysis to design

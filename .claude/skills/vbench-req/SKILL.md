@@ -84,6 +84,20 @@ Do not start it unasked.
 - A criterion that vbench-uc or vbench-at sent back as vague, wrong, or at the wrong level: this is where it
   is fixed. Ask the owner, then change the row.
 
+## Duplicates
+
+`python3 .claude/skills/vbench-req/scripts/req_tool.py duplicates` is read only. It lists likely duplicates
+in three places, with the same word matching as `search` (no model, so the same input gives the same output):
+requirements (name and statement, default 0.55), acceptance criteria (given, when, then, default 0.65, plus
+pairs with near-identical then-clauses of three words or more under different requirements), and use cases (name and description,
+default 0.5, pairs sharing half of the smaller one's criteria, and any criterion listed by more than one use
+case). Retired rows are skipped. `--threshold N` overrides the score, `--kind requirements|acceptance|usecases`
+picks one section. It always exits 0: it reports, it does not gate.
+
+Run it before adding a row (to see if the area is already crowded) and before a release. It is a prompt for a
+person: it never edits, retires or merges anything. Show the pairs and offer the safe options: retire one
+(status `retired`), merge keeping one id, move it to another level, or defer with an R2 note. The owner decides.
+
 ## Rules that matter
 
 - Ids are append only. Never renumber or reuse. A dropped row gets `status: retired`.

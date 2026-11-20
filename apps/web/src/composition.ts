@@ -1,8 +1,10 @@
 import "server-only";
 import { randomBytes } from "node:crypto";
+import { createClient } from "redis";
 import { env } from "@/lib/auth/config";
 import { FetchBackendApi } from "./adapters/fetch-backend-api.ts";
 import { InMemoryLoginAttemptStore, InMemorySessionStore } from "./adapters/in-memory-stores.ts";
+import { RedisLoginAttemptStore, RedisSessionStore } from "./adapters/redis-stores.ts";
 import { KeycloakIdentityProvider } from "./adapters/keycloak-identity-provider.ts";
 import { makeAccessToken } from "./application/access-token.ts";
 import { makeCallBackend } from "./application/call-backend.ts";
@@ -10,9 +12,18 @@ import { finishLogin, startLogin } from "./application/sign-in.ts";
 import { signOut } from "./application/sign-out.ts";
 
 /**
- * The one place that says "use Keycloak, keep sessions in memory, call the API over HTTP".
- * To use ElastiCache for sessions, write an adapter and change the two `new InMemory...` lines here.
+ * The one place that says "use Keycloak, keep sessions in Redis (or in memory), call the API over HTTP".
+ * REDIS_URL set: Redis (Amazon ElastiCache on AWS). Not set: in memory, one process, lost on restart.
  */
+function buildStores() {
+  const url = process.env.REDIS_URL;
+  if (!url) return { attempts: new InMemoryLoginAttemptStore(), sessions: new InMemorySessionStore() };
+  const client = createClient({ url });
+  client.on("error", (e) => console.error("redis:", e)); // node-redis reconnects by itself
+  void client.connect().catch((e) => console.error("redis connect:", e));
+  return { attempts: new RedisLoginAttemptStore(client), sessions: new RedisSessionStore(client) };
+}
+
 function build() {
   const now = () => Date.now();
   const newId = () => randomBytes(32).toString("base64url");
@@ -24,8 +35,7 @@ function build() {
     clientId: env.clientId,
     clientSecret: env.clientSecret,
   });
-  const attempts = new InMemoryLoginAttemptStore();
-  const sessions = new InMemorySessionStore();
+  const { attempts, sessions } = buildStores();
   const backend = new FetchBackendApi(env.apiUrl);
 
   const signInDeps = { idp, attempts, sessions, now, newId };

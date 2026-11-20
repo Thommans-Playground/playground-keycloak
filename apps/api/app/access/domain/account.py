@@ -113,6 +113,11 @@ def clean_reason(reason: str | None) -> str:
     return text
 
 
+def is_repeat_deactivation(action: Action, target: Account) -> bool:
+    """Deactivating a deactivated account: the one exception to the wrong state refusal (AC-77, decision 18)."""
+    return action is Action.deactivate and target.status is Status.deactivated
+
+
 def decide(action: Action, actor: Account, target: Account, active_admins: int) -> Account:
     """Return the target as it will be after `action`, or raise the rule that refuses it.
 
@@ -124,6 +129,8 @@ def decide(action: Action, actor: Account, target: Account, active_admins: int) 
     if action is Action.approve:
         _need(target.status is Status.pending, "Only a pending account can be approved.")
         return target.with_(status=Status.active)
+    if is_repeat_deactivation(action, target):
+        return target  # Realises UC-A4 AC-77: nothing changes, only Keycloak is told again
     if action is Action.deactivate:
         _need(target.status is Status.active, "Only an active account can be deactivated.")
         _keep_an_administrator(target, active_admins)

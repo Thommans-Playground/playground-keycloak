@@ -612,3 +612,22 @@ would mean adding them under pressure.
 **Still open.** Should UC-A3 (register) write an audit entry? Should a refused change or a read be recorded?
 Metrics and tracing stay out of the alpha.
 
+
+## 18. UC-A4 deactivation when Keycloak is down (20 Nov 2026)
+
+**Decided.** By the owner.
+- **A failed Keycloak disable is retried by repeating deactivate (AC-77).** Deactivating an account that is already
+  deactivated, with a reason, only sends the Keycloak calls again. It changes nothing in our database. This is the one
+  exception to "only an active account can be deactivated" (AC-66).
+- **When Keycloak was not updated, the administrator gets a success with a warning:** "Deactivated here. Keycloak was
+  not updated. Press again to retry." The change did happen, so it is not an error (AC-58).
+- **One audit entry for each change, with an outcome:** done, or Keycloak not updated. Refused attempts go to the
+  log (decision 17), not the audit trail. This answers decision 17's open question on refused changes, for UC-A4.
+
+**Why.** The review found that "the call can be repeated" was false: a second deactivate was refused as wrong state,
+so a person could stay enabled in Keycloak with no way to fix it. It matters once other products share the realm.
+
+**Changes.** AC-58 and AC-62 reworded, AC-77 added, AC-66 notes the exception, UC-A4 text and diagrams. ADR 0009
+records the technical side (commit order, locking).
+
+**Still open.** Whether UC-A3 (register) writes an audit entry (decision 17).

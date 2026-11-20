@@ -61,11 +61,11 @@
 | AC-55 | FR-16 | an administrator, a user who is a member of one project, and several projects | each lists projects | the user sees only their own project and the administrator sees all | acceptance | draft |  |
 | AC-56 | FR-17 | an account change and a project change | an administrator opens the audit trail | both entries are there, with who, what, whom and the reason where one was asked | acceptance | draft |  |
 | AC-57 | FR-4 | a deactivated account | an administrator reinstates it without a reason | it is refused and the account stays deactivated | acceptance | draft |  |
-| AC-58 | FR-4 | an active account and an identity provider that cannot be reached | an administrator deactivates it, with a reason | the account is deactivated, the person's next request is refused, and the administrator is told Keycloak was not updated | acceptance | draft |  |
+| AC-58 | FR-4 | an active account and an identity provider that cannot be reached | an administrator deactivates it, with a reason | the account is deactivated, the person's next request is refused, and the administrator gets a success that says Keycloak was not updated and the call can be repeated | acceptance | draft |  |
 | AC-59 | FR-4 | a deactivated account and an identity provider that cannot be reached | an administrator reinstates it, with a reason | the account stays deactivated and the administrator is told | acceptance | draft |  |
 | AC-60 | FR-9 | a member of a project who is not an administrator | they try to add or remove a member | it is refused | acceptance | draft |  |
 | AC-61 | FR-3 | an active administrator exists, and a new person whose email is the setup email, verified | they make their first request | they get a pending account, not an administrator account | acceptance | draft |  |
-| AC-62 | FR-14 | two administrators | each demotes the other at the same moment | one is refused and an administrator remains | acceptance | draft |  |
+| AC-62 | FR-14 | two administrators | each demotes the other at the same moment | one is refused and an administrator remains (proven on PostgreSQL) | acceptance | draft |  |
 | AC-63 | FR-4 | a person who is not an active administrator: an ordinary user, a pending account or a deactivated account | they try to approve, deactivate, reinstate, promote or demote an account | each is refused and the account stays as it was | acceptance | draft |  |
 | AC-64 | FR-4 | an administrator | they deactivate, promote or demote an account without a reason | it is refused and the account stays as it was | acceptance | draft |  |
 | AC-65 | FR-4 | an administrator | they try to deactivate their own account, or the last active administrator | it is refused | acceptance | draft |  |
@@ -80,3 +80,4 @@
 | AC-74 | FR-3 | no active administrator exists, and a new person whose email is the setup email, verified | they make their first request | they get an active administrator account | acceptance | draft |  |
 | AC-75 | FR-3 | a new person whose email is the setup email, not verified | they make their first request | they get a pending account, like anyone else | acceptance | draft |  |
 | AC-76 | FR-4 | an administrator | they approve an account that does not exist, or one that is not pending | it is refused with a clear answer and nothing changes | acceptance | draft |  |
+| AC-77 | FR-4 | a deactivated account whose Keycloak user is still enabled | an administrator deactivates it again, with a reason | only the Keycloak calls are sent again, our account does not change, and the administrator is told whether Keycloak was updated | acceptance | draft |  |
