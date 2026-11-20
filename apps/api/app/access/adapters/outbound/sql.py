@@ -1,13 +1,10 @@
 from datetime import datetime
 
 from sqlalchemy import DateTime, Integer, String, Text, func, select
-from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
+from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from app.access.domain.account import Account, Role, Status
-
-
-class Base(DeclarativeBase):
-    pass
+from app.infrastructure.db import Base
 
 
 class AccountRow(Base):

@@ -5,9 +5,9 @@ import json
 import httpx
 import pytest
 
-from app.access.adapters import keycloak_admin as module
-from app.access.adapters.keycloak_admin import KeycloakAdmin
-from app.config import Settings
+from app.access.adapters.outbound import keycloak_admin as module
+from app.access.adapters.outbound.keycloak_admin import KeycloakAdmin
+from app.infrastructure.config import Settings
 
 SETTINGS = Settings(keycloak_url="http://kc.test", keycloak_realm="playground")
 TOKEN_PATH = "/realms/playground/protocol/openid-connect/token"
@@ -135,7 +135,7 @@ def test_the_service_turns_adapter_failures_into_identity_provider_unavailable()
     """The adapter raises httpx errors; the conversion is the service's job (service.py), not the adapter's."""
     from datetime import datetime
     from app.access.domain.account import Account, Action, Role, Status
-    from app.access.service import AccessService, IdentityProviderUnavailable
+    from app.access.application.service import AccessService, IdentityProviderUnavailable
     from tests.fakes import FakeAccounts, FakeAudit, FakeUnitOfWork
 
     kc = Kc(fail_on=lambda r: r.url.path == TOKEN_PATH)

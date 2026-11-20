@@ -1,7 +1,7 @@
 import pytest
 
-from app.access.service import AccessService
-from app.config import Settings
+from app.access.application.service import AccessService
+from app.infrastructure.config import Settings
 from tests.fakes import FakeAccounts, FakeAudit, FakeIdp, FakeUnitOfWork
 
 

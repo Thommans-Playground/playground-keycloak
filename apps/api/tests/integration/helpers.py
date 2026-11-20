@@ -14,7 +14,7 @@ from urllib.parse import parse_qs, urljoin, urlparse
 
 import httpx
 
-from app.config import Settings
+from app.infrastructure.config import Settings
 
 KEYCLOAK_URL = os.environ.get("KEYCLOAK_URL", "http://localhost:8080")
 API_URL = os.environ.get("API_URL", "http://localhost:8000")

@@ -8,9 +8,9 @@ import threading
 from datetime import datetime
 
 import pytest
-from app.access.adapters.sql import Base, SqlAccounts, SqlAudit, SqlUnitOfWork
+from app.access.adapters.outbound.sql import Base, SqlAccounts, SqlAudit, SqlUnitOfWork
 from app.access.domain.account import Account, Action, LastAdministrator, Role, Status
-from app.access.service import AccessService
+from app.access.application.service import AccessService
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 

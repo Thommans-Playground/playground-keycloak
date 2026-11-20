@@ -1,10 +1,11 @@
-"""The TokenVerifier, built as create_app builds it, against real tokens from the running Keycloak."""
+"""The JwtTokenVerifier, built as create_app builds it, against real tokens from the running Keycloak."""
 
 import jwt
 import pytest
 from cryptography.hazmat.primitives.asymmetric import rsa
 
-from app.auth import InvalidToken, TokenVerifier
+from app.access.adapters.outbound.token_verifier import JwtTokenVerifier
+from app.access.application.ports import InvalidToken
 from tests.integration import helpers
 from tests.integration.helpers import login
 
@@ -12,10 +13,10 @@ pytestmark = pytest.mark.integration
 
 
 @pytest.fixture(scope="module")
-def verifier() -> TokenVerifier:
+def verifier() -> JwtTokenVerifier:
     s = helpers.settings()
     # Exactly the call in create_app (main.py)
-    return TokenVerifier.from_jwks(s.issuer, s.api_audience, s.internal_realm_url)
+    return JwtTokenVerifier.from_jwks(s.issuer, s.api_audience, s.internal_realm_url)
 
 
 @pytest.fixture

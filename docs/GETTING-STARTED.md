@@ -123,14 +123,15 @@ Read in this order. Each file is short.
 |---|---|
 | `app/access/domain/account.py` | The `Account`, its statuses and roles, and every rule (`decide`). Start here |
 | `tests/test_domain.py` | The rules as examples |
-| `app/access/ports.py` | The three things the domain needs from outside |
-| `app/auth.py` | Token check, about 50 lines |
-| `app/access/service.py` | The use cases: first sight of a person, approve, deactivate. Keycloak is called **before** our database changes. The clock is injected |
-| `app/access/adapters/` | `keycloak_admin.py` (enable or disable a person in Keycloak) and `sql.py` (PostgreSQL) |
-| `app/main.py` | Routes, the chain of dependencies (`principal` → `any_account` → `not_deactivated` → `active_account` → `administrator`), the rule-to-HTTP-status map, and the wiring of adapters |
+| `app/access/application/ports.py` | What the use cases need from outside: accounts, audit, Keycloak, unit of work, token check |
+| `app/access/adapters/outbound/token_verifier.py` | The JWT check behind the `TokenVerifier` port, about 40 lines |
+| `app/access/application/service.py` | The use cases: first sight of a person, approve, deactivate. Keycloak is called **before** our database changes. The clock is injected |
+| `app/access/adapters/outbound/` | `keycloak_admin.py` (enable or disable a person in Keycloak) and `sql.py` (PostgreSQL) |
+| `app/access/adapters/inbound/` | `http.py`: the routes and the chain of dependencies (`principal` → `any_account` → `not_deactivated` → `active_account` → `administrator`); `errors.py`: the rule-to-HTTP-status map; `schemas.py`: what goes over HTTP |
+| `app/composition/app.py` | The composition root: picks the adapters and wires them to the use cases. `app/main.py` only points at it |
 | `tests/test_service.py` | The use cases with in-memory fakes: no database, no Keycloak, a fixed clock |
 | `tests/test_api.py` | Whole flows, with a fake Keycloak and a test signing key |
-| `tests/test_architecture.py` | Fails if the domain, the ports or a use case imports an adapter or a framework |
+| `tests/test_architecture.py` | Fails if a context breaks the layout of ADR 0010: wrong folder, or a layer importing what it must not (adapter, framework, another context) |
 
 **Web** (`apps/web/src`)
 
@@ -173,7 +174,7 @@ Paste an access token into https://jwt.io to read it. You can get one from the N
 | Idea | Where |
 |---|---|
 | Add a new action, say "suspend" | `Action` and `decide` in `access/domain/account.py`, a test, a button in `accounts-table.tsx` |
-| Add a role | `Role` in `access/domain/account.py`, then check `administrator` in `main.py` |
+| Add a role | `Role` in `access/domain/account.py`, then check `administrator` in `access/adapters/inbound/http.py` |
 | Make deactivated people see their own page | `dashboard/page.tsx` already handles `account_deactivated` |
 | Shorten the access token to 1 minute | `accessTokenLifespan` in the realm JSON, `docker compose down -v`, up again |
 | Add MFA for administrators | Keycloak: Authentication → flows (no code change) |

@@ -108,12 +108,21 @@ def test_a_deactivated_person_is_refused_all_five_commands(client, admin, idp):
     _refused_all_five(client, admin, idp, actor)
 
 
+def _api_routes(app_or_router):
+    """Every APIRoute, also those of included routers (FastAPI keeps an included router as a wrapper)."""
+    for r in app_or_router.routes:
+        if isinstance(r, APIRoute):
+            yield r
+        elif hasattr(r, "original_router"):
+            yield from _api_routes(r.original_router)
+
+
 # FR-3: every route but /me and /health is closed to a pending person
 @pytest.mark.ac("AC-4")
 def test_every_route_but_me_and_health_refuses_a_pending_person(client, admin):
     pending, _ = register(client, "sub-maya", "maya@x.test")
     skipped = {"/me", "/health", "/docs", "/redoc", "/openapi.json", "/docs/oauth2-redirect"}
-    routes = [r for r in client.app.routes if isinstance(r, APIRoute) and r.path not in skipped]
+    routes = [r for r in _api_routes(client.app) if r.path not in skipped]
     assert len(routes) >= 7, "the table must really cover the routes"
     for route in routes:
         path = route.path.replace("{account_id}", str(uuid.uuid4()))

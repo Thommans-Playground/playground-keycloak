@@ -18,7 +18,7 @@ from app.access.domain.account import (
     is_repeat_deactivation,
     new_account,
 )
-from app.access.ports import AccountRepository, AuditLog, IdentityProvider, UnitOfWork
+from app.access.application.ports import AccountRepository, AuditLog, IdentityProvider, UnitOfWork
 
 
 class IdentityProviderUnavailable(DomainError):

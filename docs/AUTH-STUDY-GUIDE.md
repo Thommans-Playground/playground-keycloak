@@ -446,14 +446,14 @@ Host: keycloak:8080
 
 **16. API → database: find the account by `sub`, or create it**
 
-From the verified token the API keeps only what it needs, a `Principal` ([auth.py](../apps/api/app/auth.py)):
+From the verified token the API keeps only what it needs, a `Principal` ([ports.py](../apps/api/app/access/application/ports.py)):
 
 ```text
 Principal(identity="64b93477-984d-439f-a60c-a61cc1489a93",
           name="Maya Rao", email="maya@example.test", email_verified=True)
 ```
 
-Maya is new, so `account_for` ([service.py](../apps/api/app/access/service.py)) creates a pending account and an audit entry. Her email is not in `BOOTSTRAP_ADMIN_EMAILS`, so she starts as a pending user. On every later request this is a read, and it is where role and status are checked.
+Maya is new, so `account_for` ([service.py](../apps/api/app/access/application/service.py)) creates a pending account and an audit entry. Her email is not in `BOOTSTRAP_ADMIN_EMAILS`, so she starts as a pending user. On every later request this is a read, and it is where role and status are checked.
 
 ```sql
 SELECT * FROM accounts WHERE identity = '64b93477-…';     -- nothing found
@@ -468,7 +468,7 @@ Two ids sit side by side in the account row. `id` is **ours**, made by the API, 
 
 **17. API → Next.js: the account**
 
-`AccountOut` in [main.py](../apps/api/app/main.py). `identity` is not sent out.
+`AccountOut` in [schemas.py](../apps/api/app/access/adapters/inbound/schemas.py). `identity` is not sent out.
 
 ```http
 HTTP/1.1 200 OK
@@ -572,7 +572,7 @@ Before her first sign in, Maya exists in Keycloak only. Her Keycloak user, from 
 }
 ```
 
-Her password is not in that record. Keycloak keeps a hash of it separately, and no API hands it out. The API's database has **no row for her yet** (step 16 makes it). Its two tables, as PostgreSQL shows them (`\d accounts`, and the model in [sql.py](../apps/api/app/access/adapters/sql.py)):
+Her password is not in that record. Keycloak keeps a hash of it separately, and no API hands it out. The API's database has **no row for her yet** (step 16 makes it). Its two tables, as PostgreSQL shows them (`\d accounts`, and the model in [sql.py](../apps/api/app/access/adapters/outbound/sql.py)):
 
 ```text
 accounts                                  audit_entries
@@ -797,7 +797,7 @@ flowchart LR
 
 The payload is **not secret**, anyone can decode it. What makes it trustworthy is the **signature**. Keycloak signs with a private key it never shares. The API fetches Keycloak's **public keys** (the JWKS, a list of keys at a known URL) and verifies the signature. If one byte of the payload changed, verification fails. Anyone can read a token, nobody can forge one.
 
-**The claims the API checks** ([auth.py](../apps/api/app/auth.py)):
+**The claims the API checks** ([token_verifier.py](../apps/api/app/access/adapters/outbound/token_verifier.py)):
 
 | Claim | Meaning | The API requires |
 |---|---|---|
@@ -1070,11 +1070,11 @@ The web app is split the hexagonal way: `domain/` holds pure rules, `application
 | Access token, with refresh | [application/access-token.ts](../apps/web/src/application/access-token.ts) | one refresh at a time per session |
 | Call the API | [application/call-backend.ts](../apps/web/src/application/call-backend.ts), [api/backend/[...path]/route.ts](../apps/web/src/app/api/backend/[...path]/route.ts), [lib/api.ts](../apps/web/src/lib/api.ts) | add `Bearer`, for the browser's calls and for pages rendered on the server |
 | Sign out | [application/sign-out.ts](../apps/web/src/application/sign-out.ts), [auth/logout/route.ts](../apps/web/src/app/auth/logout/route.ts) | end both sessions |
-| Token check (API) | [auth.py](../apps/api/app/auth.py) | verifies the token |
-| Endpoints (API) | [main.py](../apps/api/app/main.py) | one check chain per request |
-| Use cases (API) | [access/service.py](../apps/api/app/access/service.py) | `account_for`, `change` |
+| Token check (API) | [access/adapters/outbound/token_verifier.py](../apps/api/app/access/adapters/outbound/token_verifier.py) | verifies the token |
+| Endpoints (API) | [access/adapters/inbound/http.py](../apps/api/app/access/adapters/inbound/http.py) | one check chain per request |
+| Use cases (API) | [access/application/service.py](../apps/api/app/access/application/service.py) | `account_for`, `change` |
 | Rules (API) | [access/domain/account.py](../apps/api/app/access/domain/account.py) | pure rules, no framework |
-| Keycloak admin (API) | [access/adapters/keycloak_admin.py](../apps/api/app/access/adapters/keycloak_admin.py) | the API's own login, then enable and disable people |
+| Keycloak admin (API) | [access/adapters/keycloak_admin.py](../apps/api/app/access/adapters/outbound/keycloak_admin.py) | the API's own login, then enable and disable people |
 
 ### Flow A: the first sign-in
 
@@ -1258,7 +1258,7 @@ return { kind: "response", ...(await deps.backend.request(req, token)) }; // the
 
 Two places use it. The browser's own calls go to [api/backend/[...path]/route.ts](../apps/web/src/app/api/backend/[...path]/route.ts), which answers `401 no_session` when there is no session. Pages rendered on the server use [lib/api.ts](../apps/web/src/lib/api.ts) (`getMe()`). Either way the token goes from Next.js to the API and no further.
 
-**Hop 4: the API verifies the token.** [auth.py](../apps/api/app/auth.py):
+**Hop 4: the API verifies the token.** [token_verifier.py](../apps/api/app/access/adapters/outbound/token_verifier.py):
 
 ```python
 claims = jwt.decode(
@@ -1275,7 +1275,7 @@ claims = jwt.decode(
 - `algorithms=["RS256"]` matters: it blocks the classic trick of a token that claims `alg: none` or a weaker algorithm.
 - A token with no `email` is refused too.
 
-**Hop 5: the account, then the permission.** [main.py](../apps/api/app/main.py) builds a chain of checks. Each layer depends on the one before:
+**Hop 5: the account, then the permission.** [http.py](../apps/api/app/access/adapters/inbound/http.py) builds a chain of checks. Each layer depends on the one before:
 
 ```mermaid
 flowchart TB
@@ -1292,7 +1292,7 @@ flowchart TB
 - Admin endpoints need `administrator`, which needs `active_account`, which needs `not_deactivated`.
 - **The account is read from the database on every request.** That is why deactivating someone, or changing a role, takes effect on their very next request, not when their token expires.
 
-**First sight creates an account.** `any_account` calls `AccessService.account_for` ([service.py](../apps/api/app/access/service.py)). Step 16 in 0.3 shows the rows it writes.
+**First sight creates an account.** `any_account` calls `AccessService.account_for` ([service.py](../apps/api/app/access/application/service.py)). Step 16 in 0.3 shows the rows it writes.
 
 ```python
 existing = self.accounts.by_identity(identity)       # identity is the token's sub
@@ -1329,7 +1329,7 @@ sequenceDiagram
     A-->>Adm: the updated account
 ```
 
-[service.py](../apps/api/app/access/service.py) `change`:
+[service.py](../apps/api/app/access/application/service.py) `change`:
 
 ```python
 updated = decide(action, actor, target, self.accounts.count_active_administrators())
@@ -1349,7 +1349,7 @@ self.audit.record(actor.id, action.value, target.id, cleaned, _now())
 - `decide` ([access/domain/account.py](../apps/api/app/access/domain/account.py)) is **pure**: no database, no HTTP. It enforces the rules (a reason of at least three letters, nobody deactivates themselves, there is always an administrator).
 - **Keycloak is called first.** Two systems cannot change in one transaction. If Keycloak succeeds and our database then fails, a person is disabled but our record still says active. If we did it the other way and Keycloak failed, we would say deactivated while they could still sign in. Calling Keycloak first means a failure leaves *nothing* changed. (Open: a failure between the two steps. Decision 4 lists it.)
 - **Approve does not call Keycloak.** A pending person already has a Keycloak login. Approving is only a status change in our database.
-- The API proves itself to Keycloak in [keycloak_admin.py](../apps/api/app/access/adapters/keycloak_admin.py) with the **client credentials** grant (Part 1.12), caching the token until 10 seconds before it expires:
+- The API proves itself to Keycloak in [keycloak_admin.py](../apps/api/app/access/adapters/outbound/keycloak_admin.py) with the **client credentials** grant (Part 1.12), caching the token until 10 seconds before it expires:
 
 ```python
 r = self._http.post(f"{...}/protocol/openid-connect/token", data={
