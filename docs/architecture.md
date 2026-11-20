@@ -25,13 +25,18 @@ one opaque session cookie.
 ```mermaid
 flowchart LR
     browser[Browser] -->|session cookie| web[Web server, Next.js BFF]
-    web -->|sign in, refresh, sign out| keycloak[Keycloak]
+    browser -->|login page, registration, account page| keycloak[Keycloak]
+    web -->|sign in, refresh, sign out| keycloak
     web -->|access token as Bearer| api[API, FastAPI]
     web -->|sessions, login attempts| redis[(Redis)]
-    api -->|verify token, enable, disable, end sessions| keycloak
+    api -->|JWKS keys, enable, disable, end sessions| keycloak
     api -->|accounts, audit| apidb[(API database)]
     keycloak --> kcdb[(Keycloak database)]
 ```
+
+The browser talks to Keycloak directly for the login, registration and account pages (decision 19), so Keycloak's public
+address is the second public endpoint besides the web server. The API checks every token itself and only fetches Keycloak's
+signing keys (JWKS); it reaches Keycloak on an internal address in Docker while tokens carry the public one as issuer.
 
 | Container | Holds | Built |
 |---|---|---|
@@ -49,11 +54,14 @@ flowchart TB
     subgraph composition ["composition, the only place that sees every adapter"]
         wiring[wires ports to adapters and bridges contexts]
     end
-    access[Access, built] -->|AuditLog port| wiring
-    projects[Projects, planned] -->|AuditLog port, AccountStatus port| wiring
-    wiring --> audit[Audit, planned]
-    wiring --> access
+    wiring --- access[Access, built]
+    wiring -.- audit[Audit, planned]
+    wiring -.- projects[Projects, planned]
 ```
+
+Dotted lines are planned. **Today** the composition root wires Access's own audit adapter and table straight in, with no
+bridge and no Audit context; the move to Audit (ADR 0003, 0011) and the ports Projects needs (`AccountStatus`, `AuditLog`
+and a `People` port answered by Access) are not built.
 
 Every context has the same folders (ADR 0010): `domain/`, `application/`, `adapters/inbound`, `adapters/outbound`. A
 context never imports another. Where one needs the other, the composition root answers the port. This is enforced by
@@ -87,9 +95,28 @@ flowchart TB
     kc2 --> kcdb2
 ```
 
+Dashed in the target and not built: a proxy or load balancer in front (where TLS ends), a one-off migration container
+with the owner database role, Secrets Manager, CloudWatch for stdout logs, and Keycloak running `start` instead of
+`start-dev`. Redis is not persisted to disk (sessions hold tokens).
+
 Decision 20: the alpha has no scalability. One set of containers on one EC2 instance, only the data on RDS, so one web
 container. Moving later is configuration, not a rewrite (decision 4): Redis becomes ElastiCache, the containers move to
 ECS Fargate, and a second web container needs a Redis lock around the token refresh (accepted risk until then).
+
+### Who may reach what (proposed, not built, for the owner to accept)
+
+| Container | Port | Reached by | Rule |
+|---|---|---|---|
+| Proxy or load balancer | 443 | the corporate network | The only public entry. Serves the web server and Keycloak's `/realms` (login, registration, account), and nothing else. |
+| Web server | 3000 | the proxy | Not public itself. |
+| API | 8000 | the web server only | Not public. Today compose publishes it on the host: that must not be copied to EC2. |
+| Keycloak admin console | 8080 `/admin` | an administrator, by SSM port forwarding only | Not served by the proxy. The bootstrap `admin/admin` is replaced at setup. |
+| Redis | 6379 | the web server only | Not published. No password today: either bound to the container network only, or AUTH enabled. |
+| API and Keycloak databases | 5432 | the API and Keycloak only | RDS in a private subnet, TLS to RDS (sslmode), encrypted snapshots. |
+
+TLS ends at the proxy. Hops inside the instance are plain HTTP in the alpha. Without TLS the `Secure` session cookie is not
+sent, so the public address must be https. The test stack (`scripts/test-stack.sh`, project `playground-test`) uses the same
+ports as the dev stack and the database `playground_test`; ADR 0011 adds a second database role to it.
 
 ## 5. Rules that cut across use cases
 
@@ -99,12 +126,13 @@ ECS Fargate, and a second web container needs a Redis lock around the token refr
 | Tokens | The browser never sees a token; the web server holds them | UC-A1, ADR 0001 | built |
 | Hexagon | Domain imports nothing; outside things sit behind ports; one architecture test per side | ADR 0001, 0010 | built |
 | Transactions | A deactivation commits before Keycloak is called; the last administrator is protected by a lock | ADR 0009 | built |
-| Audit | Append only; the database refuses update, delete, truncate, alter, drop to the API role; the database sets the time | decisions 21, 22; ADR 0011 | planned |
+| Audit | Append only; the database refuses update, delete, truncate, alter, drop to the API role; the database sets the time | decisions 21, 22; ADR 0003, 0011 | planned |
+| Caller | Projects receives a `Caller` and never looks a role up | ADR 0002 | planned |
 | Migrations | Alembic, run as an owner role in a separate step; the API role owns nothing; `create_all` goes | ADR 0004, 0011 | planned |
-| Logging | One JSON line per security event on stdout, for CloudWatch; never a token or a code | decision 17; ADR (security log, on its own branch) | partly built |
+| Logging | One JSON line per security event on stdout, for CloudWatch; never a token or a code | decision 17; its ADR is on branch `feat/UC-A1-basic-logging` and needs a new number (0012) when it merges | planned, built on a branch |
 | Sessions | Redis with expiry; one web container for the alpha | decision 20 (the Redis adapter has no ADR of its own yet) | built |
-| Secrets | Today: environment variables and development defaults. Target: Secrets Manager or SSM | decision 4 | open |
-| Tests | Unit, use case, adapter, integration, acceptance on a fresh stack; the V cycle report | ADR 0005, 0006, 0008 | built |
+| Secrets | Today: environment variables and development defaults. Target: Secrets Manager (decision 4), two database secrets (owner, API, ADR 0011) | decision 4; ADR 0011 | target decided, mechanism on EC2 open |
+| Tests | Unit, use case, adapter, integration, acceptance on a fresh stack; the V cycle report; CI on GitHub Actions | ADR 0005, 0006, 0007, 0008 | built |
 
 ## 6. Open architectural questions
 
@@ -116,6 +144,8 @@ ECS Fargate, and a second web container needs a Redis lock around the token refr
    a proxy on the instance), and the realm's redirect addresses are `localhost` today.
 4. **Backups and upgrades.** Keycloak and Redis on EC2 are ours to patch and back up. Only RDS snapshots are covered.
 5. **Retention of the audit trail** (decision 22 left it open).
+   Also open: the admin console of Keycloak and its bootstrap admin (the rule above is proposed), Redis authentication, and how
+   the EC2 instance is kept off the internet, which is the reason every "inside the corporate network" acceptance relies on.
 6. **Evaluations and endpoints.** The brief keeps them as the structure of the product, but no requirement or use case
    exists for them, so they have no architectural home yet.
 
