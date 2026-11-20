@@ -160,3 +160,26 @@ def test_entries_from_before_names_were_stored_stay_readable(idp):
     assert r.status_code == 200
     old = [e for e in r.json() if e["target_id"] == maya_id][0]
     assert (old["target_name"], old["target_email"], old["actor_name"], old["actor_email"]) == (None, None, None, None)
+
+
+@pytest.mark.ac("AC-79")
+@pytest.mark.rule("RULE-L1")
+@pytest.mark.parametrize("method", ["PUT", "PATCH", "DELETE", "POST"])
+@pytest.mark.parametrize("path", ["/audit", "/audit/1"])
+def test_no_route_changes_or_deletes_an_entry_and_the_trail_stays_as_it_was(client, admin, method, path):
+    register(client, "sub-maya", "maya@x.test")
+    before = client.get("/audit", headers=admin).json()
+    assert before, "the trail needs an entry to protect"
+
+    r = client.request(method, path, headers=admin, json={"reason": "rewritten"})
+
+    assert r.status_code in (404, 405), f"{method} {path} answered {r.status_code}"
+    assert client.get("/audit", headers=admin).json() == before
+
+
+@pytest.mark.ac("AC-79")
+@pytest.mark.rule("RULE-L1")
+def test_the_only_audit_route_is_a_read(client):
+    audit_routes = [r for r in _api_routes(client.app) if r.path.startswith("/audit")]
+    assert audit_routes, "the audit read must exist"
+    assert {m for r in audit_routes for m in r.methods} <= {"GET", "HEAD"}

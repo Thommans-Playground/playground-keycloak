@@ -17,6 +17,8 @@ import ast
 import sys
 from pathlib import Path
 
+import pytest
+
 APP = Path(__file__).resolve().parents[1] / "app"
 MIGRATIONS = Path(__file__).resolve().parents[1] / "migrations"
 STDLIB = set(sys.stdlib_module_names)
@@ -184,8 +186,10 @@ def test_the_alembic_environment_sees_the_tables_of_every_context():
         assert f"app.{c}.adapters.outbound.sql" in imported, f"migrations/env.py must import the tables of {c}, or Alembic drops them"
 
 
+@pytest.mark.ac("AC-79")
+@pytest.mark.rule("RULE-L1")
 def test_the_audit_port_has_no_way_to_change_an_entry():
-    # AC-79 (the part that is cheap now; the routes and the rest are TSK-L1.7). The port has add and list_newest_first only.
+    # AC-79: the port has add and list_newest_first only (the routes are proved in test_audit_api.py).
     from app.audit.application.ports import AuditEntries
 
     public = {n for n in vars(AuditEntries) if not n.startswith("_")}
