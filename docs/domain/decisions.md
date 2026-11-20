@@ -655,3 +655,17 @@ records the technical side (commit order, locking).
 **Changes.** UC-A6's open question 2 is decided; the overlay lists the accepted risk with when to revisit it (before a second web container, or the move to ECS Fargate).
 
 **Still open.** Nothing for the alpha.
+
+## 21. The audit trail is append only and read only (20 Nov 2026)
+
+**Decided.** By the owner.
+- **No entry is ever changed or deleted**, by anyone, through the application. The trail only grows (AC-79). A mistake is corrected by adding an entry.
+- **The database enforces it.** The database user the API uses may add and read audit rows, and may not update or delete them (AC-80). A bug or stolen API credentials cannot rewrite history. Tamper evidence (a hash chain) and a copy in storage that cannot be changed are left for later.
+- **The Audit trail is its own bounded context (BC-AUDIT)**, with the same folder layout as every context (ADR 0010). Access and Projects each keep a small `AuditLog` port, wired to Audit in the composition root.
+- **A failed Keycloak call after a deactivation adds a second entry** that says Keycloak was not updated. The first entry is not edited. This changes decision 18's "one audit entry with an outcome" to "one entry for each fact".
+
+**Why.** An audit trail that can be edited proves nothing. Enforcing it in the database is the guarantee; the code alone is only good manners.
+
+**Changes.** AC-79 and AC-80 added; AC-58 and UC-A4 reworded; UC-L1's design gains the permission step; ADR 0011 records the technical choices (and supersedes the audit part of ADR 0009); `set_outcome` goes away when the Audit context is built.
+
+**Still open.** Retention (how long entries are kept) is not decided. Whether UC-A3 (register) writes an audit entry is still open from decision 17.

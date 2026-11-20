@@ -20,6 +20,8 @@ criteria:
   - id: AC-68
   - id: AC-69
   - id: AC-70
+  - id: AC-79
+  - id: AC-80
 parameters: []
 objects: []
 rules: []
@@ -34,7 +36,7 @@ flow_reviewed: fdfbe64
 <!-- vbench-uc:begin mirror (generated from the requirements files, do not edit here: change the row, then run sync) -->
 
 <details>
-<summary>The requirements and criteria it runs, copied from docs/requirements (2 requirements, 6 criteria). Do not edit.</summary>
+<summary>The requirements and criteria it runs, copied from docs/requirements (2 requirements, 8 criteria). Do not edit.</summary>
 
 ## What this serves
 
@@ -80,9 +82,22 @@ flow_reviewed: fdfbe64
 - When an administrator opens the audit trail
 - Then the entry still shows the name they had at the time
 
+**AC-79** (acceptance, proves FR-17)
+
+- Given an audit entry that exists
+- When anyone, including an administrator, tries to change or delete it through the application
+- Then there is no way to do it: no route changes or deletes an entry, and the trail only ever grows
+
+**AC-80** (integration, proves FR-17)
+
+- Given the database user the API connects with
+- When it tries to update or delete a row of the audit table
+- Then the database refuses it, while adding and reading still work
+
 ## How it is verified
 
-- acceptance: AC-56, AC-29, AC-30, AC-68, AC-69, AC-70
+- acceptance: AC-56, AC-29, AC-30, AC-68, AC-69, AC-70, AC-79
+- integration: AC-80
 
 Each criterion is run by a test tagged `Verifies AC-<n>`.
 
@@ -135,6 +150,7 @@ What the administrator and Playground say to each other, with no route, store, p
 - A7 (rule): People are shown as they were at the time of the event
 - A8 (rule): Reading the trail changes nothing
 - A9 (rule): Only an administrator reads the trail
+- A10 (rule): An entry is never changed or deleted, by anyone, and the database refuses it too
 
 ## Design
 
@@ -155,6 +171,7 @@ only, and ids are turned into names in the web page. **Planned (decision 14): th
 - D7 (adapter): AccessAuditBridge in the composition root, which turns Access's `AuditLog` call into `AuditService.record`. Planned
 - D8 (adapter): ProjectsAuditBridge in the composition root, the same for Projects' `AuditLog`. Planned
 - D9 (port): The `AuditLog` port of Access (built) and of Projects (planned), each in the words of its own context
+- D12 (database permission): the table is owned by a different role, and the API's role has INSERT and SELECT only, so an update or a delete is refused by PostgreSQL (AC-80). Planned
 - D10 (migration): Alembic migration that moves the table and adds `kind`, `details` and the names and emails. Planned (decision 14)
 - D11 (page): The Audit trail table on the admin accounts page, kept thin, with no port of its own. Built for account entries, to show kind, people and names stored at the time
 
@@ -170,19 +187,23 @@ A6 became -> D3
 A7 became -> D3, D7, D8
 A8 became -> D2
 A9 became -> D2, D4
+A10 became -> D5, D6, D12
++ D12 added: the database role of the API may add and read audit rows only (decision 21)
 + D10 added: the table moves out of Access, and the new columns need a migration (decision 14)
 ```
 
 ## Slices
 
-- TSK-L1.1: Move the audit table and the administrator's read into the Audit context, with the migration, and nothing changes for the administrator
-- TSK-L1.2: An entry carries its kind, the people involved, and the names and emails at the time
-- TSK-L1.3: A project creation writes an entry with the first members, through the Projects bridge (AC-29)
-- TSK-L1.4: A member added or removed writes an entry with the member (AC-30)
-- TSK-L1.5: The administrator reads account and project entries in one list (AC-56)
+- TSK-L1.1: Alembic with a baseline of today's schema (ADR 0004), and a second database role for the API with INSERT and SELECT on the audit table (AC-80)
+- TSK-L1.2: Move the audit table and the administrator's read into the Audit context, with the migration, and nothing changes for the administrator
+- TSK-L1.3: An entry carries its kind, the people involved, and the names and emails at the time
+- TSK-L1.4: A project creation writes an entry with the first members, through the Projects bridge (AC-29)
+- TSK-L1.5: A member added or removed writes an entry with the member (AC-30)
+- TSK-L1.6: The administrator reads account and project entries in one list, empty is not an error, a user is refused, a renamed person still shows their old name (AC-56, AC-68, AC-69, AC-70)
+- TSK-L1.7: No route or method changes or deletes an entry (AC-79)
 
 ## Not in this use case
 
 - Writing an entry. It is the last step of UC-A4, UC-P1 and UC-P2.
-- Filtering, paging, exporting or deleting entries. The trail is append only, and the alpha returns it whole.
+- Filtering, paging, exporting or deleting entries. The trail is append only (decision 21), and the alpha returns it whole.
 - Moving the audit table. It is slice 1, and the Alembic migration is part of decision 14.

@@ -20,3 +20,5 @@ what, accepted risk) stay in [docs/domain/decisions.md](../domain/decisions.md).
 | [0008](0008-vcycle-report.md) | One deterministic V cycle report, no model |
 | [0009](0009-commit-before-keycloak-and-lock-administrators.md) | Commit a deactivation before calling Keycloak, and lock the administrators |
 | [0010](0010-context-folder-layout.md) | One folder layout for every bounded context in the API |
+
+| [0011](0011-audit-context-append-only.md) | The Audit context, append only, enforced by the database |\n
