@@ -216,6 +216,70 @@ class MarkdownFormatTests(unittest.TestCase):
         code, out = run(root, "convert")
         self.assertIn("already exists", out)
 
+    def write_uc(self, root, name, body):
+        d = root / t.PATHS["usecases"]
+        d.mkdir(parents=True, exist_ok=True)
+        (d / name).write_text(body, encoding="utf-8")
+
+    def uc_text(self, i, name, criteria, desc):
+        ids = "".join("  - id: %s\n" % c for c in criteria)
+        return ("```yaml\nid: %s\ntype: use-case\nname: %s\nsatisfies:\n  - id: FR-1\ncriteria:\n%s```\n\n"
+                "## Description\n\n%s\n\n## Flow\n\nmore\n" % (i, name, ids, desc))
+
+    def test_duplicates_requirements_skips_retired_and_reports_nothing_else(self):
+        root = make_root([req("FR-1", "The system shall let an administrator approve a pending account.", name="Approve account"),
+                          req("FR-2", "The system shall let an administrator approve a pending account.", name="Approve an account"),
+                          req("FR-3", "The system shall let an administrator approve a pending account.", name="Approve account",
+                              status="retired"),
+                          req("FR-4", "The system shall export a checklist to Excel.", name="Export")], [])
+        code, out = run(root, "duplicates", "--kind", "requirements")
+        self.assertEqual(code, 0)
+        self.assertIn("FR-1  FR-2", out)
+        self.assertNotIn("FR-3", out)
+        self.assertNotIn("FR-4", out)
+        self.assertIn("prompt for a person", out)
+        self.assertNotIn("ACCEPTANCE", out)
+
+    def test_duplicates_threshold_override(self):
+        root = make_root([req("FR-1", "The system shall approve an account.", name="Approve"),
+                          req("FR-2", "The system shall approve a user.", name="Approve")], [])
+        _, out = run(root, "duplicates", "--kind", "requirements", "--threshold", "0.99")
+        self.assertNotIn("FR-1  FR-2", out)
+        _, out = run(root, "duplicates", "--kind", "requirements", "--threshold", "0.3")
+        self.assertIn("FR-1  FR-2", out)
+
+    def test_duplicates_acceptance_and_same_behaviour_different_requirement(self):
+        root = make_root([req("FR-1", "The system shall a."), req("FR-2", "The system shall b.")],
+                         [ac("AC-1", "FR-1", given="a pending account", when="the administrator approves it",
+                             then="the account becomes active"),
+                          ac("AC-2", "FR-1", given="a pending account", when="the administrator approves it",
+                             then="the account becomes active"),
+                          ac("AC-3", "FR-2", given="a user", when="something else happens",
+                             then="the account becomes active"),
+                          ac("AC-4", "FR-1", given="a pending account", when="the administrator approves it",
+                             then="the account becomes active", status="retired")])
+        _, out = run(root, "duplicates", "--kind", "acceptance")
+        self.assertIn("AC-1  AC-2", out)
+        self.assertNotIn("AC-4", out)
+        self.assertIn("same behaviour, different requirement", out)
+        self.assertIn("AC-1  AC-3", out.split("same behaviour, different requirement")[1])
+
+    def test_duplicates_usecases(self):
+        root = make_root([req("FR-1", "The system shall a.")], [])
+        self.write_uc(root, "UC-X1-a.md", self.uc_text("UC-X1", "Approve an account", ["AC-1", "AC-2", "AC-3"],
+                                                       "An administrator approves a pending account."))
+        self.write_uc(root, "UC-X2-b.md", self.uc_text("UC-X2", "Approve a pending account", ["AC-2", "AC-3", "AC-9"],
+                                                       "An administrator approves a pending account."))
+        self.write_uc(root, "UC-X3-c.md", self.uc_text("UC-X3", "Export a report", ["AC-20"], "Export to Excel."))
+        self.write_uc(root, "UC-README.md", "no yaml block here\n")
+        code, out = run(root, "duplicates", "--kind", "usecases")
+        self.assertEqual(code, 0)
+        self.assertIn("UC-X1  UC-X2", out)
+        self.assertNotIn("UC-X3", out)
+        self.assertIn("AC-2", out.split("listed by more than one")[1])
+        self.assertIn("UC-X1, UC-X2", out)
+        self.assertNotIn("AC-20", out.split("listed by more than one")[1])
+
 
 if __name__ == "__main__":
     unittest.main()

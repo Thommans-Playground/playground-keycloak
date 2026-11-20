@@ -20,6 +20,8 @@ Commands (run from the repo root, or pass --root):
   append requirements     add rows from JSON on stdin (an object or a list), with new ids
   append acceptance       add acceptance criteria from JSON on stdin
   update ID               change fields of one row, from a JSON object on stdin
+  duplicates              read only: list likely duplicate requirements, criteria and use cases
+                          (--threshold N, --kind requirements|acceptance|usecases); always exits 0
   Add --dry-run to append or update to show the result without writing.
 
 It uses only the standard library. Exit code 1 means a problem was found or refused.
@@ -478,6 +480,153 @@ def cmd_init(root):
     return 0
 
 
+# ----------------------------------------------------------------------------- duplicates
+
+DUP_DEFAULTS = {"requirements": 0.55, "acceptance": 0.65, "usecases": 0.5}
+SAME_THEN = 0.8
+MIN_THEN_WORDS = 3   # "then it is refused" is too generic to say two criteria are the same behaviour
+
+
+def parse_use_case(text):
+    """id, name, criteria, satisfies and the first paragraph of the description of a use case file,
+    or None when the file has no yaml block with an id."""
+    m = re.search(r"```yaml\n(.*?)```", text, re.S)
+    if not m:
+        return None
+    uc = {"id": "", "name": "", "criteria": [], "satisfies": []}
+    key = None
+    for line in m.group(1).splitlines():
+        top = re.match(r"([A-Za-z_]+):\s*(.*)$", line)
+        if top:
+            key = top.group(1)
+            if key in ("id", "name"):
+                uc[key] = top.group(2).strip()
+            continue
+        item = re.match(r"\s+-\s+id:\s*(\S+)", line)
+        if item and key in ("criteria", "satisfies"):
+            uc[key].append(item.group(1))
+    if not uc["id"]:
+        return None
+    d = re.search(r"^## Description\s*\n+(.*?)(?:\n\s*\n|\n## |\Z)", text, re.S | re.M)
+    uc["description"] = " ".join(d.group(1).split()) if d else ""
+    return uc
+
+
+def read_use_cases(root):
+    out = []
+    for f in sorted((root / PATHS["usecases"]).glob("UC-*.md")):
+        try:
+            uc = parse_use_case(f.read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError):
+            uc = None
+        if uc:
+            out.append(uc)
+    return out
+
+
+def scored_pairs(items, text_of, threshold):
+    pairs = []
+    for i, a in enumerate(items):
+        for b in items[i + 1:]:
+            score = similarity(tokens(text_of(a)), tokens(text_of(b)))
+            if score >= threshold:
+                pairs.append((score, a, b))
+    return sorted(pairs, key=lambda p: (-p[0], p[1]["id"], p[2]["id"]))
+
+
+def show_pair(a, b, score, ta, tb, note=""):
+    print("  %s  %s  %.2f%s" % (a, b, score, note))
+    print("    %s: %s" % (a, ta))
+    print("    %s: %s" % (b, tb))
+
+
+def cut(text, n=160):
+    text = " ".join((text or "").split())
+    return text if len(text) <= n else text[:n - 3] + "..."
+
+
+def dup_requirements(root, threshold):
+    rows = [r for r in read_rows(root / PATHS["req"]) if r.get("status") != "retired"]
+    pairs = scored_pairs(rows, lambda r: r.get("name", "") + " " + r.get("statement", ""), threshold)
+    print("REQUIREMENTS: likely duplicates (name and statement, similarity >= %.2f, retired skipped): %d" % (threshold, len(pairs)))
+    for score, a, b in pairs:
+        show_pair(a["id"], b["id"], score, cut(a.get("statement")), cut(b.get("statement")))
+    print()
+
+
+def dup_acceptance(root, threshold):
+    rows = [r for r in read_rows(root / PATHS["ac"]) if r.get("status") != "retired"]
+    pairs = scored_pairs(rows, lambda r: " ".join(r.get(k, "") for k in ("given", "when", "then")), threshold)
+    print("ACCEPTANCE CRITERIA: likely duplicates (given, when, then, similarity >= %.2f, retired skipped): %d" % (threshold, len(pairs)))
+    for score, a, b in pairs:
+        show_pair(a["id"], b["id"], score, cut("Given %s, when %s, then %s" % (a["given"], a["when"], a["then"])),
+                  cut("Given %s, when %s, then %s" % (b["given"], b["when"], b["then"])))
+    same = []
+    for i, a in enumerate(rows):
+        for b in rows[i + 1:]:
+            ta, tb = tokens(a.get("then", "")), tokens(b.get("then", ""))
+            if min(len(ta), len(tb)) < MIN_THEN_WORDS:
+                continue
+            score = similarity(ta, tb)
+            ra, rb = set(split_ids(a.get("requirements", ""))), set(split_ids(b.get("requirements", "")))
+            if score >= SAME_THEN and ra != rb:
+                same.append((score, a, b))
+    same.sort(key=lambda p: (-p[0], p[1]["id"], p[2]["id"]))
+    print()
+    print("ACCEPTANCE CRITERIA: same behaviour, different requirement (then-clauses similarity >= %.2f, at least %d words): %d" % (SAME_THEN, MIN_THEN_WORDS, len(same)))
+    for score, a, b in same:
+        show_pair(a["id"], b["id"], score, cut("[%s] then %s" % (a["requirements"], a["then"])),
+                  cut("[%s] then %s" % (b["requirements"], b["then"])))
+    print()
+
+
+def split_ids(text):
+    return [x for x in re.split(r"[\s,;]+", text or "") if x]
+
+
+def dup_usecases(root, threshold):
+    ucs = read_use_cases(root)
+    pairs = scored_pairs(ucs, lambda u: u["name"] + " " + u["description"], threshold)
+    print("USE CASES: likely duplicates (name and description, similarity >= %.2f): %d" % (threshold, len(pairs)))
+    for score, a, b in pairs:
+        show_pair(a["id"], b["id"], score, cut("%s. %s" % (a["name"], a["description"])),
+                  cut("%s. %s" % (b["name"], b["description"])))
+    print()
+    shared = []
+    for i, a in enumerate(ucs):
+        for b in ucs[i + 1:]:
+            common = sorted(set(a["criteria"]) & set(b["criteria"]))
+            smaller = min(len(set(a["criteria"])), len(set(b["criteria"])))
+            if common and smaller and len(common) * 2 >= smaller:
+                shared.append((len(common) / smaller, a, b, common))
+    shared.sort(key=lambda p: (-p[0], p[1]["id"], p[2]["id"]))
+    print("USE CASES: sharing at least half of the smaller one's criteria: %d" % len(shared))
+    for score, a, b, common in shared:
+        show_pair(a["id"], b["id"], score, "%s (%d criteria) shares: %s" % (a["name"], len(a["criteria"]), ", ".join(common)),
+                  "%s (%d criteria)" % (b["name"], len(b["criteria"])))
+    print()
+    owners = {}
+    for u in ucs:
+        for c in dict.fromkeys(u["criteria"]):
+            owners.setdefault(c, []).append(u["id"])
+    multi = {c: o for c, o in owners.items() if len(o) > 1}
+    print("USE CASES: criteria listed by more than one use case (a criterion should normally belong to one): %d" % len(multi))
+    for c in sorted(multi, key=lambda x: [int(n) if n.isdigit() else n for n in re.split(r"(\d+)", x)]):
+        print("  %s  listed by %s" % (c, ", ".join(multi[c])))
+    print()
+
+
+def cmd_duplicates(root, threshold, kind):
+    kinds = [kind] if kind else ["requirements", "acceptance", "usecases"]
+    for k in kinds:
+        th = threshold if threshold is not None else DUP_DEFAULTS[k]
+        {"requirements": dup_requirements, "acceptance": dup_acceptance, "usecases": dup_usecases}[k](root, th)
+    print("This is a prompt for a person, not a verdict: the tool never edits, retires or merges anything.")
+    print("Safe options for each pair: retire one with status retired, merge keeping one id, move it to")
+    print("another level (a criterion to a unit or integration test, a use case into another), or defer with an R2 note.")
+    return 0
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--root", help="the repo root (default: found from the current folder)")
@@ -495,9 +644,14 @@ def main(argv=None):
     u = sub.add_parser("update")
     u.add_argument("id")
     u.add_argument("--dry-run", action="store_true")
+    d = sub.add_parser("duplicates")
+    d.add_argument("--threshold", type=float, help="override the similarity threshold")
+    d.add_argument("--kind", choices=["requirements", "acceptance", "usecases"])
     args = ap.parse_args(argv)
     root = Path(args.root).resolve() if args.root else find_root()
     use_config(root)
+    if args.cmd == "duplicates":
+        return cmd_duplicates(root, args.threshold, args.kind)
     if args.cmd == "init":
         return cmd_init(root)
     if args.cmd == "convert":
