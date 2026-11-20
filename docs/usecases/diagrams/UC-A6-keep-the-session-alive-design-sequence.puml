@@ -8,7 +8,7 @@ title UC-A6 Keep the session alive (design sequence, built)
 
 actor "Person" as P
 participant "Web server\naccessToken()" as W #E6F0FB
-participant "Session store\n(memory or Redis)" as S #EEE7F7
+participant "Session\nstore" as S #EEE7F7
 participant "Keycloak" as K #ECECEC
 participant "API" as A #E6F0FB
 
@@ -18,9 +18,9 @@ W -> W : 2 access token ends in < 30 s?
 alt still good
   W -> A : request + access token
 else about to expire
-  W -> W : 3 refresh already running? (a map in this process)
+  W -> W : 3 refresh already running?
   alt yes
-    W -> W : wait for that refresh
+    W -> W : wait for it
   else no
     W -> K : 4 refresh token grant
     alt Keycloak refuses (ended, disabled, token reused)
