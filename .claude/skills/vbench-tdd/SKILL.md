@@ -25,10 +25,16 @@ between agents**. You decide after each one.
    - You are on a feature branch (`feat/UC-<area><n>-<slug>`), not the base branch. If not, offer vbench-branch.
    - The baseline is green. Read `vbench.json`: the `stacks` entry for the app (`api` or `web`) gives the commands.
      Run its `tests`. If it is red, stop and report. Never start on red.
+   - The design is settled. The use case has its design sequence diagram, and the reviewers were run on it with
+     their findings resolved or accepted by a person (CLAUDE.md, "Reviews"; `vbench-vcycle` shows the stamps).
+     If not, say so and ask whether to run the reviewers first. Building comes after the design is settled, not during it.
 
 3. **Plan the behaviours.** Break the slice into small behaviours, one test each, in order, simplest first (a tracer
    bullet through the whole path, then the refusals and edges). Show the list as normal text, then ask with the four
    answers from conventions.md ("How the skills ask"): **Accept**, **Change it**, **Reject**, **I'll do it myself**.
+
+   Before the first RED, also write down which files you expect the slice to change. When the slice is done, compare
+   that with `git diff --stat` and say what surprised you. A surprise means the design was unclear or the build wandered.
 
 4. **For each behaviour, run the loop. Pause after every step.**
    - **RED.** Start the `vbench-tdd-red` agent (Agent tool, `subagent_type: "vbench-tdd-red"`). Brief it in full, because it starts
