@@ -212,3 +212,76 @@ itest("a person who cannot be a member (pending account) is refused (Verifies AC
   const after = await backend(admin, "GET", `projects/${id}`);
   assert.deepEqual(after.json.members, []);
 });
+
+// ---------------------------------------------------------------- UC-P1: create a project
+
+async function newPage(jar: CookieJar) {
+  const res = await http(`${config.appUrl}/projects/new`, { jar });
+  return { status: res.status, html: await res.text(), location: res.headers.get("location") ?? "" };
+}
+
+itest("an administrator opens /projects/new and sees the form with the active people (Verifies AC-9)", async () => {
+  const admin = await adminSignIn();
+  const a = await activePerson(admin);
+  const page = await newPage(admin);
+  assert.equal(page.status, 200);
+  assert.match(page.html, /Create project/);
+  assert.match(page.html, /name="name"|aria-label="Project name"|Project name/);
+  assert.ok(page.html.includes(await nameOf(a.jar)), "an active person is offered");
+  assert.ok(page.html.includes(a.id), "by their id as the value");
+});
+
+itest("a member opening /projects/new is sent to /projects (Verifies AC-11, AC-32)", async () => {
+  const admin = await adminSignIn();
+  const a = await activePerson(admin);
+  const page = await newPage(a.jar);
+  assert.ok(page.status >= 300 && page.status < 400, `redirected, got ${page.status}`);
+  assert.match(page.location, /\/projects$/);
+});
+
+itest("the list shows the Create project link to an administrator and not to a member (Verifies AC-11)", async () => {
+  const admin = await adminSignIn();
+  const a = await activePerson(admin);
+  assert.match((await projectsPage(admin)).html, /href="\/projects\/new"/);
+  assert.ok(!/href="\/projects\/new"/.test((await projectsPage(a.jar)).html), "no link for a member");
+});
+
+itest(
+  "an administrator creates a project with the form's request, and it lists with names (Verifies AC-9, AC-10)",
+  async () => {
+    const admin = await adminSignIn();
+    const a = await activePerson(admin);
+    const name = unique("Created");
+    const res = await backend(admin, "POST", "projects", { name: `  ${name}  `, members: [a.id] });
+    assert.equal(res.status, 201, res.text);
+    assert.equal(res.json.name, name, "the name is trimmed");
+    const page = await projectsPage(admin);
+    assert.ok(page.html.includes(name), "the administrator's list shows it");
+    const open = await projectPage(admin, res.json.id);
+    assert.ok(open.html.includes(await nameOf(a.jar)), "its member is shown by name");
+    const none = await backend(admin, "POST", "projects", { name: unique("Nobody"), members: [] });
+    assert.equal(none.status, 201, "an administrator may name nobody");
+  },
+);
+
+itest("an invalid name, with a control character, is refused and creates nothing (Verifies AC-12, AC-91)", async () => {
+  const admin = await adminSignIn();
+  const before = (await backend(admin, "GET", "projects")).json.length;
+  for (const name of ["", "   ", "a".repeat(101), `Bad\u0007${unique("Name")}`]) {
+    const res = await backend(admin, "POST", "projects", { name, members: [] });
+    assert.equal(res.status, 422, `refused: ${JSON.stringify(name)}`);
+    assert.equal(res.code, "invalid_project_name");
+  }
+  assert.equal((await backend(admin, "GET", "projects")).json.length, before, "nothing was created");
+});
+
+itest("a pending person named as a first member is refused and creates nothing (Verifies AC-13)", async () => {
+  const admin = await adminSignIn();
+  const { jar } = await signIn(await throwaway()); // never approved: pending
+  const pendingId = (await backend(jar, "GET", "me")).json.id as string;
+  const before = (await backend(admin, "GET", "projects")).json.length;
+  const res = await backend(admin, "POST", "projects", { name: unique("Pending"), members: [pendingId] });
+  assert.ok(res.status >= 400 && res.status < 500, `refused, got ${res.status}`);
+  assert.equal(res.code, "member_not_eligible");
+  assert.equal((await backend(admin, "GET", "projects")).json.length, before, "nothing was created");
+});
