@@ -57,13 +57,15 @@ def test_the_administrator_can_list_accounts(api, admin_token):
 def test_an_ordinary_user_is_refused_all_five_commands(api, admin_token, throwaway_user):
     actor_token = login(throwaway_user)
     actor_id = api.get("/me", headers=bearer(actor_token)).json()["id"]
-    assert api.post(f"/accounts/{actor_id}/approve", headers=bearer(admin_token), json={"reason": "integration test"}).status_code == 200
     target = helpers.create_user()
     try:
         target_id = api.get("/me", headers=bearer(login(target))).json()["id"]
-        for action in ("approve", "deactivate", "reinstate", "promote", "demote"):
-            r = api.post(f"/accounts/{target_id}/{action}", headers=bearer(actor_token), json={"reason": "integration test"})
-            assert r.status_code == 403, action
+        for stage in ("pending", "active user"):  # the actor is refused first as a pending person, then once approved
+            if stage == "active user":
+                assert api.post(f"/accounts/{actor_id}/approve", headers=bearer(admin_token), json={"reason": "integration test"}).status_code == 200
+            for action in ("approve", "deactivate", "reinstate", "promote", "demote"):
+                r = api.post(f"/accounts/{target_id}/{action}", headers=bearer(actor_token), json={"reason": "integration test"})
+                assert r.status_code == 403, (stage, action)
         shown = next(a for a in api.get("/accounts", headers=bearer(admin_token)).json() if a["id"] == target_id)
         assert (shown["status"], shown["role"]) == ("pending", "user")
     finally:

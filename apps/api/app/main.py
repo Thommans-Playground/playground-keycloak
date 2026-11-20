@@ -45,6 +45,22 @@ class AccountOut(BaseModel):
         return cls(**{f: getattr(a, f) for f in cls.model_fields})
 
 
+class DuplicateOut(BaseModel):
+    id: str
+    name: str
+    status: Status
+
+
+class ListedAccountOut(AccountOut):
+    """An account as the administrator's list shows it: with the other accounts that share its email (AC-73)."""
+    duplicate_of: list[DuplicateOut] = []
+
+    @classmethod
+    def listed(cls, a: Account, duplicates: list[Account]) -> "ListedAccountOut":
+        return cls(**AccountOut.of(a).model_dump(),
+                   duplicate_of=[DuplicateOut(id=d.id, name=d.name, status=d.status) for d in duplicates])
+
+
 class ReasonIn(BaseModel):
     reason: str | None = None
 
@@ -121,10 +137,10 @@ def create_app(settings: Settings | None = None, verifier: TokenVerifier | None 
         # A pending person sees only this (FR-3).
         return AccountOut.of(a)
 
-    @app.get("/accounts", response_model=list[AccountOut])
+    @app.get("/accounts", response_model=list[ListedAccountOut])
     def accounts(status: Status | None = None, _: Account = Depends(administrator),
                  svc: AccessService = Depends(service)):
-        return [AccountOut.of(a) for a in svc.accounts.list(status.value if status else None)]
+        return [ListedAccountOut.listed(a, d) for a, d in svc.list_accounts(status.value if status else None)]
 
     def _change(action: Action):
         def endpoint(account_id: str, body: ReasonIn | None = None, actor: Account = Depends(administrator),

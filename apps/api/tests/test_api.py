@@ -1,4 +1,7 @@
+import uuid
+
 import pytest
+from fastapi.routing import APIRoute
 from tests.conftest import KEY, OTHER_KEY, auth, make_token, me_id, register
 
 
@@ -38,9 +41,28 @@ def test_pending_person_sees_only_their_status(client):
         assert (r.status_code, r.json()["detail"]["code"]) == (403, "account_pending")
 
 
+@pytest.mark.ac("AC-75")
+@pytest.mark.rule("RULE-A5")
 def test_bootstrap_admin_needs_a_verified_email(client):
     r = client.get("/me", headers=auth("sub-fake", "ada@x.test", verified=False)).json()
     assert (r["role"], r["status"]) == ("user", "pending")
+
+
+@pytest.mark.ac("AC-74")
+@pytest.mark.rule("RULE-A5")
+def test_the_setup_email_makes_the_first_administrator(client):
+    r = client.get("/me", headers=auth("sub-ada", "ada@x.test", name="Ada")).json()
+    assert (r["role"], r["status"]) == ("administrator", "active")
+
+
+@pytest.mark.ac("AC-61")
+@pytest.mark.rule("RULE-A5")
+def test_the_setup_email_with_another_sub_is_pending_once_an_administrator_exists(client, admin):
+    r = client.get("/me", headers=auth("sub-ada-2", "ada@x.test", name="Ada 2")).json()
+    assert (r["role"], r["status"]) == ("user", "pending")
+    assert client.get("/me", headers=admin).json()["role"] == "administrator"
+    action = [e["action"] for e in client.get("/audit", headers=admin).json() if e["target_id"] == r["id"]]
+    assert action == ["register"]
 
 
 def test_name_and_email_follow_the_token_but_identity_is_the_link(client):
@@ -49,19 +71,74 @@ def test_name_and_email_follow_the_token_but_identity_is_the_link(client):
     assert new["id"] == old["id"] and new["email"] == "renamed@x.test" and new["name"] == "New"
 
 
-# FR-4: an approved ordinary user is refused all five commands, and the target stays as it was
-@pytest.mark.ac("AC-63")
-def test_an_ordinary_user_is_refused_all_five_commands(client, admin, idp):
-    actor, actor_id = register(client, "sub-actor", "actor@x.test")
-    assert client.post(f"/accounts/{actor_id}/approve", headers=admin).status_code == 200
+FIVE = ("approve", "deactivate", "reinstate", "promote", "demote")
+
+
+def _refused_all_five(client, admin, idp, actor):
     _, target_id = register(client, "sub-target", "target@x.test")
     idp.calls.clear()
-    for action in ("approve", "deactivate", "reinstate", "promote", "demote"):
+    for action in FIVE:
         r = client.post(f"/accounts/{target_id}/{action}", headers=actor, json={"reason": "Not allowed to"})
         assert r.status_code == 403, action
     shown = next(a for a in client.get("/accounts", headers=admin).json() if a["id"] == target_id)
     assert (shown["status"], shown["role"]) == ("pending", "user")
     assert idp.calls == [], "nothing reached Keycloak"
+
+
+# FR-4: an approved ordinary user is refused all five commands, and the target stays as it was
+@pytest.mark.ac("AC-63")
+def test_an_ordinary_user_is_refused_all_five_commands(client, admin, idp):
+    actor, actor_id = register(client, "sub-actor", "actor@x.test")
+    assert client.post(f"/accounts/{actor_id}/approve", headers=admin).status_code == 200
+    _refused_all_five(client, admin, idp, actor)
+
+
+@pytest.mark.ac("AC-63")
+def test_a_pending_person_is_refused_all_five_commands(client, admin, idp):
+    actor, _ = register(client, "sub-actor", "actor@x.test")
+    _refused_all_five(client, admin, idp, actor)
+
+
+@pytest.mark.ac("AC-63")
+def test_a_deactivated_person_is_refused_all_five_commands(client, admin, idp):
+    actor, actor_id = register(client, "sub-actor", "actor@x.test")
+    client.post(f"/accounts/{actor_id}/approve", headers=admin)
+    client.post(f"/accounts/{actor_id}/promote", headers=admin, json={"reason": "Helps approve"})
+    client.post(f"/accounts/{actor_id}/deactivate", headers=admin, json={"reason": "Left the team"})
+    _refused_all_five(client, admin, idp, actor)
+
+
+# FR-3: every route but /me and /health is closed to a pending person
+@pytest.mark.ac("AC-4")
+def test_every_route_but_me_and_health_refuses_a_pending_person(client, admin):
+    pending, _ = register(client, "sub-maya", "maya@x.test")
+    skipped = {"/me", "/health", "/docs", "/redoc", "/openapi.json", "/docs/oauth2-redirect"}
+    routes = [r for r in client.app.routes if isinstance(r, APIRoute) and r.path not in skipped]
+    assert len(routes) >= 7, "the table must really cover the routes"
+    for route in routes:
+        path = route.path.replace("{account_id}", str(uuid.uuid4()))
+        for method in route.methods:
+            kwargs = {"json": {"reason": "a reason"}} if method in {"POST", "PUT", "PATCH", "DELETE"} else {}
+            r = client.request(method, path, headers=pending, **kwargs)
+            assert (r.status_code, r.json()["detail"]["code"]) == (403, "account_pending"), f"{method} {route.path}"
+
+
+# FR-4: approving what does not exist, or what is not pending, is refused and leaves no trace
+@pytest.mark.ac("AC-76")
+def test_approving_an_unknown_or_not_pending_account_is_refused_and_changes_nothing(client, admin, idp):
+    _, maya_id = register(client, "sub-maya", "maya@x.test")
+    client.post(f"/accounts/{maya_id}/approve", headers=admin)
+    before_audit = client.get("/audit", headers=admin).json()
+    before_accounts = client.get("/accounts", headers=admin).json()
+
+    r = client.post(f"/accounts/{uuid.uuid4()}/approve", headers=admin)
+    assert (r.status_code, r.json()["code"]) == (404, "account_not_found")
+    r = client.post(f"/accounts/{maya_id}/approve", headers=admin)  # already active
+    assert (r.status_code, r.json()["code"]) == (409, "invalid_transition")
+
+    assert client.get("/audit", headers=admin).json() == before_audit
+    assert client.get("/accounts", headers=admin).json() == before_accounts
+    assert idp.calls == []
 
 
 # decision 10: identity is the sub, never the email. No criterion; this kills the mutation "match by email".
@@ -81,6 +158,7 @@ def test_administrator_approves_and_member_cannot(client, admin, idp):
     bob, bob_id = register(client, "sub-bob", "bob@x.test")
     assert client.post(f"/accounts/{bob_id}/approve", headers=maya).status_code == 403  # pending
     assert client.post(f"/accounts/{maya_id}/approve", headers=admin).json()["status"] == "active"
+    assert client.get("/me", headers=maya).json()["status"] == "active"  # the next request shows it
     assert idp.calls == []
     # Maya is active but a plain user: still cannot approve (NFR-1, AC-32)
     r = client.post(f"/accounts/{bob_id}/approve", headers=maya)
@@ -155,3 +233,23 @@ def test_every_change_is_audited_with_its_reason(client, admin):
     entries = client.get("/audit", headers=admin).json()
     assert [(e["action"], e["reason"]) for e in entries[:2]] == [("deactivate", "Left the team"), ("approve", None)]
     assert entries[0]["actor_id"] == me_id(client, admin)
+
+
+# AC-73 and decision 10: same email, different sub: two accounts, each warns about the other. Nothing is blocked.
+@pytest.mark.ac("AC-73")
+def test_the_list_warns_of_accounts_with_the_same_email_and_approving_is_still_allowed(client, admin):
+    first, second = auth("sub-one", "same@x.test", name="One"), auth("sub-two", "Same@x.test ", name="Two")
+    first_id, second_id = me_id(client, first), me_id(client, second)
+    assert first_id != second_id
+    listed = {a["id"]: a for a in client.get("/accounts", headers=admin).json()}
+    assert listed[second_id]["status"] == "pending"
+    assert listed[first_id]["duplicate_of"] == [{"id": second_id, "name": "Two", "status": "pending"}]
+    assert listed[second_id]["duplicate_of"] == [{"id": first_id, "name": "One", "status": "pending"}]
+    assert [a["duplicate_of"] for a in listed.values() if a["email"] == "ada@x.test"] == [[]]
+    assert "duplicate_of" not in client.get("/me", headers=first).json()
+    # a deactivated account with the same email still counts, and approving the duplicate still works
+    assert client.post(f"/accounts/{first_id}/approve", headers=admin).status_code == 200
+    client.post(f"/accounts/{first_id}/deactivate", headers=admin, json={"reason": "Left the team"})
+    listed = {a["id"]: a for a in client.get("/accounts", headers=admin).json()}
+    assert listed[second_id]["duplicate_of"] == [{"id": first_id, "name": "One", "status": "deactivated"}]
+    assert client.post(f"/accounts/{second_id}/approve", headers=admin).json()["status"] == "active"

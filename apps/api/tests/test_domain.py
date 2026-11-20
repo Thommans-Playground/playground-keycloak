@@ -4,7 +4,7 @@ import pytest
 
 from app.access.domain.account import (
     Account, AccountNotFound, Action, CannotChangeSelf, InvalidTransition, LastAdministrator, ReasonRequired, Role,
-    Status, clean_reason, decide,
+    Status, clean_reason, decide, duplicates_by_email, new_account,
 )
 
 
@@ -64,3 +64,32 @@ def test_domain_errors_say_what_went_wrong_and_not_how_http_answers():
     # The domain does not know HTTP. The web layer maps a rule to a status (NFR-3).
     for cls in (ReasonRequired, CannotChangeSelf, LastAdministrator, InvalidTransition, AccountNotFound):
         assert not hasattr(cls, "http_status"), cls.__name__
+
+
+NOW = datetime(2026, 11, 17, 9, 0, 0)
+
+
+def _new(email="ada@x.test", verified=True, setup=("ada@x.test",), admins=0):
+    return new_account("sub-n", "Ada", email, verified, set(setup), admins, lambda: NOW)
+
+
+@pytest.mark.rule("RULE-A5")
+def test_rule_a5_only_a_verified_setup_email_with_no_active_administrator_makes_an_administrator():
+    first = _new()
+    assert (first.role, first.status, first.created, first.identity) == (Role.administrator, Status.active, NOW, "sub-n")
+    assert _new(email=" ADA@x.test ").role is Role.administrator  # case and spaces do not matter
+    for other in (_new(admins=1), _new(verified=False), _new(email="bob@x.test"), _new(setup=())):
+        assert (other.role, other.status) == (Role.user, Status.pending)
+
+
+@pytest.mark.ac("AC-73")
+def test_accounts_sharing_an_email_are_each_others_duplicates_ignoring_case_and_spaces():
+    a = acct("a", status=Status.active).with_(email="Maya@x.test")
+    b = acct("b", status=Status.pending).with_(email=" maya@X.test ")
+    c = acct("c", status=Status.deactivated).with_(email="maya@x.test")
+    d = acct("d")  # d@x.test, alone
+    found = duplicates_by_email([a, b, c, d])
+    assert [x.id for x in found["a"]] == ["b", "c"]
+    assert [x.id for x in found["b"]] == ["a", "c"]
+    assert [x.id for x in found["c"]] == ["a", "b"]
+    assert found["d"] == []
