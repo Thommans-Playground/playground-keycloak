@@ -557,3 +557,38 @@ in the security overlay, and a note on UC-A1's beta reuse of sign out (it will n
 
 **Still open.** Nothing for the alpha.
 
+## 16. UC-A3 sign up and wait, and the approve handover (20 Nov 2026)
+
+**Decided.** By the owner, answering the reviews of UC-A3 and the approve part of UC-A4.
+- **The setup administrator only exists while there is none (AC-61).** An account made from the setup email, verified, is
+  an active administrator only while no active administrator exists. Otherwise it is pending. An unverified setup email
+  is pending too (AC-75).
+- **The setup list defaults to empty, so it fails closed.** No setup administrator is made unless someone configures one.
+  Docker compose and `.env.example` keep the example address for local work. The seeded demo users in the realm file
+  (`admin@example.test` and `maya@example.test`, with known passwords) are dev only: accepted for now, until the first
+  deployment that is not local.
+- **A written precondition and recovery.** The setup user is created and verified in Keycloak before the product opens.
+  If that was missed (a stranger registered the setup email first), the recovery is a short, written step, in UC-A3 and
+  RULE-A5.
+- **What proves an approval worked (AC-5):** on their next request the person's account is active and the dashboard
+  shows their own page, not "Waiting for approval", and Keycloak was not changed.
+- **A duplicate email is a warning, and the administrator decides (AC-73).** When a pending account has an email that
+  another account already has (a new `sub` with a known email, or a deactivated person who registers again), the
+  administrator's list marks it with a warning that shows the other account. Nothing is blocked and nothing is decided
+  by the system. This narrows decision 10's "the administrators are told" to a warning in the list, and nothing
+  more, with no notification.
+- **AC-4 means every declared route** except `/me` and `/health`: a test walks the route table, so a new route that
+  forgets its guard fails it. AC-63 covers a pending and a deactivated actor as well as an ordinary user. Approving an
+  account that does not exist, or is not pending, is refused with a clear answer (AC-76).
+
+**Why.** The review found the setup rule open (any verified setup email became an administrator at any time, with a
+public default), an approval criterion that could not show the approval worked, and a promise (administrators are told)
+that nothing kept.
+
+**Changes.** AC-4, AC-5 and AC-63 reworded, AC-73 to AC-76 added; the setup rule built test first; the list marks
+duplicate emails; the diagrams, RULE-A5 and UC-A3 corrected; the config default emptied.
+
+**Known debt, not in this change.** The pending, deactivated and administrator gates still live in `main.py` route
+guards, not in the domain. They move when Projects needs the Caller (ADR 0002). The loser of a first request race gets
+a 500 (accepted, beta list). Two administrators approving at once leave two audit entries (accepted).
+
