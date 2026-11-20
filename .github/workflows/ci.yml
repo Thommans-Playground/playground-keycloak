@@ -112,7 +112,7 @@ jobs:
           cat report/report.md >> "$GITHUB_STEP_SUMMARY"
       - name: Keep the traceability report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: traceability-report
           path: report/
