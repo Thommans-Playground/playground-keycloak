@@ -4,19 +4,19 @@ hide footbox
 skinparam maxMessageSize 110
 title UC-A4 Approve, deactivate, reinstate, promote and demote (design sequence)
 ' Design level (decision 9), drawn against docs/domain/diagrams/access-design.puml. Analysis: UC-A4-approve-deactivate-and-reinstate-an-account-analysis-sequence.puml.
-' Step numbers are the main flow numbers of UC-A4. BUILT: the routes, the guard, the rules, the reason for every change but an approval,
-' the Keycloak first order of a reinstatement. ALPHA, PLANNED, NOT BUILT (decisions 10 and 14, marked PLANNED below): a deactivation changes our
-' account first and then Keycloak (the code today calls Keycloak first), the half-done audit entry and the message, the check and the change
-' as one step, and the audit entry going to the Audit context (BC-AUDIT) through the AuditLog port.
+' Step numbers are the main flow numbers of UC-A4. BUILT (ADR 0009, decisions 14 and 18): the lock on the active administrators and the re-read of
+' the actor and target, a deactivation committed with its audit entry before Keycloak is called, the outcome instead of an error, the repeat of a
+' deactivation. NOT BUILT: the audit entry going to the Audit context (BC-AUDIT), still the Access table (D14).
 ' Not drawn: the web page and its reason dialog (D12) and the token check, which is UC-A1 step 9.
 
 actor "Administrator" as AD
 participant "Routes\n(API)" as R #E6F0FB
 participant "AccessService" as S #E7F4EA
 participant "Domain\ndecide()" as DM #FFE6CC
-participant "Account-\nRepository" as AR #EEE7F7
-participant "IdentityProvider\n(Keycloak admin)" as IDP #EEE7F7
-participant "AuditLog\n(to BC-AUDIT)" as AL #EEE7F7
+participant "Accounts" as AR #EEE7F7
+participant "Unit-\nOfWork" as UW #EEE7F7
+participant "Identity-\nProvider" as IDP #EEE7F7
+participant "AuditLog" as AL #EEE7F7
 
 AD -> R : 1, 2 POST /accounts/{id}/{action}, with the reason
 R -> R : 4 guard: token, not deactivated, not pending, administrator
@@ -24,38 +24,37 @@ alt not an administrator
   R --> AD : 4 403 forbidden
 else
   R -> S : change(actor, id, action, reason)
-  S -> AR : 1 by_id(id)
+  S -> AR : 5 lock_active_administrators()
+  S -> AR : 5 by_id(actor), by_id(target)
   S -> DM : 3 clean_reason(reason), not for an approval
-  S -> AR : 5 PLANNED: lock, count_active_administrators()
-  S -> DM : 5 decide(action, actor, target, active_admins)
+  S -> DM : 5 decide(action, actor, target, locked administrators)
   alt no reason, self change, last administrator or wrong state
     DM --> R : ReasonRequired, CannotChangeSelf, LastAdministrator, InvalidTransition
     R --> AD : 422, 409 or the self change status
   else approve, promote or demote (no Keycloak call)
-    S -> AR : 6 save(account), one step with the check (PLANNED)
+    S -> AR : 6 save(account)
     S -> AL : 8 record(actor, action, target, reason)
-  else deactivate
-    S -> AR : 6 PLANNED: save(deactivated), one step with the check
-    S -> IDP : 6 PLANNED: then disable_user + end_sessions
+  else deactivate, or again (AC-77)
+    S -> AR : 6 save(deactivated), none if again
+    S -> AL : 8 record(..., outcome done)
+    S -> UW : 6 commit() (the lock is released)
+    S -> IDP : 6 disable_user + end_sessions
     alt Keycloak fails
-      S -> AL : 7 PLANNED: record(half-done change)
-      S --> R : IdentityProviderUnavailable
-      R --> AD : 7 "Keycloak was not updated", the deactivation stands, repeat
-    else
-      S -> AL : 8 record(actor, action, target, reason)
+      S -> AL : 7 set_outcome(keycloak_not_updated)
+      S --> R : ChangeResult(keycloak_updated false)
+      R --> AD : 7 200 "Keycloak was not updated", repeat
     end
   else reinstate
-    S -> IDP : 6 enable_user (first, BUILT)
+    S -> IDP : 6 enable_user (first)
     alt Keycloak fails
-      S -> AL : 7 PLANNED: record(half-done change)
-      S --> R : IdentityProviderUnavailable
-      R --> AD : 7 "Keycloak was not updated", still deactivated, repeat
+      S --> R : IdentityProviderUnavailable (nothing changed)
+      R --> AD : 7 502 Keycloak unreachable, still deactivated
     else
-      S -> AR : 6 save(active), one step with the check (PLANNED)
+      S -> AR : 6 save(active)
       S -> AL : 8 record(actor, action, target, reason)
     end
   end
-  S --> R : account
-  R --> AD : 9 200 the account
+  S --> R : ChangeResult
+  R --> AD : 9 200 the account (with keycloak_updated for a deactivation)
 end
 @enduml
