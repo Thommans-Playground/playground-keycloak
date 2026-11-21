@@ -249,7 +249,7 @@ def test_the_role_is_checked_before_unknown_fields_and_before_a_bad_name(api, ad
 
 def ineligible(r):
     assert r.status_code == 422
-    assert r.json() == {"detail": {"code": "member_not_eligible", "message": "A first member cannot be added."}}
+    assert r.json() == {"detail": {"code": "member_not_eligible", "message": "That person cannot be added to or removed from this project."}}
 
 
 @pytest.mark.ac("AC-13")
