@@ -21,3 +21,6 @@ One more port in each context that logs, and the guards stay thin. Metrics, requ
 
 ## Links
 decisions 17 and 22; NFR-5; AC-48; AC-82; UC-L1 step 6 and TSK-L1.6; UC-A1 (web half, branch `feat/UC-A1-basic-logging`); ADR 0010, 0011.
+
+## Amendments (21 Nov 2026)
+The **web half** is built on branch `feat/UC-A1-finish-the-gaps` (pull request 24): the BFF's `SecurityLog` port, `JsonSecurityLog` and the events `sign_in`, `session_start`, `session_end` and `token_refresh`. The note at the top that it is "not merged" holds only until that pull request is merged. The web side does not yet set `person_id` in its lines.

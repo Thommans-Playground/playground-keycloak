@@ -138,7 +138,6 @@ New in the design language: **lazy provisioning**. The person exists in two plac
 - The person already has an account: nothing is created, and the name and email are refreshed from the token. (AC-3)
 - The person's email is in `BOOTSTRAP_ADMIN_EMAILS`, Keycloak says it is verified, and no active administrator exists: the account is created active, with role administrator, and the audit entry says it came from setup. This is the setup rule (decision 14). It is not RULE-A1, which protects the last administrator. (FR-3, AC-61)
 - The email is in `BOOTSTRAP_ADMIN_EMAILS`, and verified, but an active administrator already exists: the account is created pending, like anyone else's. The setup rule applies only while no active administrator exists. (AC-61)
-5. TSK-A3.5: Write one `register` audit entry when the pending account is created, with no actor and the new account as the target (AC-83, decision 22)
 - The email is in `BOOTSTRAP_ADMIN_EMAILS` but not verified: the account is created pending, as for anyone else, so someone cannot claim the first administrator by registering with an unverified address.
 - A pending person asks for anything other than their own status: the API answers 403 "waiting for approval". (AC-4)
 - A person who signs in and whose account is pending lands on the waiting page, built from their own status. (AC-47)
@@ -235,4 +234,6 @@ A15 became -> D10
 1. TSK-A3.1: Create the account on first sight, as pending; an account an administrator creates in Keycloak lands the same way. The setup rule is not RULE-A1 and is proven in TSK-A3.4 (AC-3)
 2. TSK-A3.2: Refuse everything but the person's own status while pending (AC-4)
 3. TSK-A3.3: A pending person who signs in lands on the waiting page (AC-47)
-4. TSK-A3.4: The setup rule applies only while no active administrator exists: the setup email, verified, gets an active administrator only then, and a pending account otherwise (AC-61)
+4. TSK-A3.4: The setup rule applies only while no active administrator exists: the setup email, verified, gets an active administrator only then, and a pending account otherwise (AC-61, AC-74, AC-75)
+5. TSK-A3.5: Write one `register` audit entry when the pending account is created, with no actor and the new account as the target, decision 22 (AC-83)
+6. TSK-A3.6: Mark a pending account whose email another account already has, with a warning that shows the other account (AC-73)

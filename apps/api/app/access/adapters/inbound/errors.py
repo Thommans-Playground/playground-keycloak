@@ -9,6 +9,7 @@ from app.access.domain.account import (
     AccountNotFound,
     CannotChangeSelf,
     DomainError,
+    InvalidReason,
     InvalidTransition,
     LastAdministrator,
     ReasonRequired,
@@ -16,6 +17,7 @@ from app.access.domain.account import (
 
 HTTP_STATUS: dict[type[DomainError], int] = {
     ReasonRequired: 422,
+    InvalidReason: 422,
     CannotChangeSelf: 403,
     LastAdministrator: 409,
     InvalidTransition: 409,

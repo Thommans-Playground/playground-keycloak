@@ -27,7 +27,7 @@ class MemberNotEligible(ProjectsError):
     code = "member_not_eligible"
 
     def __init__(self):
-        super().__init__("A first member cannot be added.")
+        super().__init__("That person cannot be added to or removed from this project.")
 
 
 class ProjectNotFound(ProjectsError):

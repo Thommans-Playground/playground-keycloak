@@ -7,6 +7,7 @@ from app.access.domain.account import (
     AccountNotFound,
     Action,
     CannotChangeSelf,
+    InvalidReason,
     InvalidTransition,
     LastAdministrator,
     ReasonRequired,
@@ -29,6 +30,54 @@ def test_rule_a3_reason_must_say_something():
         with pytest.raises(ReasonRequired):
             clean_reason(bad)
     assert clean_reason("  Left the team ") == "Left the team"
+
+
+@pytest.mark.ac("AC-81")
+@pytest.mark.rule("RULE-A3")
+def test_rule_a3_a_reason_of_500_characters_is_accepted_and_501_is_refused():
+    assert clean_reason("a" * 500) == "a" * 500
+    with pytest.raises(InvalidReason):
+        clean_reason("a" * 501)
+
+
+@pytest.mark.ac("AC-81")
+@pytest.mark.rule("RULE-A3")
+def test_rule_a3_the_length_is_counted_after_trimming_and_the_stored_reason_is_the_trimmed_one():
+    assert clean_reason("  " + "a" * 500 + "\t \n") == "a" * 500
+    with pytest.raises(InvalidReason):
+        clean_reason(" " + "a" * 501 + " ")
+
+
+@pytest.mark.ac("AC-81")
+@pytest.mark.rule("RULE-A3")
+def test_rule_a3_the_length_counts_unicode_characters_so_an_emoji_is_one():
+    smile = "\U0001f600"  # one character, though two UTF-16 units and four UTF-8 bytes
+    assert clean_reason("abc" + smile * 497) == "abc" + smile * 497
+    with pytest.raises(InvalidReason):
+        clean_reason("abc" + smile * 498)
+
+
+@pytest.mark.ac("AC-81")
+@pytest.mark.rule("RULE-A3")
+@pytest.mark.parametrize(
+    "bad",
+    [
+        "Left the\nteam",
+        "Left the\tteam",
+        "Left\rthe team",
+        "Left the\x00team",
+        "Left the team\u202e",
+        "Left \u2066the team",
+        "Left the \u2069team",
+        "Left the\u200eteam",
+        "Left the\u200fteam",
+        "Left the\u061cteam",
+    ],
+)
+def test_rule_a3_a_control_or_bidirectional_character_is_refused(bad):
+    with pytest.raises(InvalidReason) as refused:
+        clean_reason(bad)
+    assert bad not in refused.value.message  # the answer does not echo the reason
 
 
 @pytest.mark.rule("RULE-A2")
@@ -73,7 +122,7 @@ def test_transitions():
 
 def test_domain_errors_say_what_went_wrong_and_not_how_http_answers():
     # The domain does not know HTTP. The web layer maps a rule to a status (NFR-3).
-    for cls in (ReasonRequired, CannotChangeSelf, LastAdministrator, InvalidTransition, AccountNotFound):
+    for cls in (ReasonRequired, InvalidReason, CannotChangeSelf, LastAdministrator, InvalidTransition, AccountNotFound):
         assert not hasattr(cls, "http_status"), cls.__name__
 
 

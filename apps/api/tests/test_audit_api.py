@@ -234,3 +234,17 @@ def test_the_only_audit_route_is_a_read(client):
     audit_routes = [r for r in _api_routes(client.app) if r.path.startswith("/audit")]
     assert audit_routes, "the audit read must exist"
     assert {m for r in audit_routes for m in r.methods} <= {"GET", "HEAD"}
+
+
+@pytest.mark.ac("AC-83")
+def test_a_first_request_writes_one_register_entry_with_no_actor_and_the_new_account_as_target(client, admin):
+    _, maya_id = register(client, "sub-maya", "maya@x.test")
+    register(client, "sub-maya", "maya@x.test")  # asking again is not a new registration
+
+    entries = [e for e in client.get("/audit", headers=admin).json() if e["target_id"] == maya_id]
+
+    assert len(entries) == 1
+    (entry,) = entries
+    assert (entry["kind"], entry["action"]) == ("account", "register")
+    assert (entry["actor_id"], entry["actor_name"], entry["actor_email"]) == (None, None, None)
+    assert (entry["target_name"], entry["target_email"]) == ("maya", "maya@x.test")

@@ -44,7 +44,7 @@ signing keys (JWKS); it reaches Keycloak on an internal address in Docker while 
 | API (apps/api) | The business rules per bounded context, the database, the Keycloak admin calls. | built |
 | Keycloak | Passwords, login page, tokens, sessions. Realm in `keycloak-config/`. | built |
 | Redis | Web sessions and login attempts, with expiry. Chosen by `REDIS_URL`; in memory otherwise. | built |
-| API database | Accounts, audit entries. | built (tables made by `create_all`) |
+| API database | Accounts, audit entries, projects and memberships. Tables come from Alembic migrations run by a one-off container. | built |
 | Keycloak database | Keycloak's own data. | built |
 
 ## 3. Inside the API: bounded contexts
@@ -55,13 +55,11 @@ flowchart TB
         wiring[wires ports to adapters and bridges contexts]
     end
     wiring --- access[Access, built]
-    wiring -.- audit[Audit, planned]
-    wiring -.- projects[Projects, planned]
+    wiring --- audit[Audit, built]
+    wiring --- projects[Projects, built]
 ```
 
-Dotted lines are planned. **Today** the composition root wires Access's own audit adapter and table straight in, with no
-bridge and no Audit context; the move to Audit (ADR 0003, 0011) and the ports Projects needs (`AccountStatus`, `AuditLog`
-and a `People` port answered by Access) are not built. The build plan for Projects is ADR 0015.
+All three contexts are built. Where one needs another, `composition/bridges.py` answers the port: Audit receives what Access and Projects record, and Projects asks Access (`AccountStatus`, `People`) whether a person is active and what their name is. The build plan for Projects is ADR 0015.
 
 Every context has the same folders (ADR 0010): `domain/`, `application/`, `adapters/inbound`, `adapters/outbound`. A
 context never imports another. Where one needs the other, the composition root answers the port. This is enforced by
@@ -70,8 +68,8 @@ context never imports another. Where one needs the other, the composition root a
 | Context | Owns | Status |
 |---|---|---|
 | Access (BC-ACCESS) | Accounts, roles, statuses, who may do what, Keycloak enable and disable | built |
-| Audit (BC-AUDIT) | The append only audit trail and its read (decisions 21, 22; ADR 0011) | planned, UC-L1 |
-| Projects (BC-PROJECTS) | Projects and members (decision 13) | planned, UC-P1 to UC-P3 |
+| Audit (BC-AUDIT) | The append only audit trail and its read (decisions 21, 22; ADR 0011) | built, UC-L1 |
+| Projects (BC-PROJECTS) | Projects and members (decision 13, 23; ADR 0015, 0016) | built, UC-P1 to UC-P3, with web pages |
 
 ## 4. Where it runs
 
@@ -126,10 +124,10 @@ ports as the dev stack and the database `playground_test`; ADR 0011 adds a secon
 | Tokens | The browser never sees a token; the web server holds them | UC-A1, ADR 0001 | built |
 | Hexagon | Domain imports nothing; outside things sit behind ports; one architecture test per side | ADR 0001, 0010 | built |
 | Transactions | A deactivation commits before Keycloak is called; the last administrator is protected by a lock | ADR 0009 | built |
-| Audit | Append only; the database refuses update, delete, truncate, alter, drop to the API role; the database sets the time | decisions 21, 22; ADR 0003, 0011 | planned |
-| Caller | Projects receives a `Caller` (its own, built by `projects_caller` in `composition/`) and never looks a role up | ADR 0002, 0015 | planned |
-| Migrations | Alembic in `apps/api/migrations/`, run as an owner role in a separate step; the API role owns nothing; `create_all` goes | ADR 0004, 0011, 0012 | planned |
-| Logging | One JSON line per security event on stdout, for CloudWatch; never a token or a code | decision 17; its ADR is on branch `feat/UC-A1-basic-logging` and is renumbered 0013 when it merges | planned, built on a branch |
+| Audit | Append only; the database refuses update, delete, truncate, alter, drop to the API role; the database sets the time | decisions 21, 22; ADR 0003, 0011 | built |
+| Caller | Projects receives a `Caller` (its own, built by `projects_caller` in `composition/`) and never looks a role up | ADR 0002, 0015 | built |
+| Migrations | Alembic in `apps/api/migrations/`, run as an owner role in a separate step; the API role owns nothing; `create_all` goes | ADR 0004, 0011, 0012 | built |
+| Logging | One JSON line per security event on stdout, for CloudWatch; never a token or a code | decision 17; ADR 0013 | built (the web half is in pull request 24) |
 | Sessions | Redis with expiry; one web container for the alpha | decision 20 (the Redis adapter has no ADR of its own yet) | built |
 | Secrets | Today: environment variables and development defaults. Target: Secrets Manager (decision 4), two database secrets (owner, API, ADR 0011) | decision 4; ADR 0011 | target decided, mechanism on EC2 open |
 | Tests | Unit, use case, adapter, integration, acceptance on a fresh stack; the V cycle report; CI on GitHub Actions | ADR 0005, 0006, 0007, 0008 | built |

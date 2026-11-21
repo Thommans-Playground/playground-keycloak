@@ -31,3 +31,17 @@ export type BackendRequest = { method: string; path: string; search?: string; bo
 export interface BackendApi {
   request(req: BackendRequest, accessToken: string): Promise<{ status: number; body: string; contentType: string }>;
 }
+
+/** What a security log line may say. Never a token, a code, the state, the nonce, the verifier or the raw session id. */
+export type SecurityEvent = {
+  name: string;
+  result: "ok" | "refused";
+  personId?: string;
+  sessionId?: string;
+  reason?: string;
+};
+
+/** AC-48 / NFR-5: one line for each refused sign in and each session that starts or ends. */
+export interface SecurityLog {
+  event(e: SecurityEvent): void;
+}

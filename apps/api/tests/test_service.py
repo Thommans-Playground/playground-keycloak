@@ -7,6 +7,7 @@ import pytest
 from app.access.application.service import AccessService, IdentityProviderUnavailable
 from app.access.domain.account import (
     Action,
+    InvalidReason,
     InvalidTransition,
     LastAdministrator,
     Role,
@@ -399,3 +400,23 @@ def test_people_gives_id_name_and_email_as_they_are_now_and_omits_unknown_ids():
         ids[Status.active]: ("Active", "active@x.test"),
     }
     assert svc.people([]) == []
+
+
+@pytest.mark.ac("AC-81")
+@pytest.mark.rule("RULE-A3")
+@pytest.mark.parametrize("bad", ["a" * 501, "Left the\nteam", "Left the team\u202e"])
+@pytest.mark.parametrize("action", [Action.deactivate, Action.reinstate, Action.promote, Action.demote])
+def test_a_refused_reason_changes_nothing_and_adds_no_audit_entry(action, bad):
+    svc, accounts, audit, idp = make()
+    admin = svc.account_for("sub-ada", "Ada", "ada@x.test", True)
+    maya = svc.account_for("sub-1", "Maya", "maya@x.test", True)
+    svc.change(admin, maya.id, Action.approve)
+    if action is Action.reinstate:
+        svc.change(admin, maya.id, Action.deactivate, "left the team")
+    if action is Action.demote:
+        svc.change(admin, maya.id, Action.promote, "helps approve")
+    before_account, before_audit, before_calls = accounts.by_id(maya.id), len(audit.shapes()), list(idp.calls)
+    with pytest.raises(InvalidReason):
+        svc.change(admin, maya.id, action, bad)
+    assert accounts.by_id(maya.id) == before_account
+    assert len(audit.shapes()) == before_audit and idp.calls == before_calls

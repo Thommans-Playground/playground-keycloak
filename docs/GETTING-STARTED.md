@@ -63,6 +63,12 @@ cd apps/api && uv run python ../../scripts/seed-demo.py --purge --yes   # remove
 
 Sign in once as `admin@example.test` and `maya@example.test` first, so their accounts exist. It uses `psycopg` from the API's uv environment.
 
+### Cleaning up after tests (development only)
+
+Run the integration tests on the fresh stack (`scripts/test-stack.sh`), which wipes itself. On the dev stack they leave
+test accounts and projects behind: use `cd apps/web && npm run test:integration:dev`, or clean by hand with
+`scripts/purge-test-data.sh --dry-run` and then `scripts/purge-test-data.sh --yes`. It never touches the demo data.
+
 ## 3. Try it (20 minutes)
 
 Do these in order. Each one teaches one idea.

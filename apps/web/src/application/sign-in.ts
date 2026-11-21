@@ -1,6 +1,6 @@
 import { safeReturnTo } from "../domain/return-to.ts";
 import { isExpired } from "../domain/login-attempt.ts";
-import type { IdentityProvider, LoginAttemptStore, SessionStore } from "./ports.ts";
+import type { IdentityProvider, LoginAttemptStore, SecurityLog, SessionStore } from "./ports.ts";
 
 export type SignInDeps = {
   idp: IdentityProvider;
@@ -8,6 +8,7 @@ export type SignInDeps = {
   sessions: SessionStore;
   now: () => number;
   newId: () => string;
+  log: SecurityLog;
 };
 
 export type SignInFailure = "login_expired" | "login_refused" | "login_failed" | "identity_provider_unavailable";
@@ -54,6 +55,15 @@ export async function startLogin(deps: SignInDeps, input: { returnTo: string | n
 
 /** Finish the attempt the callback belongs to, and make a session. The tokens never leave the store. */
 export async function finishLogin(deps: SignInDeps, attemptId: string | undefined, callbackUrl: URL) {
+  try {
+    return await makeSession(deps, attemptId, callbackUrl);
+  } catch (e) {
+    deps.log.event({ name: "sign_in", result: "refused", reason: signInFailureCode(e) }); // AC-48
+    throw e;
+  }
+}
+
+async function makeSession(deps: SignInDeps, attemptId: string | undefined, callbackUrl: URL) {
   const attempt = await deps.attempts.take(attemptId); // once only: taking it removes it
   if (!attempt || isExpired(attempt, deps.now())) throw new SignInFailed("login_expired");
   if (callbackUrl.searchParams.has("error")) throw new SignInFailed("login_refused");
@@ -65,5 +75,8 @@ export async function finishLogin(deps: SignInDeps, attemptId: string | undefine
   }
   const sessionId = deps.newId();
   await deps.sessions.put(sessionId, session);
+  // The web session holds no person id, so the lines carry the session only (a known gap).
+  deps.log.event({ name: "sign_in", result: "ok" });
+  deps.log.event({ name: "session_start", result: "ok", sessionId });
   return { sessionId, returnTo: attempt.returnTo };
 }
