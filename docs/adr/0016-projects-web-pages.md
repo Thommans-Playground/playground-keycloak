@@ -33,3 +33,10 @@ The browser can now send DELETE through the proxy, and the proxy forwards what t
 
 ## Links
 Decisions 5, 13, 14, 23; ADR 0001, 0005, 0010, 0013, 0015; UC-P1, UC-P2, UC-P3; AC-9 to AC-20, AC-26 to AC-28, AC-32, AC-55, AC-60, AC-84, AC-86, AC-87; bff-design.puml.
+
+## Amendments (21 Nov 2026)
+Added to match what was built. They correct names and one behaviour above and do not change the decision.
+
+- The refusal function is `projectRefusalMessage(code)` in `project-messages.ts`, not `projectMessage`. Its default sentence is "Something went wrong. Try again."
+- A member whose name is unknown (`name: null`) is shown as **"Unknown person"**, never the id, so an id is not shown to a reader (`memberLabel` in `project-summary.ts`). The text above that says the web then shows the id is replaced by this.
+- The API's own refusal text for `member_not_eligible` is now neutral ("That person cannot be added to or removed from this project."), because the same code answers a removal of a person who is not a member. The web still never repeats API text.
