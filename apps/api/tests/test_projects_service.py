@@ -69,7 +69,10 @@ def test_a_first_member_who_is_not_active_is_refused_with_one_answer_and_nothing
     service, projects, _ = service_with({"acc-maya"})
     with pytest.raises(MemberNotEligible) as refusal:
         service.create(ADMIN, "Alpha", [member])
-    assert (refusal.value.code, refusal.value.message) == ("member_not_eligible", "That person cannot be added to or removed from this project.")
+    assert (refusal.value.code, refusal.value.message) == (
+        "member_not_eligible",
+        "That person cannot be added to or removed from this project.",
+    )
     assert member not in str(refusal.value)
     assert projects.rows == {}
 
