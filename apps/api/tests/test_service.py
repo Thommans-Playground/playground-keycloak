@@ -364,3 +364,38 @@ def test_a_keycloak_not_updated_entry_carries_the_names_too():
     event = audit.rows[-1]
     assert event.action == "keycloak_not_updated"
     assert (event.actor.name, event.target.name) == ("Ada", "Maya")
+
+
+# What Access answers for another context (UC-P1 slice 1): who is active, and who someone is now.
+def _three_people():
+    svc, accounts, _, _ = make()
+    ids = {}
+    for status in (Status.active, Status.pending, Status.deactivated):
+        a = svc.account_for(f"sub-{status.value}", status.value.title(), f"{status.value}@x.test", True)
+        accounts.save(a.with_(status=status))
+        ids[status] = a.id
+    return svc, accounts, ids
+
+
+def test_active_among_returns_only_the_active_accounts():
+    svc, _, ids = _three_people()
+    got = svc.active_among([ids[Status.active], ids[Status.pending], ids[Status.deactivated], "unknown"])
+    assert set(got) == {ids[Status.active]}
+
+
+def test_active_among_counts_a_duplicate_once_and_an_empty_list_answers_empty():
+    svc, _, ids = _three_people()
+    got = svc.active_among([ids[Status.active], ids[Status.active]])
+    assert list(got) == [ids[Status.active]]
+    assert list(svc.active_among([])) == []
+
+
+def test_people_gives_id_name_and_email_as_they_are_now_and_omits_unknown_ids():
+    svc, accounts, ids = _three_people()
+    accounts.save(accounts.by_id(ids[Status.pending]).with_(name="Renamed", email="new@x.test"))
+    got = svc.people([ids[Status.pending], ids[Status.active], "unknown"])
+    assert {p.id: (p.name, p.email) for p in got} == {
+        ids[Status.pending]: ("Renamed", "new@x.test"),
+        ids[Status.active]: ("Active", "active@x.test"),
+    }
+    assert svc.people([]) == []

@@ -683,3 +683,16 @@ records the technical side (commit order, locking).
 **Changes.** AC-68, AC-77, AC-79 and AC-80 reworded, AC-81 and AC-82 added, AC-29 and AC-30 stay with UC-P1 and UC-P2 and leave UC-L1 (with FR-13). UC-L1 and UC-A4 text, slices and three diagrams; BC-AUDIT gains the table of what an entry records. ADR 0011 records the technical side (one role and one session, a separate owner role for migrations, names at the time, the `Caller` of Audit, reasons limits, log lines). The security overlay lists the two accepted risks.
 
 **Still open.** Retention of the trail and its personal data. Whether a refused change should ever be an entry (today it goes to the log).
+
+## 23. Projects before the build: removal of a non-member, no paging, placeholders (20 Nov 2026)
+
+**Decided.** By the owner, after the three reviews of UC-P1, UC-P2 and UC-P3.
+- **Removing a person who is not a member is refused** with `MemberNotEligible` (422), and nothing is written: no change and no audit entry. This answers UC-P2 open question 3 and BC-PROJECTS open question 5. The refusal goes to the security log (decision 17).
+- **The project list and the member lists have no paging in the alpha.** They return everything the person may see. This is accepted and listed in the security overlay's "Accepted for now". Revisit it before the beta.
+- **A project carries the empty placeholders `files`, `endpoints` and `evaluations` in the API from the start**, in the answer to create and to open, so they are part of the contract and a later context fills them without changing its shape. They have **no requirement behind them yet**. A functional requirement for them is a later extension, written when Files, Endpoints and Evaluations are built. The ontology keeps the note that they are placeholders (OBJ-P1).
+
+**Why.** A refusal that says "that person is not here" is simpler for an administrator than a silent success, and it keeps the trail free of changes that did not happen. The alpha has few projects and few people, so paging costs more than it saves now. Fixing the shape of a project early stops a later breaking change to the web side.
+
+**Changes.** AC-87 added (UC-P2). AC-86 is the empty list. UC-P1, UC-P2 and UC-P3, BC-PROJECTS, OBJ-P1 and the security overlay say so. FR-9's note and FR-12's note point here. ADR 0015 records the technical side.
+
+**Still open.** Whether a project name must be unique. Whether removing a member needs a reason. Whether a project can be archived. The real requirement for files, endpoints and evaluations.

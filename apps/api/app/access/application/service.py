@@ -8,6 +8,7 @@ from app.access.application.ports import (
     AccountEvent,
     AccountRef,
     AccountRepository,
+    AccountSummary,
     AuditLog,
     IdentityProvider,
     UnitOfWork,
@@ -88,6 +89,14 @@ class AccessService:
             )
         )
         return account
+
+    def active_among(self, ids: list[str]) -> list[str]:
+        """Of these account ids, the ones that belong to active accounts (for another context)."""
+        return [a.id for a in self.accounts.by_ids(list(set(ids))) if a.is_active]
+
+    def people(self, ids: list[str]) -> list[AccountSummary]:
+        """Id, name and email as they are now, for the known ids (for another context)."""
+        return [AccountSummary(a.id, a.name, a.email) for a in self.accounts.by_ids(list(set(ids)))]
 
     def list_accounts(self, status: str | None = None) -> list[tuple[Account, list[Account]]]:
         """The accounts, each with the other accounts that share its email. The duplicates are found among all

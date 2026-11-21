@@ -29,6 +29,19 @@ export type AuditEntry = {
   reason: string | null;
 };
 
+export type Member = { id: string; name: string | null };
+
+/** The placeholders (files, endpoints, evaluations) are empty lists for now (decision 23). */
+export type Project = {
+  id: string;
+  name: string;
+  created_by: string;
+  members: Member[];
+  files: unknown[];
+  endpoints: unknown[];
+  evaluations: unknown[];
+};
+
 export type ApiResult<T> = { ok: true; data: T } | { ok: false; status: number; code: string };
 
 /** Server side call to the FastAPI API, for the signed-in person. */

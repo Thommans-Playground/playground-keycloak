@@ -15,6 +15,7 @@ class IdentityProvider(Protocol):
 class AccountRepository(Protocol):
     def by_identity(self, identity: str) -> Account | None: ...
     def by_id(self, account_id: str) -> Account | None: ...
+    def by_ids(self, account_ids: list[str]) -> list[Account]: ...
     def add(self, account: Account) -> None: ...
     def save(self, account: Account) -> None: ...
     def list(self, status: str | None = None) -> list[Account]: ...
@@ -39,6 +40,15 @@ class AccountRef:
     @classmethod
     def of(cls, account: Account) -> "AccountRef":
         return cls(account.id, account.name, account.email)
+
+
+@dataclass(frozen=True)
+class AccountSummary:
+    """Who an account is now, as Access tells another context (never the entity itself)."""
+
+    id: str
+    name: str
+    email: str
 
 
 @dataclass(frozen=True)

@@ -109,3 +109,9 @@ def test_accounts_sharing_an_email_are_each_others_duplicates_ignoring_case_and_
     assert [x.id for x in found["b"]] == ["a", "c"]
     assert [x.id for x in found["c"]] == ["a", "b"]
     assert found["d"] == []
+
+
+def test_only_an_active_account_is_active():
+    assert acct("a", status=Status.active).is_active
+    assert not acct("p", status=Status.pending).is_active
+    assert not acct("d", status=Status.deactivated).is_active

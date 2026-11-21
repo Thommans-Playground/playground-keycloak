@@ -11,7 +11,7 @@ satisfies:
   - id: FR-10
 ```
 
-> Parked by decision 13: not in the alpha. Brought back with role based access in a later release.
+> Beta, not current. Parked by decision 13: not in the alpha. Brought back with role based access in a later release.
 
 # A project always has a manager
 
@@ -49,7 +49,7 @@ flowchart TB
 
 - Given a project with one manager, when anyone tries to remove them, then it is refused (AC-21).
 - Given a project with one manager, when anyone tries to change them to an engineer, then it is refused, like a removal.
-- Given an administrator creates a project and names no manager, then it is refused (AC-13).
+- Given an administrator creates a project and names no manager, then it is refused. No criterion exists for this yet: AC-13 is about a first member who is not active, and a project may have no member in the alpha (decision 13). Write one when the rule is unparked.
 
 ## Related
 

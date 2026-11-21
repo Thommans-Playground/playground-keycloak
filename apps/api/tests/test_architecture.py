@@ -67,8 +67,8 @@ def outside(path: Path, allowed_prefixes: list[str], libraries: set[str] = froze
     return sorted(bad)
 
 
-def test_there_is_at_least_the_access_and_audit_contexts():
-    assert {"access", "audit"} <= set(contexts())
+def test_there_is_at_least_the_access_audit_and_projects_contexts():
+    assert {"access", "audit", "projects"} <= set(contexts())
 
 
 def test_only_known_packages_sit_next_to_the_contexts():
@@ -180,9 +180,13 @@ def test_migrations_import_only_infrastructure_and_the_table_definitions():
         )
 
 
-def test_migrations_may_import_the_table_definition_of_the_audit_context(tmp_path):
+def test_migrations_may_import_the_table_definition_of_every_context(tmp_path):
     f = tmp_path / "m.py"
-    f.write_text("import app.audit.adapters.outbound.sql\nimport app.access.adapters.outbound.sql\n", encoding="utf-8")
+    f.write_text(
+        "import app.audit.adapters.outbound.sql\nimport app.access.adapters.outbound.sql\n"
+        "import app.projects.adapters.outbound.sql\n",
+        encoding="utf-8",
+    )
     assert migration_violations(f) == []
     f.write_text("from app.audit.application.service import AuditService\n", encoding="utf-8")
     assert migration_violations(f) == ["app.audit.application.service"]
@@ -239,3 +243,16 @@ def test_each_context_declares_its_own_security_log_port_and_none_imports_the_ot
         )
         other = "audit" if c == "access" else "access"
         assert not any(m.startswith(f"app.{other}") for m in imports_of(ports)), f"{c} ports import {other}"
+
+
+def test_projects_imports_no_other_context_only_composition_sees_both():
+    # UC-P1 TSK-P1.6: Projects asks about accounts through its own AccountStatus port, answered by a bridge.
+    for f in py_files(APP / "projects"):
+        for mod in imports_of(f):
+            assert not any(mod == f"app.{c}" or mod.startswith(f"app.{c}.") for c in contexts() if c != "projects"), (
+                f"{f.relative_to(APP)} imports {mod}: Projects knows no other context (ADR 0002, 0010, 0015)"
+            )
+    ports = imports_of(APP / "projects" / "application" / "ports.py")
+    assert not any(m.startswith("app.access") for m in ports)
+    assert any(p.name == "bridges.py" for p in py_files(APP / "composition"))
+    assert any(m.startswith("app.access") for m in imports_of(APP / "composition" / "bridges.py"))

@@ -1,5 +1,7 @@
 """In-memory stand-ins for the ports, so a use case can be tested with no database and no Keycloak."""
 
+from dataclasses import replace
+
 
 class FakeIdp:
     """Stands in for Keycloak's admin API and records what it was asked."""
@@ -35,6 +37,9 @@ class FakeAccounts:
 
     def by_id(self, account_id):
         return self.rows.get(account_id)
+
+    def by_ids(self, account_ids):
+        return [self.rows[i] for i in dict.fromkeys(account_ids) if i in self.rows]
 
     def add(self, account):
         self.rows[account.id] = account
@@ -117,3 +122,81 @@ class FakeSecurityLog:
         self.events.append(
             {"event": name, "result": result, "person_id": person_id, "session_id": session_id, "reason": reason}
         )
+
+
+class FakeProjects:
+    """Stands in for Projects' ProjectRepository port: keeps the projects in memory."""
+
+    def __init__(self):
+        self.rows: dict[str, object] = {}
+        self.added: list = []  # the memberships written by add_member
+        self.lose_the_race = False  # another request inserts the same row first, as the unique key would show
+
+    def add(self, project):
+        self.rows[project.id] = project
+
+    def by_id(self, project_id):
+        return self.rows.get(project_id)
+
+    def add_member(self, project_id, membership):
+        project = self.rows[project_id]
+        already = membership.account_id in project.members
+        if not already:
+            self.rows[project_id] = replace(project, memberships=(*project.memberships, membership))
+        if already or self.lose_the_race:
+            return False  # the row was there: nothing of ours was written
+        self.added.append(membership)
+        return True
+
+    def remove_member(self, project_id, account_id):
+        project = self.rows[project_id]
+        if account_id not in project.members:
+            return False
+        self.rows[project_id] = replace(
+            project, memberships=tuple(m for m in project.memberships if m.account_id != account_id)
+        )
+        return True
+
+    def list_all(self):
+        return list(self.rows.values())
+
+    def list_for_member(self, account_id):
+        return [p for p in self.rows.values() if account_id in p.members]
+
+
+class FakeAccountStatus:
+    """Stands in for Projects' AccountStatus port. `active=None` means every id is an active account."""
+
+    def __init__(self, active: set[str] | None = None):
+        self.active = active
+        self.asked: list[set[str]] = []
+
+    def active_among(self, ids):
+        self.asked.append(set(ids))
+        return set(ids) if self.active is None else set(ids) & self.active
+
+
+class FakeProjectsAudit:
+    """Stands in for Projects' AuditLog port: keeps the events, and what the repository held when each came."""
+
+    def __init__(self, projects=None):
+        self.events: list = []
+        self.held_when_recorded: list = []
+        self._projects = projects
+
+    def record(self, event):
+        self.events.append(event)
+        if self._projects is not None:
+            self.held_when_recorded.append(self._projects.by_id(event.project_id))
+
+
+class FakePeople:
+    """Stands in for Projects' People port: {id: (name, email)} for the known ids, nothing for the others."""
+
+    def __init__(self, known: dict[str, tuple[str, str]] | None = None):
+        self.known = known or {}
+        self.asked: list[set[str]] = []
+
+    def names_of(self, ids):
+        self.asked.append(set(ids))
+        return {i: self.known[i] for i in ids if i in self.known}

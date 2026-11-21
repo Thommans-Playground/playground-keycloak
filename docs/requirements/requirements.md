@@ -32,23 +32,23 @@
 | ID | Name | Statement | Verified by | Release | Built | Status | Sources |
 |---|---|---|---|---|---|---|---|
 | FR-7 | Create a project | The system shall let an administrator create a project and name its first members. | acceptance test | R1 | no | draft | UC-P1; decision 3 |
-| FR-8 | Administrators get no access to contents by role | The system shall not give an administrator access to a project's contents by their role. | acceptance test | parked | no | draft | UC-P1; decision 3 |
+| FR-8 | Administrators get no access to contents by role | The system shall not give an administrator access to a project's contents by their role. | acceptance test | parked | no | draft | decision 3; parked by decision 13 |
 | FR-9 | Manage project members | The system shall let an administrator add and remove members of a project, adding only people with an active account. | acceptance test | R1 | no | draft | UC-P2; decision 3 |
-| FR-10 | Keep an active manager | The system shall refuse a removal or demotion that would leave a project with no active project manager. | acceptance test | parked | no | draft | UC-P2; decision 3 |
-| FR-11 | Restore a project manager | The system shall let an administrator add a project manager to a project that has no active project manager, with a reason, and only a person with an active account who is not an administrator. | acceptance test | parked | no | draft | UC-P2; decision 3 |
-| FR-12 | Contents only for members | The system shall show a project's contents and member list only to its members and to administrators, and answer anyone else as for a project that does not exist. | acceptance test | R1 | no | draft | decision 3; no use case yet |
+| FR-10 | Keep an active manager | The system shall refuse a removal or demotion that would leave a project with no active project manager. | acceptance test | parked | no | draft | decision 3; parked by decision 13 |
+| FR-11 | Restore a project manager | The system shall let an administrator add a project manager to a project that has no active project manager, with a reason, and only a person with an active account who is not an administrator. | acceptance test | parked | no | draft | decision 3; parked by decision 13 |
+| FR-12 | Contents only for members | The system shall show a project's contents and member list only to its members and to administrators, and answer anyone else as for a project that does not exist. | acceptance test | R1 | no | draft | decision 3; UC-P2; UC-P3 |
 | FR-13 | Audit project changes | The system shall record an audit entry for every project creation and every change to a project's members. | acceptance test | R1 | no | draft | UC-P1; UC-P2; decision 3 |
 | FR-16 | See and open projects | The system shall let a person list the projects they belong to, let an administrator list all projects, and let either open a project they may see. | acceptance test | R1 | no | draft | decision 14; UC-P3 |
 
 **Notes**
 
-- **FR-7:** Name rules and who names the manager: UC-P1. Open: a second manager at creation?
+- **FR-7:** Name rules and the first members: UC-P1 (decision 23). A project has no manager in the alpha (decision 13).
 - **FR-8:** Parked by decision 13: the administrator is a superuser in the alpha.
-- **FR-9:** Roles are names only for now (UC-P2). Open: does removing a member need a reason?
+- **FR-9:** No project roles in the alpha (decision 13). Removing a person who is not a member is refused (decision 23). Open: does removing a member need a reason?
 - **FR-10:** Parked by decision 13: there are no project managers in the alpha.
 - **FR-11:** Parked by decision 13: there are no project managers in the alpha.
-- **FR-12:** The same answer as for a missing project (RULE-P4). Contents are empty containers for now.
-- **FR-13:** Who, what and whom it affected. Refused administrator attempts included.
+- **FR-12:** The same answer as for a missing project (RULE-P4). Contents are the empty lists files, endpoints and evaluations, placeholders with no requirement behind them yet (decision 23).
+- **FR-13:** Who, what and whom, with the names as they were at the time (BC-AUDIT). Refusals go to the security log, not the trail (decision 22).
 
 ### Area L
 

@@ -6,7 +6,6 @@ status: draft
 actor: administrator (members and administrators view)
 context: BC-PROJECTS
 satisfies:
-  - id: FR-4
   - id: FR-9
   - id: FR-12
   - id: FR-13
@@ -14,10 +13,16 @@ criteria:
   - id: AC-17
   - id: AC-18
   - id: AC-20
-  - id: AC-27
+  - id: AC-84
   - id: AC-30
   - id: AC-32
   - id: AC-60
+  - id: AC-48
+  - id: AC-87
+  - id: AC-88
+  - id: AC-90
+  - id: AC-93
+  - id: AC-94
 parameters:
   - project
   - person (an active account)
@@ -26,7 +31,8 @@ objects: [OBJ-P1, OBJ-P2]
 rules: [RULE-P4]
 effects:
   - the person is, or is no longer, a member of the project
-  - an audit entry records who changed what
+  - an audit entry records who changed what, for a change that happened (an addition of an existing member, and a removal of a non-member, write nothing)
+  - a refusal writes one line to the security log and nothing else
 evolved_from: [MK3 UC-A3]
 ```
 
@@ -35,11 +41,9 @@ evolved_from: [MK3 UC-A3]
 <!-- vbench-uc:begin mirror (generated from the requirements files, do not edit here: change the row, then run sync) -->
 
 <details>
-<summary>The requirements and criteria it runs, copied from docs/requirements (4 requirements, 7 criteria). Do not edit.</summary>
+<summary>The requirements and criteria it runs, copied from docs/requirements (3 requirements, 13 criteria). Do not edit.</summary>
 
 ## What this serves
-
-**FR-4**: The system shall let an administrator decide who can use the product: approve a pending account, deactivate an active one with a reason, and reinstate a deactivated one with a reason.
 
 **FR-9**: The system shall let an administrator add and remove members of a project, adding only people with an active account.
 
@@ -67,23 +71,23 @@ evolved_from: [MK3 UC-A3]
 - When an administrator removes them
 - Then they are out, and their next request gets the same answer as for a missing project
 
-**AC-27** (acceptance, proves FR-12)
+**AC-84** (acceptance, proves FR-12)
 
-- Given a project and an id that does not exist
-- When a person who is neither a member nor an administrator asks about, or changes the members of, either
-- Then the answer is the same for both
+- Given a project, an id that does not exist, and an id that is not well formed
+- When a person who is neither a member nor an administrator tries to add a member to, or remove a member from, each of them
+- Then the three answers have the same status, body and code (404), and no membership changes
 
 **AC-30** (acceptance, proves FR-13)
 
 - Given a project
 - When a member is added or removed
-- Then each has an entry saying who, what and whom
+- Then one audit entry for each change says who did it, what was done (member added or member removed), which project (its id and its name) and which member, each with the name and email they had at that time
 
 **AC-32** (acceptance, proves NFR-1)
 
-- Given any role, and a person who is not a member
-- When each makes a command or read it may not, even if the screen hides it
-- Then the server refuses it
+- Given the commands of the project routes (create a project, add a member, remove a member), and a caller who may not make them: a user who is not an administrator, or a member who is not an administrator
+- When each makes a command it may not, even if the screen hides the button
+- Then the server refuses it, and nothing is created or changed
 
 **AC-60** (acceptance, proves FR-9)
 
@@ -91,9 +95,46 @@ evolved_from: [MK3 UC-A3]
 - When they try to add or remove a member
 - Then it is refused
 
+**AC-48** (acceptance, proves NFR-5)
+
+- Given a refused sign in, a refused request, and a session that starts and ends
+- When each happens
+- Then each writes one log line, and none holds a token or a code
+
+**AC-87** (acceptance, proves FR-9)
+
+- Given an administrator and a project, and a person who is not a member
+- When the administrator tries to remove that person
+- Then it is refused with MemberNotEligible (422), no membership changes and no audit entry is written
+
+**AC-88** (acceptance, proves FR-9)
+
+- Given an administrator and a project, and a person who is already a member
+- When the administrator adds that person again
+- Then nothing changes, no audit entry is written, and the answer shows the same member list
+
+**AC-90** (integration, proves FR-9)
+
+- Given two administrators and a project, and an active account that is not a member
+- When both add that person at the same moment
+- Then the project has one membership for that person, neither call fails with a server error, and one audit entry is written
+
+**AC-93** (acceptance, proves FR-7; FR-9)
+
+- Given an administrator and a request body with a field the route does not define
+- When they create a project or add a member with it
+- Then it is refused with a 422 and nothing is created or changed
+
+**AC-94** (acceptance, proves NFR-1)
+
+- Given a request with no token, a pending account, and a deactivated account
+- When each makes a request to every /projects route (list, open, create, add a member, remove a member), with the id of a project that exists
+- Then each is refused (401 with no token or a bad one, 403 for the others) before the project is looked at, and the answer shows nothing about the project
+
 ## How it is verified
 
-- acceptance: AC-17, AC-18, AC-20, AC-27, AC-30, AC-32, AC-60
+- acceptance: AC-17, AC-18, AC-20, AC-84, AC-30, AC-32, AC-60, AC-48, AC-87, AC-88, AC-93, AC-94
+- integration: AC-90
 
 Each criterion is run by a test tagged `Verifies AC-<n>`.
 
@@ -101,9 +142,11 @@ Each criterion is run by a test tagged `Verifies AC-<n>`.
 
 <!-- vbench-uc:end mirror -->
 
-> Draft for the alpha (decision 13). It serves FR-9, FR-12 and FR-13, and FR-4 where it touches members, and runs the criteria listed above (decisions 3, 6 and 13).
+> Draft for the alpha (decision 13). It serves FR-9, FR-12 and FR-13, and runs the criteria listed above (decisions 3, 6, 13, 14 and 23).
 > Replaces an earlier membership use case that lived in Access. Projects owns membership (decision 2). Access is asked, through the AccountStatus port, which accounts are active.
-> Listing and opening a project, and showing its member list, moved to [UC-P3](UC-P3-list-and-open-a-project.md) (decision 14), with AC-26 and AC-28. AC-27 stays here too, for the change routes.
+> Listing and opening a project, and showing its member list, are [UC-P3](UC-P3-list-and-open-a-project.md) (decision 14), with AC-26, AC-27 and AC-28. The same 404 on the change routes is AC-84 here.
+> FR-4 (decide who can use the product) is a note, not a requirement of this use case: a deactivated member stays on the project (see the last other flow), and UC-A4 owns FR-4.
+> Build order: after UC-P1 and UC-P3 (ADR 0015).
 
 ## Description
 
@@ -119,28 +162,32 @@ An administrator decides who is in a project: they add people with an active acc
 1. An administrator opens a project and its member list (the read is UC-P3). (FR-12)
 2. They choose an action: add a person or remove a person. (FR-9)
 3. For an addition, they choose a person. (FR-9)
-4. The system checks that the person asking may see this project (a member or an administrator), and then that they are an administrator. A person who is neither a member nor an administrator, or who asks about a project that does not exist, gets the same answer. A member who is not an administrator is refused. This is checked before the input is. (FR-9, FR-12, AC-27, AC-60)
-5. For an addition, the system checks that the person being added has an **active** account, and gives one answer if not. (FR-9, AC-18)
-6. The system applies the change. Adding a person who is already a member changes nothing and writes no entry. A removed member is out, and the project may end up empty. (FR-9, AC-17, AC-20)
-7. The system records an audit entry with who, what and who it affected, in the same transaction as the change. (FR-13, AC-30)
+4. The system checks that the person asking may see this project (a member or an administrator), and then that they are an administrator. A person who is neither a member nor an administrator, or who asks about a project that does not exist or whose id is not well formed, gets the same answer. A member who is not an administrator is refused. This is checked before the input is. (FR-9, FR-12, AC-84, AC-60, AC-94)
+5. The system checks the body (no field it does not know). For an addition it checks that the person being added has an **active** account, and gives one answer if not. (FR-9, AC-18, AC-93)
+6. The system applies the change. Adding a person who is already a member changes nothing and writes no entry. Removing a person who is not a member is refused and writes nothing. A removed member is out, and the project may end up empty. Two administrators adding the same person at the same moment leave one membership. (FR-9, AC-17, AC-20, AC-87, AC-88, AC-90)
+7. The system records an audit entry with who, what and who it affected, for the project (id and name) and the member, with the names at that time, in the same transaction as the change. (FR-13, AC-30)
 8. The change takes effect at the affected person's next request, because membership is read on every request. (FR-9, AC-20)
+
+A refusal at any step writes one line to the security log and nothing else. (AC-48)
 
 ## Other flows
 
 - A member who is not an administrator tries to add or remove a member: refused with a 403, and nothing changes. (FR-9, AC-60)
-- Any role, and a person who is not a member, makes a command or read it may not, even if the screen hides it: the server refuses it. (AC-32) AC-32 moved here from UC-A1 (decision 10). UC-P1 proves it for creating a project and UC-P2 for managing members. The rest of "every command and read" is proven by later use cases.
-- A person who is neither a member nor an administrator asks about, or tries to change, the members of a project: the same 404 as for a project that does not exist. (FR-12, AC-27)
+- Any role, and a person who is not a member, makes a command it may not, even if the screen hides it: the server refuses it. (AC-32) AC-32 moved here from UC-A1 (decision 10). It covers the commands of UC-P1 and UC-P2 (create, add a member, remove a member). The reads are proven by UC-P3 and the audit read by UC-L1.
+- A person who is neither a member nor an administrator asks about, or tries to change, the members of a project: the same 404 as for a project that does not exist or whose id is not well formed, with the same status, body and code. (FR-12, AC-84)
+- A pending or deactivated person, or a request with no token: refused by the guard chain (403 or 401) before the project is looked at. (AC-94)
 - The person to add has a pending, deactivated or unknown account: refused with a 422, with one answer whichever it is. (FR-9, AC-18)
-- The person is already a member: nothing changes. (FR-9)
-- A person who is not a member is the target of a removal: refused with a 422, a Projects refusal that does not ask Access, and nothing changes. (FR-9, AC-20)
+- The person is already a member: nothing changes and no entry is written. (FR-9, AC-88)
+- A person who is not a member is the target of a removal: refused with `MemberNotEligible` (422), a Projects refusal that does not ask Access, and nothing changes and nothing is written (decision 23). (FR-9, AC-87)
+- The body holds a field the route does not know: refused with a 422. (AC-93)
 - The last member is removed: allowed, and the project is empty. (FR-9, AC-20)
-- A member's account is deactivated: they stay on the project (nothing is deleted), but every request of theirs is refused at the account check. When the account is reinstated they are a member again. (FR-4)
+- A member's account is deactivated: they stay on the project (nothing is deleted), but every request of theirs is refused at the account check. When the account is reinstated they are a member again. (UC-A4 owns FR-4)
 
 ## Postconditions
 
 - The project has the member list the administrator asked for, which may be empty.
 - Nothing the person did earlier in the project is deleted.
-- An audit entry exists.
+- An audit entry exists for each change that happened, and none for a change that did not.
 
 ## Open questions
 
@@ -148,7 +195,8 @@ For the product owner to decide.
 
 1. Does removing a member need a reason? For now no, only an audit entry.
 2. What a removed member's earlier work in the project shows as (their name or "removed member").
-3. Which error answers the removal of a person who is not a member? The plan says `MemberNotEligible` (422), which decision 14 does not name.
+
+Decided (decision 23): removing a person who is not a member is refused with `MemberNotEligible` (422) and writes nothing. The member lists have no paging in the alpha.
 
 ## Overview
 
@@ -196,63 +244,101 @@ Not frozen.
 - A16 (refusal): The person to remove is not a member
 - A17 (object): Project
 - A18 (object): Membership
+- A19 (rule): Adding a person who is already a member changes nothing and writes no record
 
 ## Design
 
-A plan, not built yet. The class diagram is [projects-design.puml](../domain/diagrams/projects-design.puml) and the design sequence is [UC-P2-manage-project-members-design-sequence.puml](diagrams/UC-P2-manage-project-members-design-sequence.puml), both marked planned (decisions 13 and 14). Every step lands on a class of that diagram: `ProjectsService`, `ProjectRepository`, `ProjectRules`, `Project`, `AccountStatus` and `AuditLog`, with the `Caller` passed in. There is no "API", "Access" or "DB" box: the composition root runs the full check (token, account found, not deactivated, not pending) and builds the `Caller` first.
+A plan, not built yet. The class diagram is [projects-design.puml](../domain/diagrams/projects-design.puml) and the design sequence is [UC-P2-manage-project-members-design-sequence.puml](diagrams/UC-P2-manage-project-members-design-sequence.puml), both marked planned (decisions 13, 14 and 23, ADR 0015). The files are those of [UC-P1](UC-P1-create-a-project.md): `projects/domain/`, `projects/application/` (`ports.py`, `service.py`), `projects/adapters/inbound/` (`http.py`, `schemas.py`, `errors.py`), `projects/adapters/outbound/sql.py`, and the bridges in `composition/bridges.py`. Every step lands on a class of that diagram: `ProjectsService`, `ProjectRepository`, `ProjectRules`, `Project`, `AccountStatus`, `People`, `AuditLog` and `SecurityLog`, with the `Caller` passed in. There is no "API", "Access" or "DB" box: the guard chain runs the full check (token, account found, not deactivated, not pending) and `projects_caller(account)` in `composition/` builds the `Caller` first.
 
-The order of the checks is: the project is read and the caller may see it (404), then the caller may change members (403), then the input (422). Authorisation is checked before the input is validated. The diagram draws both paths. The **read path** of a removal: a person who is not a member is a Projects refusal, found on the `Project` itself, and `AccountStatus` is not asked (an administrator may remove anyone, including a deactivated account). The **add path** asks `AccountStatus` for the person, and a refusal there is a different one. The change and its audit entry are one transaction: `SqlProjects` and the `AuditLog` adapter share one database session.
+The order of the checks is: the project is read and the caller may see it (404), then the caller may change members (403), then the input (422). Authorisation is checked before the input is validated. A project id that is not well formed is answered as a missing project (404), never as a 422. The diagram draws both paths. The **remove path**: a person who is not a member is a Projects refusal, found on the `Project` itself, and `AccountStatus` is not asked (an administrator may remove anyone, including a deactivated account). The **add path** asks `AccountStatus` for the person, and a refusal there is a different one. Adding an existing member, or removing a non-member, is the row difference: nothing is written and no entry is made. The unique key on (project, account) keeps two simultaneous additions to one row (AC-90). The change and its audit entry are one transaction: `SqlProjects` and the audit bridge share one database session. The entry carries the project id and name and the member, with their names and emails from `People` at that moment.
 
-What each refusal answers (decision 14):
+What each refusal answers (decision 14, decision 23):
 
 | Case | Error | Answer |
 |---|---|---|
-| A bad token, or an account that is deactivated or pending | the account routes' own | 401 or 403, before the role is looked at |
-| A project that does not exist, or a person who is neither a member nor an administrator, on a change route (AC-27) | `ProjectNotFound` | 404, the same for both |
+| No token, a bad token, or an account that is deactivated or pending (AC-94) | the account routes' own | 401 or 403, before the role is looked at |
+| A project that does not exist, an id that is not well formed, or a person who is neither a member nor an administrator, on a change route (AC-84) | `ProjectNotFound` | 404, the same status, body and code for all three |
 | A member who is not an administrator adds or removes a member (AC-60, AC-32) | `NotAnAdministrator` | 403 |
 | A person to add who is pending, deactivated or unknown (AC-18) | `MemberNotEligible` | 422, one answer for every reason |
-| A person to remove who is not a member | `MemberNotEligible` | 422, not decided by decision 14 (open question 3) |
+| A person to remove who is not a member (AC-87) | `MemberNotEligible` | 422, decided by decision 23 |
+| A field in the body that the route does not know (AC-93) | `InvalidRequest` | 422 |
+
+Every refusal writes one line to the security log through `SecurityLog` (AC-48), and no audit entry.
+
+**Answer shape (changed, ADR 0016).** The add and remove answers lists `members` as `{id, name}` and not as bare ids. The names come through the People port at the time of the answer, and an id that People does not know keeps its id with `name: null`. The request body still takes ids. The web needs the names to show the members.
 
 - D1 (route): The member routes (add, remove), kept thin. The member list is read by the open route of UC-P3
-- D2 (value object): Caller, built by the composition root after the full check
-- D3 (use case): ProjectsService.add_member and remove_member (caller, project_id, account_id), which read the project, check may see and may change, then validate, apply, save and audit. It reuses `open` of UC-P3 for the member list
+- D2 (value object): Caller of Projects, built by `projects_caller(account)` in composition/ after the full check
+- D3 (use case): ProjectsService.add_member and remove_member (caller, project_id, account_id), which read the project, check may see and may change, then validate, apply, save, audit and log. It reuses `open` of UC-P3 for the member list
 - D4 (aggregate): Project with its Memberships, whose add_member and remove_member apply the change and refuse a removal of a non-member
 - D5 (domain rule): `may_see(caller, project)` (RULE-P4) and `may_change_members(caller)` in ProjectRules
 - D6 (port): ProjectRepository, with `get` and `save`
 - D7 (port): AccountStatus, with `active_among`
 - D8 (port): AuditLog
-- D9 (adapter): SqlProjects, over the API database (Amazon RDS on AWS)
-- D10 (adapter): AccountStatusAdapter and AuditLogAdapter, wired in the composition root to Access and to Audit (BC-AUDIT)
-- D11 (domain error): ProjectNotFound, NotAnAdministrator and MemberNotEligible
+- D9 (adapter): SqlProjects, over the API database (Amazon RDS on AWS), with the unique key on (project, account)
+- D10 (adapter): The bridges in composition/ that answer AccountStatus (from Access), People (from Access) and AuditLog (to Audit)
+- D11 (domain error): ProjectNotFound, NotAnAdministrator, MemberNotEligible and InvalidRequest
 - D12 (domain rule): Membership is read on every request, so a change takes effect at once
+- D13 (port): People, `names_of(ids)`
+- D14 (port): SecurityLog
+- D15 (domain rule): A change that changes no row (an existing member added, a non-member removed) writes no entry
+
+### The web side (ADR 0016)
+
+On `/projects/[id]` an administrator sees "Add member" and a "Remove" action on each member. A member who is not an administrator sees the members and neither action. Both actions are small client components that call the BFF proxy: the add posts to `/api/backend/projects/{id}/members`, the remove sends DELETE to `/api/backend/projects/{id}/members/{account_id}` (the proxy now allows DELETE, and not PUT or PATCH). The picker offers the active accounts that are not yet members. After a change the page refreshes, so the list is the API's answer, with names. A refusal shows the message for its code (`member_not_eligible`, `forbidden`, `project_not_found`, `invalid_request`).
+
+```mermaid
+sequenceDiagram
+    actor A as Administrator
+    participant P as /projects/[id] page
+    participant C as Add and Remove components
+    participant X as BFF proxy
+    participant I as API
+    A->>P: open a project
+    P->>I: api() GET /projects/{id} and GET /accounts?status=active
+    P-->>A: members by name, with Add and Remove
+    A->>C: add a person, or remove one
+    C->>X: POST members, or DELETE members/{account_id}
+    X->>I: the same call with the bearer token
+    I-->>C: the project with its members, or a refusal code
+    C-->>A: the page refreshes, or the message for the code
+```
+
+- D16 (API answer): The add and remove answers list `members` as `{id, name}`, names through People (ADR 0016)
+- D17 (web client components): AddMemberForm and RemoveMemberButton on `/projects/[id]`, shown to administrators only, calling `/api/backend/projects/{id}/members` with POST and DELETE
+- D18 (web adapter): The BFF proxy route exports GET, POST and DELETE (and not PUT or PATCH)
+- D19 (web pure function): `memberCandidates(accounts, members)` leaves out the people already members
 
 ## Changes from analysis to design
 
 ```
 A1 became -> D1, D3
-A2 became -> D1
-A3 became -> D1
+A2 became -> D1, D17
+A3 became -> D1, D17, D19
 A4 became -> D2, D3, D4, D5, D6, D9
 A5 became -> D2, D3, D5
 A6 became -> D3, D7, D10
-A7 became -> D3, D4, D6, D9
-A8 became -> D3, D8, D10
+A7 became -> D3, D4, D6, D9, D16, D18
+A8 became -> D3, D8, D10, D13
 A9 became -> D12
 A10 became -> D5
 A11 became -> D5, D11
 A12 became -> D4, D5
-A13 became -> D3, D5, D11
-A14 became -> D3, D5, D11
-A15 became -> D3, D7, D11
-A16 became -> D4, D11
+A13 became -> D3, D5, D11, D14
+A14 became -> D3, D5, D11, D14, D17
+A15 became -> D3, D7, D11, D14, D17
+A16 became -> D4, D11, D14, D17
 A17 became -> D4
 A18 became -> D4
+A19 became -> D4, D15
 ```
 
 ## Slices
 
-1. TSK-P2.1: An administrator adds a person, only with an active account (AC-17, AC-18)
-2. TSK-P2.2: An administrator removes a member, and a project may end up empty (AC-20)
-3. TSK-P2.3: Anyone who is neither a member nor an administrator gets the same answer as for a missing project on the change routes, rules RULE-P4 (AC-27)
-4. TSK-P2.4: Changes to members are audited (AC-30)
-5. TSK-P2.5: A member who is not an administrator is refused, and the server refuses what a role may not do (AC-60, AC-32)
+1. TSK-P2.1: An administrator adds a person, only with an active account, and an existing member is added with no change and no entry (AC-17, AC-18, AC-88)
+2. TSK-P2.2: An administrator removes a member, a project may end up empty, and a person who is not a member is refused (AC-20, AC-87)
+3. TSK-P2.3: Anyone who is neither a member nor an administrator gets the same answer as for a missing project or a malformed id on the change routes, rules RULE-P4 (AC-84)
+4. TSK-P2.4: Changes to members are audited with the project and the names at the time, and every refusal is logged (AC-30, AC-48)
+5. TSK-P2.5: A member who is not an administrator is refused, the server refuses what a role may not do, and the body refuses unknown fields (AC-60, AC-32, AC-93, AC-94)
+6. TSK-P2.6: Two administrators adding the same person at the same moment leave one membership, on PostgreSQL (AC-90)
+7. TSK-P2.7: Web slice W3 (the change part): add and remove a member on `/projects/[id]` for administrators, through the BFF proxy, which now allows DELETE, with the refusal messages (AC-17, AC-18, AC-20, AC-60, AC-87, AC-32). It needs TSK-P3.5 and TSK-P3.7

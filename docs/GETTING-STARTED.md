@@ -51,6 +51,18 @@ cd apps/web && npm install && npm run dev        # .env.example has the values
 
 Do not run both the Docker `api`/`web` and the local ones: they fight over ports 8000 and 3000.
 
+### Demo people and projects (optional, development only)
+
+To fill the pages with dummy data, run the seed script against the local stack (it refuses anything but localhost):
+
+```bash
+cd apps/api && uv run python ../../scripts/seed-demo.py          # shows the plan, writes nothing
+cd apps/api && uv run python ../../scripts/seed-demo.py --yes    # 8 people (password Demo123!), 5 projects, audit entries
+cd apps/api && uv run python ../../scripts/seed-demo.py --purge --yes   # removes only what it made (@demo.example.test)
+```
+
+Sign in once as `admin@example.test` and `maya@example.test` first, so their accounts exist. It uses `psycopg` from the API's uv environment.
+
 ## 3. Try it (20 minutes)
 
 Do these in order. Each one teaches one idea.

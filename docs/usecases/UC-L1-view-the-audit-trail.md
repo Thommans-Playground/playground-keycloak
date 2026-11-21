@@ -17,6 +17,7 @@ criteria:
   - id: AC-79
   - id: AC-80
   - id: AC-82
+  - id: AC-85
 parameters: []
 objects: [OBJ-L1]
 rules: [RULE-L1, RULE-L2, RULE-L3, RULE-L4]
@@ -32,7 +33,7 @@ flow_reviewed: fdfbe64
 <!-- vbench-uc:begin mirror (generated from the requirements files, do not edit here: change the row, then run sync) -->
 
 <details>
-<summary>The requirements and criteria it runs, copied from docs/requirements (1 requirement, 7 criteria). Do not edit.</summary>
+<summary>The requirements and criteria it runs, copied from docs/requirements (1 requirement, 8 criteria). Do not edit.</summary>
 
 ## What this serves
 
@@ -82,9 +83,15 @@ flow_reviewed: fdfbe64
 - When each happens
 - Then each writes a line to the security log (decision 17) and neither writes an audit entry
 
+**AC-85** (acceptance, proves FR-17)
+
+- Given an administrator who created a project, added a member and removed a member
+- When an administrator opens the audit trail
+- Then the trail shows the project creation and each member change, newest first, with the project's name and the people's names as they were at the time
+
 ## How it is verified
 
-- acceptance: AC-56, AC-68, AC-69, AC-70, AC-79, AC-82
+- acceptance: AC-56, AC-68, AC-69, AC-70, AC-79, AC-82, AC-85
 - integration: AC-80
 
 Each criterion is run by a test tagged `Verifies AC-<n>`.
@@ -108,7 +115,7 @@ An administrator opens one list of what people changed: account changes (approve
 2. The system checks that the person is an active administrator, as for every request. (FR-17)
 3. The system lists every entry, the newest first, account changes and project changes together. (FR-17, AC-56)
 4. Each entry shows when it happened, who did it, what was done, which account or project it was done to, and the reason where one was asked. The people shown are named as they were at the time. (FR-17, AC-56)
-5. An entry for a project creation also shows its first members, and an entry for a member change shows the member. Writing those entries is UC-P1 (AC-29) and UC-P2 (AC-30). (FR-17)
+5. An entry for a project creation also shows the project (its name) and its first members, and an entry for a member change shows the project and the member. Writing those entries is UC-P1 (AC-29) and UC-P2 (AC-30). Showing them in the trail is this use case's (AC-85). (FR-17)
 6. The system writes a line to the security log for the read, and for every refusal, and writes no audit entry for either. (AC-82, decisions 17 and 22)
 
 ## Other flows
@@ -208,6 +215,7 @@ A12 became -> D14
 - TSK-L1.5: The names and emails at the time (AC-70)
 - TSK-L1.6: Reading the trail and every refusal write a line to the security log and no audit entry after the logging branch is merged (its ADR is renumbered 0013) (AC-82)
 - TSK-L1.7: Append only is proven: the routes answer 405 or 404 and the port has two methods, rules RULE-L3, RULE-L4 (AC-79)
+- TSK-L1.8: A project creation and a member change show in the trail, with the project's name and the people's names at the time, once Projects writes them (AC-85)
 
 ## Not in this use case
 

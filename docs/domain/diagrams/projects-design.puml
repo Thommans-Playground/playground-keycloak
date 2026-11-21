@@ -2,16 +2,17 @@
 !include _style.puml
 title Playground Projects: ports and adapters (planned, not built)
 ' palette: boundary=blue · service=green · domain=amber · port=lavender · adapter/infra=gray
-' PLANNED, NOT BUILT: every box on this page. Written from decisions 13 and 14, before any code (apps/api/app/projects/).
-' Same shape as access-design.puml: domain/ is pure, ports.py holds the ports, service.py the use cases,
-' adapters/ the SQL one. main.py (the composition root) builds the Caller and wires the three adapters.
-' It is the design shared by UC-P1, UC-P2 and UC-P3.
-' Projects imports neither Access nor Audit. The AccountStatus adapter and the AuditLog adapter are wired in the
-' composition root to Access (BC-ACCESS) and Audit (BC-AUDIT), so no context imports another (decision 14).
+' PLANNED, NOT BUILT: every box on this page. Written from decisions 13, 14 and 23 and ADR 0015, before any code.
+' Folders follow ADR 0010 under apps/api/app/projects/: domain/ is pure (project.py, name.py, caller.py, errors.py),
+' application/ holds ports.py (the five ports) and service.py (ProjectsService), adapters/inbound/ the routes
+' (http.py, schemas.py, errors.py) and adapters/outbound/ sql.py. composition/ (not main.py) builds the Caller with
+' projects_caller(account) and wires the bridges. It is the design shared by UC-P1, UC-P2 and UC-P3.
+' Projects imports neither Access nor Audit. The AccountStatus, People and AuditLog ports are answered by bridges in
+' composition/ to Access (BC-ACCESS) and Audit (BC-AUDIT), so no context imports another (decision 14).
 ' Not drawn: the route functions, and the full check (token, account found, not deactivated, not pending) that runs
-' in main.py before a Caller exists. HTTP statuses are mapped there: ProjectNotFound 404, NotAnAdministrator 403,
-' MemberNotEligible and InvalidProjectName 422.
-' Everything is under the Project aggregate: files, endpoints and evaluations are other contexts, not drawn.
+' in the guard chain before a Caller exists. HTTP statuses are mapped in adapters/inbound/errors.py:
+' ProjectNotFound 404, NotAnAdministrator 403, MemberNotEligible, InvalidProjectName and InvalidRequest 422.
+' Files, endpoints and evaluations are other contexts, not drawn: the API answers empty placeholder lists (decision 23).
 
 top to bottom direction
 
@@ -48,6 +49,7 @@ class "«domain errors»\nProjectErrors" as ERR #FFE6CC {
   NotAnAdministrator
   MemberNotEligible
   InvalidProjectName
+  InvalidRequest
 }
 
 class "«service»\nProjectsService" as SVC #E7F4EA {
@@ -68,13 +70,21 @@ class "«port»\nProject-\nRepository" as PPR #EEE7F7 {
 class "«port»\nAccountStatus" as PAS #EEE7F7 {
   +active_among(account_ids)
 }
+class "«port»\nPeople" as PPE #EEE7F7 {
+  +names_of(account_ids)
+}
 class "«port»\nAuditLog" as PAL #EEE7F7 {
   +record(entry)
 }
+class "«port»\nSecurityLog" as PSL #EEE7F7 {
+  +event(name, result, ...)
+}
 
 class "«adapter»\nSqlProjects" as SQL #EEE7F7
-class "«adapter»\nAccountStatus-\nAdapter" as ASA #EEE7F7
-class "«adapter»\nAuditLog-\nAdapter" as ALA #EEE7F7
+class "«bridge»\nAccountStatus-\nBridge" as ASA #EEE7F7
+class "«bridge»\nPeople-\nBridge" as PEA #EEE7F7
+class "«bridge»\nAuditLog-\nBridge" as ALA #EEE7F7
+class "«adapter»\nJsonStdout-\nSecurityLog" as SLA #EEE7F7
 
 class "API database\n(PostgreSQL,\nAmazon RDS)" as DB #ECECEC
 class "Access\n(BC-ACCESS)" as ACC #ECECEC
@@ -89,21 +99,30 @@ RUL ..> CAL
 SVC ..> CAL : receives
 SVC --> PPR
 SVC --> PAS
+SVC --> PPE
 SVC --> PAL
+SVC --> PSL
 PPR <|.. SQL
 PAS <|.. ASA
+PPE <|.. PEA
 PAL <|.. ALA
+PSL <|.. SLA
 SQL --> DB
-ASA ..> ACC : composition root
-ALA ..> AUD : composition root
+ASA ..> ACC : composition/
+PEA ..> ACC : composition/
+ALA ..> AUD : composition/
 
 CAL -[hidden]right-> NAM
 PRJ -[hidden]right-> MEM
 RUL -[hidden]right-> ERR
 PPR -[hidden]right-> PAS
-PAS -[hidden]right-> PAL
+PAL -[hidden]right-> PPE
+PPE -[hidden]right-> PSL
+PPR -[hidden]down-> PAL
 SQL -[hidden]right-> ASA
-ASA -[hidden]right-> ALA
+ALA -[hidden]right-> PEA
+PEA -[hidden]right-> SLA
+SQL -[hidden]down-> ALA
 DB -[hidden]right-> ACC
 ACC -[hidden]right-> AUD
 CAL -[hidden]down-> PRJ
@@ -111,9 +130,9 @@ PRJ -[hidden]down-> RUL
 RUL -[hidden]down-> SVC
 
 note bottom of AUD
-  The Caller is built by main.py after the full check.
+  The Caller is built in composition/ after the full check.
   Projects never looks a role up.
-  SqlProjects and the audit write share one database
+  SqlProjects and the audit bridge share one database
   session: the change and its entry are one transaction.
 end note
 @enduml

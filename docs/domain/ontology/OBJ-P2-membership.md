@@ -78,11 +78,12 @@ The change takes effect at the person's next request, because membership is read
 ## Good to know
 
 - Only an **active** account can be added. An account that is pending, deactivated or unknown cannot.
+- Adding a person who is already a member changes nothing and writes no entry. Removing a person who is not a member is refused and writes nothing (decision 23). A person is in a project once: two additions at the same moment leave one membership.
 - A member whose account is later deactivated **stays** on the project, and nothing they made is removed. They
   are refused at the account check, so they cannot use it.
 - Every addition and removal is audited: who, what and who it affected.
 - Only an administrator adds or removes members. A project may end up with none.
-- Parked by decision 13: the role, [RULE-P1](RULE-P1-a-project-always-has-a-manager.md),
+- Beta, not current (parked by decision 13): the role, [RULE-P1](RULE-P1-a-project-always-has-a-manager.md),
   [RULE-P2](RULE-P2-an-administrator-never-joins-by-role.md) and
   [RULE-P3](RULE-P3-administrator-only-restores-a-manager.md).
 

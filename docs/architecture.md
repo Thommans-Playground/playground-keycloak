@@ -61,7 +61,7 @@ flowchart TB
 
 Dotted lines are planned. **Today** the composition root wires Access's own audit adapter and table straight in, with no
 bridge and no Audit context; the move to Audit (ADR 0003, 0011) and the ports Projects needs (`AccountStatus`, `AuditLog`
-and a `People` port answered by Access) are not built.
+and a `People` port answered by Access) are not built. The build plan for Projects is ADR 0015.
 
 Every context has the same folders (ADR 0010): `domain/`, `application/`, `adapters/inbound`, `adapters/outbound`. A
 context never imports another. Where one needs the other, the composition root answers the port. This is enforced by
@@ -127,7 +127,7 @@ ports as the dev stack and the database `playground_test`; ADR 0011 adds a secon
 | Hexagon | Domain imports nothing; outside things sit behind ports; one architecture test per side | ADR 0001, 0010 | built |
 | Transactions | A deactivation commits before Keycloak is called; the last administrator is protected by a lock | ADR 0009 | built |
 | Audit | Append only; the database refuses update, delete, truncate, alter, drop to the API role; the database sets the time | decisions 21, 22; ADR 0003, 0011 | planned |
-| Caller | Projects receives a `Caller` and never looks a role up | ADR 0002 | planned |
+| Caller | Projects receives a `Caller` (its own, built by `projects_caller` in `composition/`) and never looks a role up | ADR 0002, 0015 | planned |
 | Migrations | Alembic in `apps/api/migrations/`, run as an owner role in a separate step; the API role owns nothing; `create_all` goes | ADR 0004, 0011, 0012 | planned |
 | Logging | One JSON line per security event on stdout, for CloudWatch; never a token or a code | decision 17; its ADR is on branch `feat/UC-A1-basic-logging` and is renumbered 0013 when it merges | planned, built on a branch |
 | Sessions | Redis with expiry; one web container for the alpha | decision 20 (the Redis adapter has no ADR of its own yet) | built |

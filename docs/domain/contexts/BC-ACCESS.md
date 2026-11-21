@@ -10,7 +10,7 @@ owns:
   - SET-2
 refers_to:
   - context: BC-PROJECTS
-    how: answers one question for it, through the AccountStatus port (is this account active?)
+    how: answers two questions for it, through bridges in composition/: which of these accounts are active (AccountStatus), and what are their names and emails (People)
   - context: BC-AUDIT
     how: writes every account change to it, through the AuditLog port, which the Audit context answers
 ports_needed:
@@ -127,6 +127,16 @@ For the product owner to decide.
    with a known email becomes a second pending account. If an administrator's action changes Keycloak but not our
    database: for a deactivation our database changes first and the deactivation stands if Keycloak fails, for a
    reinstatement Keycloak is first, so a failure locks the person out.
+
+## What it answers for Projects (planned, ADR 0015)
+
+Projects asks two things, and Access answers both through `composition/`, so Projects never imports Access.
+
+- **`AccessService.active_among(ids)`**: which of these account ids are active. It is a new Access use case, built test
+  first before Projects (TSK-P1.1 in UC-P1). It uses Access's own rule for an active account (status active, next to
+  `is_active_administrator` in `access/domain/account.py`), leaves out an id that is unknown or not active, and reads the
+  accounts in one query. It changes nothing and writes nothing.
+- **names and emails of some ids**, for the audit entry of a project change, through Projects' `People` port.
 
 ## Built, and not yet built
 

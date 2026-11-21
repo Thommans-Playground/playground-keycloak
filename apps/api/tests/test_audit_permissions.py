@@ -95,6 +95,9 @@ EXPECTED_TABLES = {
     "accounts": {"SELECT", "INSERT", "UPDATE"},
     "audit_entries": {"SELECT"},  # INSERT is on chosen columns only, below
     "alembic_version": set(),
+    # Projects (ADR 0015, AC-95): INSERT is on chosen columns only, tested in test_projects_permissions.py.
+    "projects": {"SELECT"},
+    "memberships": {"SELECT", "DELETE"},
 }
 # id is an identity column: the sequence exists and the API role holds nothing on it.
 EXPECTED_SEQUENCES = {"audit_entries_id_seq": set()}

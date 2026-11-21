@@ -5,7 +5,7 @@ import jwt
 import pytest
 from cryptography.hazmat.primitives.asymmetric import rsa
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.pool import StaticPool
 
 from app.access.adapters.outbound.token_verifier import JwtTokenVerifier
@@ -62,7 +62,22 @@ def make_empty_engine():
         drop_everything(owner)  # a clean slate for each test, as the owner
         owner.dispose()
         return engine
-    return create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    _make_sqlite_savepoints_work(engine)
+    return engine
+
+
+def _make_sqlite_savepoints_work(engine):
+    """pysqlite starts no transaction of its own before a SAVEPOINT, so a savepoint would commit the whole request.
+    SQLAlchemy's documented recipe: take control of BEGIN. PostgreSQL needs none of it."""
+
+    @event.listens_for(engine, "connect")
+    def _no_implicit_begin(dbapi_connection, _record):
+        dbapi_connection.isolation_level = None
+
+    @event.listens_for(engine, "begin")
+    def _begin(connection):
+        connection.exec_driver_sql("BEGIN")
 
 
 def make_engine():

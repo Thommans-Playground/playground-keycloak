@@ -122,3 +122,31 @@ def test_save_of_an_unknown_account_fails(accounts):
     # The port does not say; the adapter raises AttributeError (None has no attributes). Pinned here.
     with pytest.raises(AttributeError):
         accounts.save(acct(1))
+
+
+def test_by_ids_gives_the_accounts_asked_for_and_skips_unknown_ids(accounts):
+    for n in (1, 2, 3):
+        accounts.add(acct(n))
+    got = accounts.by_ids(["id-3", "id-1", "nope"])
+    assert sorted(a.id for a in got) == ["id-1", "id-3"]
+    assert {a.id: a for a in got}["id-1"] == acct(1)
+
+
+def test_by_ids_with_no_ids_answers_empty_without_a_query(accounts, session):
+    from sqlalchemy import event
+
+    seen = []
+    event.listen(session.get_bind(), "before_cursor_execute", lambda *a: seen.append(a[2]))
+    assert accounts.by_ids([]) == []
+    assert seen == []
+
+
+def test_by_ids_is_one_query(accounts, session):
+    from sqlalchemy import event
+
+    for n in (1, 2, 3):
+        accounts.add(acct(n))
+    seen = []
+    event.listen(session.get_bind(), "before_cursor_execute", lambda *a: seen.append(a[2]))
+    accounts.by_ids(["id-1", "id-2", "id-3"])
+    assert len(seen) == 1

@@ -44,6 +44,11 @@ class SqlAccounts:
         r = self._s.get(AccountRow, account_id)
         return _to_domain(r) if r else None
 
+    def by_ids(self, account_ids: list[str]) -> list[Account]:
+        if not account_ids:
+            return []
+        return [_to_domain(r) for r in self._s.scalars(select(AccountRow).where(AccountRow.id.in_(account_ids)))]
+
     def add(self, a: Account) -> None:
         self._s.add(
             AccountRow(
