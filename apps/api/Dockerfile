@@ -8,4 +8,5 @@ COPY alembic.ini ./
 COPY migrations ./migrations
 ENV PATH="/app/.venv/bin:$PATH"
 EXPOSE 8000
-CMD ["uvicorn", "app.main:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000"]
+# --no-server-header: do not name the server in every answer (NFR-6, AC-97)
+CMD ["uvicorn", "app.main:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000", "--no-server-header"]

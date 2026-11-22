@@ -27,6 +27,7 @@ from app.composition.bridges import (
 )
 from app.infrastructure.config import Settings, get_settings
 from app.infrastructure.role_check import check_start
+from app.infrastructure.security_headers import SecurityHeaders
 from app.infrastructure.security_log import JsonStdoutSecurityLog
 from app.projects.adapters.inbound.errors import register_error_handlers as register_projects_error_handlers
 from app.projects.adapters.inbound.http import build_router as build_projects_router
@@ -58,6 +59,7 @@ def create_app(
         yield
 
     app = FastAPI(title="Playground API", lifespan=lifespan)
+    app.add_middleware(SecurityHeaders)  # NFR-6: browser protection headers on every answer
     register_error_handlers(app, security_log)
     register_audit_error_handlers(app, security_log)
     register_projects_error_handlers(app, security_log)
