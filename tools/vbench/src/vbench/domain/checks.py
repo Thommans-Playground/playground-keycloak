@@ -15,14 +15,17 @@ from __future__ import annotations
 import posixpath
 import re
 from collections import defaultdict
+from fnmatch import fnmatch
 
 from ..ports import Workspace
 from .config import Config
 from .contexts import CONTEXT_MAP, USECASE_MAP, at, context_files
 from .docsgen import stale_blocks
 from .graph import enables, find_cycle, read_links, waves
+from .junit import Run, read_run
 from .model import Result, natural_key
 from .pytests import read_python_tests
+from .requirements_doc import read_criteria, read_requirements
 from .specs import SpecInfo, read_specs, slug
 from .steps import StepRow, cited, declared
 from .usecase_map import render_usecase_map
@@ -34,6 +37,8 @@ EXTERNAL = ("http://", "https://", "mailto:", "tel:")
 REALISES = re.compile(r"Realises\s+([^\n]*)")
 VERIFIES = re.compile(r"Verifies\s+([^\n]*)")
 PLANNED = "(planned)"
+FAKE = re.compile(r"(?:#|//|--|/\*)\s*FAKE:\s*(.*)")  # a scaffolded stand-in still in the code: `# FAKE: STP-A-001`
+BUILT = "✅"  # the requirements doc's mark for "built and verified"
 
 
 def _beside(path: str, rel: str) -> str:
@@ -99,17 +104,25 @@ def collect_realised(cfg: Config, ws: Workspace) -> dict[str, set[str]]:
     return out
 
 
-def _python_tests(cfg: Config, path: str, text: str):
+def _run(cfg: Config, ws: Workspace) -> Run:
+    """The recorded test run, when the config names one (`results`); otherwise nothing, and the text is all there is."""
+    return read_run(cfg.results, ws.read(cfg.results) if cfg.results and ws.exists(cfg.results) else None)
+
+
+def _python_tests(cfg: Config, path: str, text: str, run: Run):
     """The structural reading of a Python test file, or None for any other file (or one that does not parse)."""
-    return read_python_tests(cfg, text, VERIFIES) if path.endswith(".py") else None
+    if not path.endswith(".py"):
+        return None
+    return read_python_tests(cfg, text, VERIFIES, path, (lambda name: run.outcome(path, name)) if cfg.results else None)
 
 
 def collect_verified(cfg: Config, ws: Workspace) -> dict[str, set[tuple[str, str]]]:
     """uc -> (test file, rung). In Python a tag counts only in a docstring with a real test behind it."""
     out: dict[str, set[tuple[str, str]]] = defaultdict(set)
+    run = _run(cfg, ws)
     for p in ws.files(cfg.tests, cfg.test_ext):
         text = ws.read(p)
-        parsed = _python_tests(cfg, p, text)
+        parsed = _python_tests(cfg, p, text, run)
         clauses = [c for c, backed in parsed.clauses if backed] if parsed else VERIFIES.findall(text)
         for clause in clauses:
             rung = _rung_of(clause)
@@ -121,8 +134,9 @@ def collect_verified(cfg: Config, ws: Workspace) -> dict[str, set[tuple[str, str
 def collect_hollow_verified(cfg: Config, ws: Workspace) -> dict[str, set[str]]:
     """uc -> test files that say `Verifies` in a docstring but have no real test behind it."""
     out: dict[str, set[str]] = defaultdict(set)
+    run = _run(cfg, ws)
     for p in ws.files(cfg.tests, cfg.test_ext):
-        parsed = _python_tests(cfg, p, ws.read(p))
+        parsed = _python_tests(cfg, p, ws.read(p), run)
         for clause, backed in parsed.clauses if parsed else ():
             if not backed:
                 for uc in cfg.uc_re.findall(clause):
@@ -147,20 +161,47 @@ def check_rungs(cfg: Config, ws: Workspace, matrix: bool = False) -> Result:
 
     hollow = collect_hollow_verified(cfg, ws)
     open_ = sorted((u for u in realised if u not in verified), key=natural_key)
-    if open_:
-        lines = ["Verification check FAILED: use cases with code but no test that verifies them:", ""]
+    untagged = untagged_production(cfg, ws, realised)
+    if open_ or untagged:
+        if open_:
+            lines = ["Verification check FAILED: use cases with code but no test that verifies them:", ""]
+        else:
+            lines = ["Verification check FAILED:", ""]
         for uc in open_:
             where = ", ".join(sorted(realised[uc]))
             lines.append(f"  - {uc}: realised in {where}, but no test `Verifies {uc}`.")
             for f in sorted(hollow.get(uc, ())):
                 lines.append(f"      {f} says it, but no real test stands behind the docstring (a test that asserts).")
-        lines += [
-            "",
-            f"{len(open_)} open rung(s). Add a `Verifies {open_[0]} · <rung> rung.` docstring to the "
-            "covering test, or write the missing test.",
-        ]
+        if untagged:
+            lines += ["", "Production code that realises no use case (code nobody asked for passes every gate):"]
+            lines += [f"  - {p}: no `Realises UC-…` tag." for p in untagged]
+        lines.append("")
+        if open_:
+            lines.append(
+                f"{len(open_)} open rung(s). Add a `Verifies {open_[0]} · <rung> rung.` docstring to the "
+                "covering test, or write the missing test."
+            )
+        if untagged:
+            lines.append(
+                f"{len(untagged)} untagged file(s). Tag the code `Realises UC-…`, delete it, or list it under "
+                "`untagged_ok` in .vbench/config.toml (a package `__init__.py` is always allowed)."
+            )
         return Result("rungs", False, lines)
     return Result("rungs", True, [f"rungs: all {len(realised)} realised use case(s) have a verifying test."])
+
+
+def untagged_production_files(cfg: Config, ws: Workspace, realised: dict[str, set[str]]) -> list[str]:
+    tagged = {p for files in realised.values() for p in files}
+    return [
+        p
+        for p in ws.files(cfg.prod, cfg.prod_ext)
+        if p not in tagged
+        and posixpath.basename(p) != "__init__.py"
+        and not any(fnmatch(p, g) for g in cfg.untagged_ok)
+    ]
+
+
+untagged_production = untagged_production_files
 
 
 # ----------------------------------------------------------------------------- acs
@@ -190,9 +231,10 @@ def _marked(cfg: Config, ws: Workspace) -> tuple[dict[str, set[str]], dict[str, 
     """(AC -> files with a real test marking it, AC -> `file::test` entries marking it with a hollow one)."""
     real: dict[str, set[str]] = defaultdict(set)
     hollow: dict[str, set[str]] = defaultdict(set)
+    run = _run(cfg, ws)
     for p in ws.files(cfg.tests, cfg.test_ext):
         text = ws.read(p)
-        parsed = _python_tests(cfg, p, text)
+        parsed = _python_tests(cfg, p, text, run)
         if parsed is None:
             for call in cfg.ac_mark_re.findall(text):
                 for ac in cfg.ac_re.findall(call):
@@ -255,6 +297,58 @@ def check_acs(cfg: Config, ws: Workspace, matrix: bool = False) -> Result:
         "acs",
         True,
         [f"acs: all {enforced} enforced criterion(s) validated by a test ({len(planned)} planned, skipped)."],
+    )
+
+
+# ---------------------------------------------------------------------------------------------------- fakes
+def check_fakes(cfg: Config, ws: Workspace, matrix: bool = False) -> Result:
+    """A `# FAKE:` marker is a scaffolded stand-in: code holding one is not finished, whatever its tests say."""
+    found: list[tuple[str, int, str]] = []
+    for p in ws.files(cfg.prod, cfg.prod_ext):
+        for n, line in enumerate(ws.read(p).splitlines(), start=1):
+            if m := FAKE.search(line):
+                found.append((p, n, m.group(1).strip()))
+    if matrix:
+        rows = ["| File | Line | Stands in for |", "| --- | --- | --- |"]
+        rows += [f"| {p} | {n} | {what or '-'} |" for p, n, what in found]
+        return Result("fakes", True, rows)
+    if not found:
+        return Result("fakes", True, ["fakes: no scaffolded stand-in is left in the production code."])
+    lines = ["Fake check FAILED: production code still holds scaffolded stand-ins (`# FAKE:`):", ""]
+    lines += [f"  - {p}:{n}: {what or 'a fake'}" for p, n, what in found]
+    lines += ["", f"{len(found)} fake(s). Replace each with the real step (test first), then remove the marker."]
+    return Result("fakes", False, lines)
+
+
+# ------------------------------------------------------------------------------------------- requirements
+def check_requirements(cfg: Config, ws: Workspace, matrix: bool = False) -> Result:
+    """A requirement marked built (✅) must have a criterion that a real test validates, or the mark is a claim."""
+    doc = read_requirements(cfg, ws)
+    criteria = read_criteria(cfg, ws)
+    referenced = collect_referenced(cfg, ws)
+    hollow = collect_hollow(cfg, ws)
+    rows = ["| Requirement | Marked | Criteria validated by a real test |", "| --- | --- | --- |"]
+    problems: list[str] = []
+    for fr in doc.functional:
+        mine = sorted((a for a, c in criteria.items() if fr.id in c.satisfies), key=natural_key)
+        validated = [a for a in mine if a in referenced]
+        rows.append(f"| {fr.id} | {fr.maturity or '-'} | {', '.join(validated) or '**none**'} |")
+        if BUILT not in fr.maturity or validated:
+            continue
+        if not mine:
+            problems.append(f"  - {fr.id} is marked built, but no acceptance criterion satisfies it.")
+        else:
+            problems.append(f"  - {fr.id} is marked built, but no real test validates {', '.join(mine)}.")
+            problems += [f"      {a}: marked only on {h}" for a in mine for h in sorted(hollow.get(a, ()))]
+    if matrix:
+        return Result("requirements", True, rows)
+    if problems:
+        lines = ["Requirements check FAILED: marked built (✅) with nothing verifying them:", "", *problems]
+        lines += ["", "Write the test, or set the mark back to 🟡 or ⚪ until it exists."]
+        return Result("requirements", False, lines)
+    built = sum(BUILT in fr.maturity for fr in doc.functional)
+    return Result(
+        "requirements", True, [f"requirements: all {built} requirement(s) marked built have a validated criterion."]
     )
 
 
@@ -453,9 +547,10 @@ def collect_step_rows(cfg: Config, ws: Workspace) -> tuple[list[StepRow], list[s
                 for sid in sids:
                     if known(sid, ucs, f"{p}:{n}"):
                         rows[sid].code.append((p, n))
+    run = _run(cfg, ws)
     for p in ws.files(cfg.tests, cfg.test_ext):
         text = ws.read(p)
-        parsed = _python_tests(cfg, p, text)
+        parsed = _python_tests(cfg, p, text, run)
         for clause, backed in parsed.clauses if parsed else [(c, True) for c in VERIFIES.findall(text)]:
             ucs, sids = cited(cfg, clause)
             for sid in sids:
@@ -625,6 +720,8 @@ CHECKS = {
     "refs": check_refs,
     "rungs": check_rungs,
     "acs": check_acs,
+    "requirements": check_requirements,
+    "fakes": check_fakes,
     "links": check_links,
     "diagrams": check_diagrams,
     "steps": check_steps,

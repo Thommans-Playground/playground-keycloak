@@ -208,30 +208,7 @@ def test_discovery_replaced_grill_and_owns_the_shared_interview_technique():
     assert leftovers == []
 
 
-ALIASES = {
-    "req": "v-1-requirements",
-    "design": "v-2-design",
-    "code": "v-3-code",
-    "verify": "v-4-verify",
-    "ship": "v-5-ship",
-    "fix": "v-fix",
-    "status": "v-status",
-}
-
-
-@pytest.mark.parametrize(("short", "long"), sorted(ALIASES.items()))
-def test_a_short_form_is_a_pointer_to_its_long_skill_and_nothing_else(short: str, long: str):
-    assert short in NAMES and long in NAMES
-    meta, body = frontmatter(short)
-    long_meta, _ = frontmatter(long)
-    assert meta["argument-hint"] == long_meta["argument-hint"]  # the same input, so the same prompt in the menu
-    assert meta["disable-model-invocation"] == "true"
-    assert f"../{long}/SKILL.md" in body and f"/vbench:{long}" in meta["description"]
-    assert not (SKILLS / short / "scripts").exists() and not (SKILLS / short / "references").exists()
-    assert len(body.splitlines()) < 15  # a pointer holds no workflow of its own
-
-
-def test_help_lists_every_skill_by_its_long_and_short_name():
+def test_help_lists_every_skill():
     text = (SKILLS / "help" / "SKILL.md").read_text()
     for (
         name
@@ -264,3 +241,22 @@ def test_code_pauses_for_review_after_each_red_green_and_refactor_of_a_step():
     for stage in ("after red", "after green", "after refactor"):
         assert stage in code
     assert "run to the end of the task" in code  # the person can drop the pauses
+
+
+RUNS = re.compile(
+    r"\bRun `/vbench:([\w-]+)"
+)  # an order to Claude; "run `/vbench:next`" in a hand-over is for the person
+
+
+@pytest.mark.parametrize("skill", NAMES)
+def test_a_skill_never_tells_claude_to_run_one_only_the_user_may_invoke(skill: str):
+    """`disable-model-invocation: true` keeps a skill out of Claude's hands, so an instruction to *run* it cannot be
+    followed. The way to reuse its workflow is the one the short forms use: read its SKILL.md and follow it."""
+    _, body = frontmatter(skill)
+    for target in RUNS.findall(body):
+        if target in NAMES:
+            meta, _ = frontmatter(target)
+            assert meta.get("disable-model-invocation") != "true", (
+                f"{skill} says to run /vbench:{target}, which only the user can invoke: "
+                f"say `Read ../{target}/SKILL.md and follow it` instead"
+            )

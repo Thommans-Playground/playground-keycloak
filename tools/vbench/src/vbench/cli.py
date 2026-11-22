@@ -7,10 +7,8 @@ codes. No rules live here.
 from __future__ import annotations
 
 import argparse
-import contextlib
 import json
 import os
-import secrets
 import sys
 from collections.abc import Callable
 from dataclasses import asdict, dataclass, field
@@ -18,27 +16,22 @@ from pathlib import Path
 
 from . import __version__
 from .adapters import http_server
-from .adapters.claude import make_agent
 from .adapters.fs import FsWorkspace
 from .adapters.git import GitReleases, GitRepo
 from .adapters.install_record import DirectUrlInstallInfo
-from .adapters.mcp_server import McpServer, serve_stdio
 from .adapters.package_bundle import PackageBundle
 from .adapters.package_templates import PackageTemplates
 from .adapters.shell import ShellRunner
 from .adapters.term import MODES, Style, wants_color
-from .adapters.toml_config import find_root, load_config
+from .adapters.toml_config import find_playground_root, find_root, load_config
 from .adapters.uv import UvInstaller
 from .app import update as update_uc
-from .app.assist import check_overlap
-from .app.changes import apply_change, commit_changes, preview_change
-from .app.chat import stream_chat
 from .app.check import links_mermaid, run_checks, run_commit_check
 from .app.commit import make_commit, plan_commit
 from .app.doctor import diagnose
 from .app.export import export_state
+from .app.export_playground import export_playground_state
 from .app.init import init_project
-from .app.mcp_tools import INSTRUCTIONS, mcp_tools
 from .app.new import new_context, new_context_map, new_discovery, new_use_case, next_free_ids
 from .app.next import what_is_ready, what_next
 from .app.ontology import render_ontology, write_ontology
@@ -47,12 +40,15 @@ from .app.sync import sync as sync_uc
 from .app.trace import trace_json, trace_text
 from .domain.checks import CHECKS
 from .domain.config import Config
-from .domain.errors import AgentError, ConfigError, UpdateError, UsageError, VBenchError
+from .domain.errors import ConfigError, UpdateError, UsageError, VBenchError
 from .domain.model import NextStep
 from .domain.ontology import FORMATS
-from .domain.paths import branch_block
 from .domain.stack import STACKS
-from .ports import Agent, Bundle, Committer, Installer, InstallInfo, Releases, Repo, Runner, Templates, Workspace
+from .domain.vcard import render_card
+from .ports import Bundle, Committer, Installer, InstallInfo, Releases, Repo, Runner, Templates, Workspace
+
+# What the dashboard needs of a project written in the playground's own format: where its docs are.
+PLAYGROUND_CONFIG = Config.from_raw({"vbench": {"docs": "docs"}})
 
 
 @dataclass
@@ -67,7 +63,6 @@ class Adapters:
     bundle: Bundle = field(default_factory=PackageBundle)
     committer_for: Callable[[Path], Committer] = GitRepo
     runner_for: Callable[[Path], Runner] = ShellRunner
-    agent_for: Callable[[str, str | None], Agent | None] = make_agent
 
 
 # ---------------------------------------------------------------------------- commands
@@ -262,6 +257,16 @@ def cmd_status(args: argparse.Namespace, cfg: Config, ws: Workspace, ad: Adapter
         print(json.dumps(status_json(cfg, ws, ad.repo_for(root), args.uc), indent=2))
         return 0
     sty = args.style
+    if args.card:
+        print(f"{sty('muted', 'branch:')} {st.branch or '(unknown)'}\n")
+        for r in st.report.rows:
+            print("\n".join(render_card(r, paint=sty)) + "\n")
+        print(
+            sty("muted", "gates:")
+            + " "
+            + "  ".join(f"{g.name}={sty('ok', 'ok') if g.ok else sty('fail', 'FAIL')}" for g in st.report.gates)
+        )
+        return 0
     print(f"{sty('muted', 'branch:')} {st.branch or '(unknown)'}   {sty('muted', 'specs:')} {len(st.report.rows)}\n")
     print("| UC | wave | ACs | covered | tasks | code | tested | blocked by | next |")
     print("| --- | --- | --- | --- | --- | --- | --- | --- | --- |")
@@ -359,8 +364,27 @@ def cmd_sync(args: argparse.Namespace, cfg: Config, ws: Workspace, ad: Adapters,
     return 0
 
 
+def _state_for(
+    args: argparse.Namespace, ad: Adapters, root: Path
+) -> Callable[[], tuple[Config, Workspace, Callable[[], dict]]]:
+    """Load the project afresh: its config, its files and the state function for the format it is written in."""
+    if args.format == "playground":
+
+        def load_playground():
+            w = FsWorkspace(root)
+            return PLAYGROUND_CONFIG, w, lambda: export_playground_state(w, ad.repo_for(root))
+
+        return load_playground
+
+    def load_vbench():
+        c, w = load_config(root), FsWorkspace(root)
+        return c, w, lambda: export_state(c, w, ad.repo_for(root))
+
+    return load_vbench
+
+
 def cmd_export(args: argparse.Namespace, cfg: Config, ws: Workspace, ad: Adapters, root: Path) -> int:
-    print(json.dumps(export_state(cfg, ws, ad.repo_for(root)), indent=2))
+    print(json.dumps(_state_for(args, ad, root)()[2](), indent=2))
     return 0
 
 
@@ -371,84 +395,15 @@ def cmd_serve(args: argparse.Namespace, cfg: Config, ws: Workspace, ad: Adapters
         else None
     )
 
-    def load():  # re-read the project on every request, so the page always shows the files as they are now
-        c, w = load_config(root), FsWorkspace(root)
-        return c, w, lambda: export_state(c, w, ad.repo_for(root))
-
-    writer = None
-    if args.write:
-        committer = ad.committer_for(root)
-        try:
-            agent = ad.agent_for(args.agent, args.agent_model)
-        except AgentError as e:
-            print(f"vbench: {e}", file=sys.stderr)
-            return 2
-
-        def fresh():
-            return load_config(root), FsWorkspace(root)
-
-        written: set[str] = set()  # what applied changes wrote, the only files a commit from here may take
-
-        def blocked() -> str:
-            return branch_block(ad.repo_for(root).branch(), fresh()[0].base_branch, args.allow_default_branch)
-
-        writer = http_server.Writer(
-            token=secrets.token_urlsafe(24),
-            blocked=blocked,
-            preview=lambda raw: preview_change(*fresh(), raw, ad.templates),
-            apply=lambda raw, digest: apply_change(*fresh(), raw, digest, ad.templates, written),
-            commit=lambda paths, summary: commit_changes(*fresh(), committer, paths, summary, written),
-            overlap=lambda raw: check_overlap(*fresh(), agent, raw),
-            chat=(lambda raw: stream_chat(agent, *fresh(), lambda: export_state(*fresh(), ad.repo_for(root)), raw))
-            if agent is not None and hasattr(agent, "turn")
-            else None,
-            agent=f"{agent.name} ({getattr(agent, 'model', '')})".replace(" ()", "") if agent else "",
-        )
-    server = http_server.serve(load, args.host, args.port, static, writer)
-    mode = (
-        "writing is ON: changes are previewed, then applied, then committed only when you ask"
-        if writer
-        else "read-only"
-    )
-    print(f"vbench UI on http://{args.host}:{server.server_address[1]}/  ({mode}; Ctrl+C to stop)")
-    if writer and writer.agent:
-        print(
-            f'vbench: {writer.agent} answers "does this already exist?" when you ask in the form; that sends the new '
-            f"entry and the entries beside it to {'OpenAI' if args.agent == 'openai' else 'Anthropic'}."
-        )
-    if writer and writer.chat:
-        print(
-            "vbench: the chat assistant is ON (read-only tools); each question sends it, the page and the project "
-            "text it looks up to OpenAI."
-        )
-    if writer and (why := writer.blocked()):
-        print(f"vbench: {why} Previews work; applying and committing are refused until then.")
+    # the project is re-read on every request, so the page always shows the files as they are now
+    server = http_server.serve(_state_for(args, ad, root), args.host, args.port, static)
+    print(f"vbench UI on http://{args.host}:{server.server_address[1]}/  (read-only; Ctrl+C to stop)")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
         pass
     finally:
         server.server_close()
-    return 0
-
-
-def cmd_mcp(args: argparse.Namespace, cfg: Config, ws: Workspace, ad: Adapters, root: Path) -> int:
-    def fresh():  # every call reads the files as they are now
-        return load_config(root), FsWorkspace(root)
-
-    tools = mcp_tools(
-        fresh,
-        ad.repo_for(root),
-        ad.templates,
-        ad.committer_for(root),
-        write=args.write,
-        allow_default_branch=args.allow_default_branch,
-    )
-    server = McpServer("vbench", __version__, tools, INSTRUCTIONS)
-    mode = "can change and commit documentation" if args.write else "read-only"
-    print(f"vbench MCP server for {root} ({mode}); speaking MCP on stdin and stdout.", file=sys.stderr)
-    with contextlib.suppress(KeyboardInterrupt):
-        serve_stdio(server, sys.stdin, sys.stdout)
     return 0
 
 
@@ -483,7 +438,7 @@ def _parser() -> argparse.ArgumentParser:
     sub = ap.add_subparsers(
         dest="cmd",
         required=True,
-        # export, serve and mcp still work; they are for the dashboard and agents, so --help leaves them out
+        # export and serve still work; they are for the dashboard and agents, so --help leaves them out
         metavar="{init,check,new,id,commit,status,next,trace,ontology,doctor,sync,update}",
     )
 
@@ -581,6 +536,7 @@ def _parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--json", action="store_true", help="machine-readable, with where each use case is realised and tested"
     )
+    p.add_argument("--card", action="store_true", help="each use case as a table of the V, instead of the status table")
 
     p = sub.add_parser(
         "next", aliases=["n"], help="the one next step: which command to run, for which use case, and why"
@@ -612,36 +568,27 @@ def _parser() -> argparse.ArgumentParser:
         help=argparse.SUPPRESS,
         description="Print the whole project state as JSON (what the dashboard reads).",
     )
-
-    p = sub.add_parser(
-        "mcp",
-        help=argparse.SUPPRESS,
-        description="Speak the Model Context Protocol on stdin/stdout, so an agent can use this project's operations.",
-    )
     p.add_argument(
-        "--write", action="store_true", help="also offer apply_change and commit_changes (previewing is always offered)"
+        "--format",
+        choices=["vbench", "playground"],
+        default=os.environ.get("VBENCH_FORMAT", "vbench"),
+        help="the project's format: vbench (default, or $VBENCH_FORMAT) or playground, the auth app's own",
     )
-    p.add_argument("--allow-default-branch", action="store_true", help="with --write: allow it on the default branch")
 
     p = sub.add_parser(
         "serve",
         help=argparse.SUPPRESS,
-        description="Serve the project to the optional dashboard on localhost (read-only unless --write).",
+        description="Serve the project to the optional dashboard on localhost (read-only).",
+    )
+    p.add_argument(
+        "--format",
+        choices=["vbench", "playground"],
+        default=os.environ.get("VBENCH_FORMAT", "vbench"),
+        help="the project's format: vbench (default, or $VBENCH_FORMAT) or playground, the auth app's own",
     )
     p.add_argument("--host", default="127.0.0.1", help="bind address (default: loopback only)")
-    p.add_argument("--port", type=int, default=3000)
+    p.add_argument("--port", type=int, default=3100)
     p.add_argument("--static", help="folder with the built UI (default: $VBENCH_UI_DIST)")
-    p.add_argument(
-        "--write", action="store_true", help="let the dashboard change the requirements: preview, apply, commit"
-    )
-    p.add_argument("--allow-default-branch", action="store_true", help="with --write: allow it on the default branch")
-    p.add_argument(
-        "--agent",
-        choices=["none", "claude", "openai"],
-        default="none",
-        help="with --write: an agent that checks new entries for overlap (openai also powers the chat assistant)",
-    )
-    p.add_argument("--agent-model", help="the agent's model (default claude-opus-5-5, or gpt-4.1 for openai)")
 
     p = sub.add_parser("doctor", help="find drift in the working copy: stale branch, dead worktrees, failing gates")
     p.add_argument("--json", action="store_true", help="machine-readable findings")
@@ -665,6 +612,11 @@ def main(argv: list[str] | None = None, adapters: Adapters | None = None) -> int
             return cmd_init(args, ad)
         if args.cmd == "update":
             return cmd_update(args, ad)
+        if args.cmd in ("export", "serve") and args.format == "playground":
+            root = find_playground_root()
+            return {"export": cmd_export, "serve": cmd_serve}[args.cmd](
+                args, PLAYGROUND_CONFIG, FsWorkspace(root), ad, root
+            )
         root = find_root()
         cfg, ws = load_config(root), FsWorkspace(root)
         if cfg.vbench_version and cfg.vbench_version != __version__:
@@ -686,7 +638,6 @@ def main(argv: list[str] | None = None, adapters: Adapters | None = None) -> int
             "sync": cmd_sync,
             "export": cmd_export,
             "serve": cmd_serve,
-            "mcp": cmd_mcp,
         }[args.cmd](args, cfg, ws, ad, root)
     except (ConfigError, UsageError, UpdateError) as e:
         print(f"vbench: {e}", file=sys.stderr)

@@ -1,6 +1,5 @@
 import { Monitor, Moon, Sun } from "lucide-react"
 
-import { useChanges } from "@/components/change/ChangeContext"
 import { PageHeader } from "@/components/PageHeader"
 import { Segmented } from "@/components/Segmented"
 import { Card } from "@/components/ui/card"
@@ -29,7 +28,6 @@ function Row({ title, hint, children }: { title: string; hint: string; children:
 export default function SettingsPage() {
   const [theme, setTheme] = useTheme()
   const [name, setName] = useDisplayName()
-  const { session } = useChanges()
   return (
     <>
       <PageHeader title="Settings" crumbs={[{ label: "Settings" }]} description="These are kept in this browser only. The dashboard itself never changes the project." />
@@ -42,22 +40,6 @@ export default function SettingsPage() {
                 label="Theme" value={theme} onChange={setTheme}
                 segments={THEMES.map((t) => ({ key: t, label: WORD[t], icon: ICON[t] }))}
               />
-            </Row>
-          </Card>
-        </section>
-        <section aria-labelledby="editing-h">
-          <h2 id="editing-h" className="t-title mb-3 text-ink">Editing</h2>
-          <Card>
-            <Row title="Changing the requirements here" hint="Entries are added, edited and deleted from the dashboard. Each change is previewed with what else it touches, written only when you apply it, and committed only when you ask.">
-              <span className="max-w-xs text-right text-[13px]">
-                {!session.write ? (
-                  <>Off. Start the dashboard with <span className="font-mono">vbench serve --write</span> (on your machine, not in Docker).</>
-                ) : session.blocked ? (
-                  <>On, but blocked: {session.blocked}</>
-                ) : (
-                  <>On.</>
-                )}
-              </span>
             </Row>
           </Card>
         </section>

@@ -6,7 +6,7 @@ Driven (secondary) ports are implemented in `adapters/`. The driving side is `cl
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterator, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Protocol
 
@@ -85,48 +85,6 @@ class Repo(Protocol):
         """How many commits `base` (or `origin/<base>`) has that HEAD lacks; None when it cannot be told."""
 
 
-class Agent(Protocol):
-    """A model that answers one question with a JSON object of a given shape. It reads and reasons; it never writes."""
-
-    name: str
-
-    def structured(self, system: str, user: str, schema: dict) -> dict:
-        """The answer, as an object that matches `schema`. Raises `AgentError` when it cannot give one."""
-
-
-@dataclass(frozen=True)
-class ToolCall:
-    """One request from the model to run a read-only tool."""
-
-    id: str
-    name: str
-    arguments: dict
-
-
-class ChatModel(Protocol):
-    """A model that holds a conversation and may ask for tools. It reads and reasons; it never writes."""
-
-    name: str
-
-    def turn(self, system: str, messages: list[dict], tools: list[dict]) -> Iterator[tuple[str, object]]:
-        """One model turn, streamed: `("token", text)` pieces, then one `("calls", [ToolCall, ...])` (empty when it
-        answered). Messages are `{"role": "user"|"assistant", "content", "calls"?}` and
-        `{"role": "tool", "id", "content"}`. Raises `AgentError` when it cannot answer."""
-
-
-@dataclass(frozen=True)
-class ToolSpec:
-    """An operation offered to an agent over MCP: what it is called, what it takes, and what it does."""
-
-    name: str
-    description: str
-    schema: dict
-    handler: Callable[[dict], str]  # arguments in, text out; it raises a VBenchError the server reports as the result
-    title: str = ""
-    read_only: bool = True
-    destructive: bool = False  # changes or records something a person would want to approve first
-
-
 @dataclass(frozen=True)
 class RunResult:
     code: int
@@ -142,9 +100,6 @@ class Runner(Protocol):
 
 class Committer(Protocol):
     """Records files in the repository's history."""
-
-    def commit(self, paths: Sequence[str], message: str) -> str:
-        """Commit exactly `paths` with `message`; return the short hash. Raises `UsageError` when git refuses."""
 
     def commit_staged(self, message: str) -> str:
         """Commit what is already staged, nothing more; return the short hash. Raises `UsageError` when git refuses."""

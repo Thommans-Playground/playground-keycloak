@@ -14,6 +14,7 @@ prod = ["src"]                         # production code: tagged `Realises UC-�
 tests = ["tests"]                      # tests: tagged `Verifies UC-… · <rung> rung.` and AC markers
 prod_ext = [".py"]
 test_ext = [".py"]
+# untagged_ok = []                     # globs of production files that may realise no use case (`__init__.py` always may)
 
 # Id shapes: three parts, <KIND>-<AREA>-<NNN>. Use case UC-A-001, criterion AC-A-001, task TSK-A-001.
 # Requirements are STK-REQ-001, REQ-FR-001, REQ-NFR-001 (see docs/00-naming-conventions.md).

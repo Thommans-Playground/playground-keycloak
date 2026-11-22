@@ -16,7 +16,7 @@ Input: `$ARGUMENTS` (optional UC id or area letter).
    `vbench status` (each UC with its AC count, AC coverage, tasks closed / declared, whether code and a
    verifying test exist, and the gate results), the branch and working tree, the commits ahead of the base, and
    the commit-convention result.
-2. For detail, run `vbench check rungs --matrix` and `vbench check acs --matrix`.
+2. Run `vbench status --card` for the report card: one table of the V for each use case (requirements, design and tasks on the left, acceptance, integration and unit tests beside them on the right, then the code), with a dot coloured by maturity. Show it to the person as it is. For detail, run `vbench check rungs --matrix` and `vbench check acs --matrix`.
 3. Report concisely: the branch and the UC(s) it touches; UCs with no verifying test or uncovered ACs; specs
    with no code; code tags with no spec; uncommitted work.
 4. Recommend exactly one next command, with the UC id, taken from `vbench next` (it respects the use cases'

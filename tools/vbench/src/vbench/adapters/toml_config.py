@@ -17,6 +17,18 @@ def find_root(start: Path | None = None) -> Path:
     raise ConfigError(f"No {CONFIG_PATH} found in {cur} or any parent. Run `vbench init` first.")
 
 
+PLAYGROUND_MARKER = "vbench.json"
+
+
+def find_playground_root(start: Path | None = None) -> Path:
+    """The nearest folder with a `vbench.json`: the playground's own format, which has no `.vbench/config.toml`."""
+    cur = (start or Path.cwd()).resolve()
+    for d in [cur, *cur.parents]:
+        if (d / PLAYGROUND_MARKER).is_file():
+            return d
+    raise ConfigError(f"No {PLAYGROUND_MARKER} found in {cur} or any parent.")
+
+
 def load_config(root: Path) -> Config:
     try:
         raw = tomllib.loads((root / CONFIG_PATH).read_text(encoding="utf-8"))

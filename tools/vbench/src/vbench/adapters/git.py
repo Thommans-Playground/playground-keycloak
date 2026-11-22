@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import subprocess
 import time
-from collections.abc import Sequence
 from pathlib import Path
 
 from ..domain.errors import UpdateError, UsageError
@@ -131,29 +130,6 @@ class GitRepo:
             )
             if done.returncode:
                 raise UsageError(f"git commit failed: {(done.stderr.strip() or done.stdout.strip())[:600]}")
-            return subprocess.run(
-                ["git", "rev-parse", "--short", "HEAD"], cwd=self.root, capture_output=True, text=True, timeout=10
-            ).stdout.strip()
-        except (OSError, subprocess.SubprocessError) as e:
-            raise UsageError(f"git could not be run: {e}") from e
-
-    def commit(self, paths: Sequence[str], message: str) -> str:
-        """Commit exactly these paths, whatever else is staged."""
-        try:
-            add = subprocess.run(
-                ["git", "add", "--", *paths], cwd=self.root, capture_output=True, text=True, timeout=30
-            )
-            if add.returncode:
-                raise UsageError(f"git add failed: {add.stderr.strip() or add.stdout.strip()}")
-            done = subprocess.run(
-                ["git", "commit", "-m", message, "--", *paths],
-                cwd=self.root,
-                capture_output=True,
-                text=True,
-                timeout=60,
-            )
-            if done.returncode:
-                raise UsageError(f"git commit failed: {(done.stderr.strip() or done.stdout.strip())[:300]}")
             return subprocess.run(
                 ["git", "rev-parse", "--short", "HEAD"], cwd=self.root, capture_output=True, text=True, timeout=10
             ).stdout.strip()

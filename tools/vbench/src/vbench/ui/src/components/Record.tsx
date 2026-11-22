@@ -2,13 +2,10 @@ import { LayoutDashboard } from "lucide-react"
 import type { ReactNode } from "react"
 import { Link } from "react-router-dom"
 
-import { AskButton } from "@/components/assistant/AskButton"
-import { textOf } from "@/components/assistant/text"
 import { Scrollspy, SectionChips, useActiveSection, type SpySection } from "@/components/Scrollspy"
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { aboutOf, cardQuestions } from "@/lib/assistant"
 import { CRITERION_STATE } from "@/lib/status"
 import type { CriterionState, ItemStatus } from "@/lib/types"
 import { cn } from "@/lib/utils"
@@ -36,18 +33,6 @@ export function RecordFrame({ variant, sections, header, children }: { variant: 
   )
 }
 
-// "Ask" for the card a header introduces: it quotes the header (kind, id, title, what it is, its facts) and offers
-// questions written from the kind. Nothing shows when the server has no assistant.
-function AskCard({ overline, id, title, description, chips, facts }: { overline: string; id?: string; title: ReactNode; description?: ReactNode; chips?: ReactNode; facts?: { label: string; value: ReactNode }[] }) {
-  const name = textOf(title)
-  const state = textOf(chips)
-  const about = aboutOf(`${overline.toLowerCase()} ${id ?? name}`.trim(), {
-    Kind: overline, Id: id, Title: name, "What it is": textOf(description), State: state,
-    ...Object.fromEntries((facts ?? []).map((f) => [f.label, textOf(f.value)])),
-  })
-  return <AskButton about={about} questions={cardQuestions({ kind: overline.toLowerCase(), ref: id ?? name, title: name, state })} />
-}
-
 export function RecordHeader({ overline, id, title, description, chips, facts, actions }: {
   overline: string
   id?: string
@@ -66,7 +51,6 @@ export function RecordHeader({ overline, id, title, description, chips, facts, a
             {id && <span className="font-mono text-[13px] font-semibold normal-case tracking-normal text-ink">{id}</span>}
           </p>
           <div className="flex flex-wrap items-center gap-2">
-            <AskCard overline={overline} id={id} title={title} description={description} chips={chips} facts={facts} />
             {actions}
           </div>
         </div>

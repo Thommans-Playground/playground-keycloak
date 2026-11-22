@@ -12,8 +12,6 @@ dependencies = []  # stdlib only, on purpose: runs anywhere CI does
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "ruff>=0.9"]
-agent = ["anthropic>=1.0"]  # optional: lets the dashboard ask Claude whether a new entry already exists
-openai = ["openai>=1.0"]  # optional: the same, and the dashboard chat, answered by OpenAI
 
 [project.scripts]
 vbench = "vbench.cli:main"
@@ -39,4 +37,5 @@ extend-exclude = ["src/vbench/templates", "src/vbench/ui"]  # templates hold {{p
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
+per-file-ignores = {"src/vbench/app/export_playground.py" = ["E501"], "tests/test_playground.py" = ["E501"]}  # data-shaped literals
 ignore = ["RUF001", "RUF002", "RUF003"]  # the prose uses real punctuation: · and the unicode in user-facing text

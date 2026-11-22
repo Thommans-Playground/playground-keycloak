@@ -1,6 +1,5 @@
 import { GitBranch, RefreshCw } from "lucide-react"
 
-import { AssistantLauncher } from "@/components/assistant/AssistantLauncher"
 import { ProfileMenu } from "@/components/ProfileMenu"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -20,7 +19,6 @@ export function Topbar({ branch, gates, loading, onRefresh }: { branch?: string;
             {failing ? `${failing} of ${gates.length} gates failing` : `All ${gates.length} gates passing`}
           </Badge>
         )}
-        <AssistantLauncher />
         <Button variant="ghost" size="icon" onClick={onRefresh} aria-label="Refresh from the project files" title="Refresh from the project files">
           <RefreshCw className={loading ? "animate-spin" : ""} aria-hidden="true" />
         </Button>

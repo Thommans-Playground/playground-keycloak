@@ -1,13 +1,10 @@
 import type { ReactNode } from "react"
 import { Link } from "react-router-dom"
 
-import { ActionsMenu } from "@/components/ActionsMenu"
-import { ChangeButton, useChanges } from "@/components/change/ChangeContext"
 import { EmptyState } from "@/components/PageHeader"
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import type { Target } from "@/lib/actions"
 import { CRITERION_STATE } from "@/lib/status"
 import type { RequirementsSheet as Sheet, SheetCriterion, SheetRelated } from "@/lib/types"
 
@@ -32,18 +29,6 @@ function Section({ id, title, hint, count, action, children }: { id: string; tit
 const Text = ({ id, children, className }: { id: string; children: ReactNode; className?: string }) => (
   <Link to={here(id)} className={`text-ink no-underline hover:underline ${className ?? ""}`}>{children}</Link>
 )
-
-// The last column of each table, only when the page can write: one quiet button with everything that can be done to the row.
-function ActionsHead() {
-  const { session } = useChanges()
-  return session.write ? <TableHead className="w-12"><span className="sr-only">Actions</span></TableHead> : null
-}
-
-function ActionsCell({ target, name }: { target?: Target; name?: string }) {
-  const { session } = useChanges()
-  if (!session.write) return null
-  return <TableCell className="w-12 text-right">{target && name ? <ActionsMenu target={target} name={name} /> : null}</TableCell>
-}
 
 const Id = ({ id }: { id: string }) => (
   <Link to={here(id)} className="whitespace-nowrap font-mono text-[13px] font-semibold text-ink no-underline hover:underline">{id}</Link>
@@ -124,14 +109,14 @@ export function RequirementsSheet({ sheet }: { sheet: Sheet }) {
         ))}
       </nav>
 
-      <Section id="problems" title="Problems" count={sheet.problems.length} action={<ChangeButton add intent={{ op: "add", kind: "problem" }} label="Add problem" />} hint="What people struggle with, from their side, with no solution in it. A request says which problem it addresses.">
+      <Section id="problems" title="Problems" count={sheet.problems.length} hint="What people struggle with, from their side, with no solution in it. A request says which problem it addresses.">
         {sheet.problems.length ? (
           <Card className="overflow-hidden">
             <Table aria-label="Problems">
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-44">Id</TableHead><TableHead className="min-w-72">Problem</TableHead><TableHead className="min-w-36">Who is affected</TableHead>
-                  <TableHead className="min-w-56">Cost of leaving it</TableHead><TableHead>Addressed by</TableHead><TableHead>Status</TableHead><ActionsHead />
+                  <TableHead className="min-w-56">Cost of leaving it</TableHead><TableHead>Addressed by</TableHead><TableHead>Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -147,7 +132,6 @@ export function RequirementsSheet({ sheet }: { sheet: Sheet }) {
                       ) : <span className="text-subtle">None</span>}
                     </TableCell>
                     <TableCell>{p.label ? <Badge tone={p.status}>{p.label}</Badge> : null}</TableCell>
-                    {p.id ? <ActionsCell target={{ kind: "problem", id: p.id }} name={p.id} /> : <ActionsCell />}
                   </TableRow>
                 ))}
               </TableBody>
@@ -158,10 +142,10 @@ export function RequirementsSheet({ sheet }: { sheet: Sheet }) {
         )}
       </Section>
 
-      <Section id="requests" title="Requests" count={sheet.requests.length} action={<ChangeButton add intent={{ op: "add", kind: "request" }} label="Add request" />} hint="What was asked for, in the stakeholder's words, and the requirements it became.">
+      <Section id="requests" title="Requests" count={sheet.requests.length} hint="What was asked for, in the stakeholder's words, and the requirements it became.">
         <Card className="overflow-hidden">
           <Table aria-label="Requests">
-            <TableHeader><TableRow><TableHead className="w-44">Id</TableHead><TableHead>The ask</TableHead><TableHead>Raised by</TableHead><TableHead>Problem</TableHead><TableHead>Became</TableHead><ActionsHead /></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead className="w-44">Id</TableHead><TableHead>The ask</TableHead><TableHead>Raised by</TableHead><TableHead>Problem</TableHead><TableHead>Became</TableHead></TableRow></TableHeader>
             <TableBody>
               {sheet.requests.map((r) => (
                 <TableRow key={r.id} id={r.id} className="scroll-mt-32">
@@ -178,7 +162,6 @@ export function RequirementsSheet({ sheet }: { sheet: Sheet }) {
                       <span className="flex flex-wrap gap-x-2">{r.requirements.map((x) => <a key={x} href={`#${x}`} className="font-mono text-xs">{x}</a>)}</span>
                     ) : <span className="text-subtle">Nothing yet</span>}
                   </TableCell>
-                  <ActionsCell target={{ kind: "request", id: r.id }} name={r.id} />
                 </TableRow>
               ))}
               {!sheet.requests.length && <TableRow><TableCell colSpan={7} className="text-subtle">No requests recorded.</TableCell></TableRow>}
@@ -187,13 +170,13 @@ export function RequirementsSheet({ sheet }: { sheet: Sheet }) {
         </Card>
       </Section>
 
-      <Section id="functional" title="Functional requirements" count={sheet.functional.length} action={<ChangeButton add intent={{ op: "add", kind: "functional" }} label="Add functional requirement" />} hint="What the system does. Each has a user story (why), the use cases that realise it, and the criteria that say it is done.">
+      <Section id="functional" title="Functional requirements" count={sheet.functional.length} hint="What the system does. Each has a user story (why), the use cases that realise it, and the criteria that say it is done.">
         <Card className="overflow-hidden">
           <Table aria-label="Functional requirements">
             <TableHeader>
               <TableRow>
                 <TableHead className="w-44">Id</TableHead><TableHead className="min-w-64">Requirement and story</TableHead><TableHead className="min-w-40">Realised by</TableHead>
-                <TableHead className="min-w-96">Acceptance criteria and tests</TableHead><TableHead>Status</TableHead><ActionsHead />
+                <TableHead className="min-w-96">Acceptance criteria and tests</TableHead><TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -207,7 +190,6 @@ export function RequirementsSheet({ sheet }: { sheet: Sheet }) {
                   <TableCell><UseCases ucs={f.ucs} /></TableCell>
                   <TableCell><Criteria criteria={f.criteria} /></TableCell>
                   <TableCell><Badge tone={f.status}>{f.label}</Badge></TableCell>
-                  <ActionsCell target={{ kind: "functional", id: f.id, ucs: f.ucs }} name={f.id} />
                 </TableRow>
               ))}
               {!sheet.functional.length && <TableRow><TableCell colSpan={7} className="text-subtle">No functional requirements recorded.</TableCell></TableRow>}
@@ -216,13 +198,13 @@ export function RequirementsSheet({ sheet }: { sheet: Sheet }) {
         </Card>
       </Section>
 
-      <Section id="quality" title="Quality requirements" count={sheet.quality.length} action={<ChangeButton add intent={{ op: "add", kind: "quality" }} label="Add quality requirement" />} hint="How well it does it, as a six-part scenario whose response measure can be checked.">
+      <Section id="quality" title="Quality requirements" count={sheet.quality.length} hint="How well it does it, as a six-part scenario whose response measure can be checked.">
         <Card className="overflow-hidden">
           <Table aria-label="Quality requirements">
             <TableHeader>
               <TableRow>
                 <TableHead className="w-44">Id</TableHead><TableHead className="min-w-44">Quality</TableHead><TableHead className="min-w-96">Scenario</TableHead>
-                <TableHead className="min-w-80">Acceptance criteria and tests</TableHead><TableHead>Status</TableHead><ActionsHead />
+                <TableHead className="min-w-80">Acceptance criteria and tests</TableHead><TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -243,7 +225,6 @@ export function RequirementsSheet({ sheet }: { sheet: Sheet }) {
                   </TableCell>
                   <TableCell><Criteria criteria={q.criteria} /></TableCell>
                   <TableCell><Badge tone={q.status}>{q.label}</Badge></TableCell>
-                  <ActionsCell target={{ kind: "quality", id: q.id, ucs: q.ucs }} name={q.id} />
                 </TableRow>
               ))}
               {!sheet.quality.length && <TableRow><TableCell colSpan={7} className="text-subtle">No quality requirements recorded.</TableCell></TableRow>}

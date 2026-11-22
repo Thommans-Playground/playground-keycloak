@@ -13,7 +13,6 @@ import { RecordFor } from "@/components/records"
 import { CriterionPane, UseCasePane } from "@/components/records/InlinePanes"
 import { StageChip } from "@/components/StageChip"
 import { VDiagram } from "@/components/VDiagram"
-import { ActionsMenu } from "@/components/ActionsMenu"
 import { Visualise } from "@/components/Visualise"
 import { TraceFlow } from "@/components/flow/TraceFlow"
 import { Badge } from "@/components/ui/badge"
@@ -79,7 +78,6 @@ export default function UseCaseDetail() {
   const tests = project.v.items.filter((i) => i.kind === "test")
   const tasks = project.v.items.filter((i) => i.kind === "task" && i.ucs.includes(u.id))
   const drawings = project.diagrams.filter((d) => d.uc === u.id)
-  const realised = project.v.items.filter((i) => i.phase === "requirements" && (i.kind === "FR" || i.kind === "NFR") && i.ucs.includes(u.id)).map((i) => i.id)
 
   // The item open beside the page (`?open=<id>`): a task, a test or a diagram. Choosing another replaces it; the page
   // keeps its place, and Back steps through what was opened.
@@ -118,7 +116,6 @@ export default function UseCaseDetail() {
         header={
           <RecordHeader
             overline="Use case" id={u.id} title={u.title}
-            actions={<ActionsMenu target={{ kind: "usecase", id: u.id, realises: realised }} name={u.id} />}
             chips={<><StageChip stage={u.stage} />{u.blockedBy.length > 0 && <Badge tone="warn">Waiting for {u.blockedBy.join(", ")}</Badge>}</>}
             facts={[
               { label: "Actor", value: u.actor ?? "Not said" },

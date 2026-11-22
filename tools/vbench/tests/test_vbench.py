@@ -1084,7 +1084,7 @@ def test_help_lists_what_a_cli_user_needs_and_leaves_out_dashboard_commands(caps
     out = capsys.readouterr().out
     for shown in ("init", "check", "new", "id", "status", "next", "sync", "update"):
         assert shown in out
-    for hidden in ("export", "serve", "mcp"):
+    for hidden in ("export", "serve"):
         assert f"{hidden} " not in out.split("positional arguments:")[1]
     with pytest.raises(SystemExit):
         cli.main(["serve", "--help"])  # still there for the dashboard
@@ -1125,3 +1125,14 @@ def test_short_command_names_do_the_same_as_the_long_ones(tmp_path, capsys, monk
         out_long = capsys.readouterr().out
         assert out_short and (code_short, out_short) == (code_long, out_long)  # the same command, the same answer
     assert cli.main(["c", "refs"]) == 0 and cli.main(["st", "--json"]) == 0
+
+
+def test_status_card_shows_each_use_case_as_a_table_of_the_v(proj: Path, capsys):
+    cli.main(["new", "uc", "--area", "A", "--title", "Log in"])
+    capsys.readouterr()
+    assert cli.main(["status", "--card"]) == 0
+    out = capsys.readouterr().out
+    assert "| Layer | Specification | Verification |" in out
+    assert "Requirements" in out and "Acceptance" in out
+    assert "| UC |" not in out  # the card replaces the status table
+    assert "╲" not in out

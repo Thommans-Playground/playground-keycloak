@@ -1,10 +1,9 @@
 # The optional dashboard. The CLI does not need it: `vbench check`, `status`, `next` and the skills work without it.
 #
-#   PROJECT=/path/to/your/project docker compose up --build      # then open http://localhost:3000
-#   docker compose --profile write up --build                    # also lets the dashboard edit the requirements
+#   PROJECT=/path/to/your/project docker compose up --build      # then open http://localhost:3100
+#   PROJECT=$PWD/../.. VBENCH_FORMAT=playground docker compose up --build   # the auth app, in its own format
 #
-# PROJECT defaults to the current folder. The project is mounted read-only unless you use the `write` profile, which
-# mounts it read-write and starts `serve --write` (previews, applies and commits documentation changes on your branch).
+# PROJECT defaults to the current folder, mounted read-only: the dashboard only reads.
 # Everything is published on 127.0.0.1 only. Diagrams are drawn by the PlantUML renderer, which has no published port.
 
 name: vbench-ui
@@ -12,35 +11,18 @@ services:
   dashboard:
     build: .
     image: vbench:dashboard
-    command: ["serve", "--host", "0.0.0.0", "--port", "3000"]
-    ports: ["127.0.0.1:3000:3000"]
+    command: ["serve", "--host", "0.0.0.0", "--port", "3100"]
+    ports: ["127.0.0.1:3100:3100"]
     volumes: ["${PROJECT:-.}:/project:ro"]
     environment:
       VBENCH_PLANTUML_URL: http://plantuml:8080
+      VBENCH_FORMAT: ${VBENCH_FORMAT:-vbench}   # playground = the auth app's own format (needs a vbench.json)
     depends_on: [plantuml]
     read_only: true
     tmpfs: [/tmp]
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
     restart: unless-stopped
-
-  dashboard-write:
-    profiles: [write]
-    build: .
-    image: vbench:dashboard
-    command: ["serve", "--write", "--host", "0.0.0.0", "--port", "3001"]
-    ports: ["127.0.0.1:3001:3001"]
-    volumes: ["${PROJECT:-.}:/project"]
-    user: "${UID:-1000}:${GID:-1000}"
-    environment:
-      VBENCH_PLANTUML_URL: http://plantuml:8080
-      GIT_AUTHOR_NAME: "${GIT_AUTHOR_NAME:-vbench}"
-      GIT_AUTHOR_EMAIL: "${GIT_AUTHOR_EMAIL:-vbench@localhost}"
-      GIT_COMMITTER_NAME: "${GIT_AUTHOR_NAME:-vbench}"
-      GIT_COMMITTER_EMAIL: "${GIT_AUTHOR_EMAIL:-vbench@localhost}"
-    depends_on: [plantuml]
-    cap_drop: [ALL]
-    security_opt: ["no-new-privileges:true"]
 
   plantuml:
     image: plantuml/plantuml-server:jetty

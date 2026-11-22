@@ -13,7 +13,7 @@ If nobody reviews behind you (a solo or small team), be more conservative about 
 
 Paths to `scripts/` and `references/` are relative to this skill's directory.
 
-1. **Run `/vbench:v-4-verify all`** over the branch's UCs (`python3 ../v-4-verify/scripts/branch_ucs.py` lists them). Any Blocking item stops the ship: report and halt.
+1. **Verify every UC on the branch.** Read `../v-4-verify/SKILL.md` and follow it with `all` as its input (a skill only the user can start cannot be run from here; its `scripts/` paths are relative to its own directory, and `python3 ../v-4-verify/scripts/branch_ucs.py` lists the branch's UCs). Any Blocking item stops the ship: report and halt.
 2. **Independent review in a clean context.** Hand a reviewer subagent only the diff against the base branch, the
    specs and the project's standards (constitution docs, ADRs, naming conventions), pushed into its prompt; the author's
    session is the wrong place to judge its own work. Use `/code-review` if available. Resolve what it raises, or list it
@@ -41,6 +41,6 @@ Paths to `scripts/` and `references/` are relative to this skill's directory.
    Push or open a PR only after the user says yes. Never edit CI workflows as part of shipping.
 
 ## Connections
-- Calls: `/vbench:v-4-verify`, `vbench-trace-checker`.
+- Follows: `/vbench:v-4-verify` (read inline), and calls `vbench-trace-checker`.
 - Back-edges: any Blocking item returns to `/vbench:v-3-code`, `/vbench:v-2-design` or `/vbench:v-1-requirements`
   depending on where the defect lives.

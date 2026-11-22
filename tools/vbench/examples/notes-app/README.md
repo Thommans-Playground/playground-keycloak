@@ -1,6 +1,6 @@
 # Notes app: a worked vbench example
 
-A tiny project that shows the V-cycle on three use cases. To see it as pictures, run `PROJECT=$PWD docker compose -f <vbench checkout>/docker-compose.yml up --build` and open http://localhost:3000 (needs Docker; the dashboard is an optional extra).
+A tiny project that shows the V-cycle on three use cases. To see it as pictures, run `PROJECT=$PWD docker compose -f <vbench checkout>/docker-compose.yml up --build` and open http://localhost:3100 (needs Docker; the dashboard is an optional extra).
 
 | Use case | Where it is | Why |
 |---|---|---|

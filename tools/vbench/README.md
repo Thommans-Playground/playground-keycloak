@@ -166,8 +166,10 @@ behaviour's assertion, not on an import or fixture error.
 | Gate | Proves |
 |---|---|
 | `refs` | every documentation link, `!include` and `docs/….md` path in code resolves |
-| `rungs` | every use case tagged `Realises UC-…` in code has a test tagged `Verifies UC-…` |
+| `rungs` | every use case tagged `Realises UC-…` in code has a test tagged `Verifies UC-…`, and no production file realises nothing (`untagged_ok` lists the exceptions) |
 | `acs` | every `AC-…` row in a spec has a marked test; no marker names an undeclared AC |
+| `requirements` | a requirement marked built (✅) has a criterion that a real test validates |
+| `fakes` | no `# FAKE:` stand-in is left in the production code |
 | `links` | `Depends on` has no dangling id, self-link or cycle |
 | `diagrams` | diagram names, links, `@startuml`/`@enduml`, and the set the rigor tier requires; the generated use-case map is current |
 | `steps` | each step is cited by a task, and (once there is code) tagged and driven by a real test |
@@ -176,9 +178,19 @@ behaviour's assertion, not on an import or fixture error.
 | `docs` | generated blocks in the docs match a fresh render |
 | `commits` | commit subjects and the branch name follow the convention, and cite specs and tasks that exist (explicit; needs git) |
 
-In Python, a tag counts only on a real test: a `Verifies` clause needs a docstring with a test function behind it, and
-the AC marker must sit on a `test*` function that is not skipped and asserts something that can fail. Other languages
-and unparseable files keep the plain text match.
+In Python, a tag counts only on a real test, read the way pytest would run it: a file pytest collects (`test_*.py`,
+`*_test.py`), a `test*` function or a method of a `Test*` class without `__init__` (the last of two same-named
+definitions), not skipped or expected to fail (decorator, `pytestmark`, `skipif(True)`, empty `parametrize`, a
+`pytest.skip()` at the top of the body), asserting something that can fail in code that can run (not `assert True`,
+`x or True` or `x == x`; not under `if False` or after a `return`; not in a nested function nobody calls). A call counts
+as an assertion only when it is `pytest.raises`/`warns`, a `self.assert…` in a `TestCase`, a `mock` `assert_called…`, a
+`…testing.assert…`, or a function in the same file that itself asserts. Ids match whole: `UC-A-0021` is not `UC-A-002`.
+Other languages and unparseable files keep the plain text match.
+
+**Evidence from a run.** The text cannot tell a test skipped by an `importorskip`, deselected, or failing. Set
+`results = "reports/junit.xml"` in `.vbench/config.toml`, run `pytest --junitxml=reports/junit.xml`, and a test counts
+only if that run says it passed (every parametrised case; a test the run does not mention did not run; a missing file
+proves nothing). Without `results` the text reading above is all there is.
 
 **What the checks prove (and don't):** they prove a link **exists**. They do not judge whether a test is good;
 `/vbench:v-4-verify` audits that, and a human reviews it. Treat the checks as a floor, not a quality score.
@@ -347,9 +359,8 @@ flowchart LR
   R --> CI["CI: vbench check"]
 ```
 
-Type `/vbench` to list the commands, or run `/vbench:help` for the table and the step that is due. Each step has a long
-and a short name that do exactly the same: `v-1-requirements`/`req`, `v-2-design`/`design`, `v-3-code`/`code`,
-`v-4-verify`/`verify`, `v-5-ship`/`ship`, `v-fix`/`fix`, `v-status`/`status`. In the terminal, `check`, `status` and `next`
+Type `/vbench` to list the commands, or run `/vbench:help` for the table and the step that is due. Each step is named for its place on the V (`v-1-requirements`, `v-2-design`, `v-3-code`, `v-4-verify`,
+`v-5-ship`, `v-fix`, `v-status`). In the terminal, `check`, `status` and `next`
 also answer to `c`, `st` and `n`.
 
 ```
@@ -401,11 +412,10 @@ scaffolded [technology stack](src/vbench/templates/stacks/python-fastapi/docs/04
 
 ## Optional extras
 
-The CLI and the skills are the product. Three things sit beside them and are not needed to use it: a read-only
-**dashboard** (Docker Compose), a **write path** that edits the requirements from the dashboard (experimental, off by
-default), and an **MCP server** (`vbench mcp`, also in the Docker image) so Claude Code can call vbench from a
-container. `vbench export`, `serve` and `mcp` are their commands and are left out of `--help`. None of them changes a
-verdict. How to run them: [docs/dashboard.md](docs/dashboard.md).
+The CLI and the skills are the product. Beside them sits a read-only **dashboard** (Docker Compose) that guides
+non-technical readers through the V: they click a requirement, a criterion or a use case and follow the links to the
+design, the code and the test, with the PlantUML diagrams drawn. `vbench export` and `serve` are its commands and are left
+out of `--help`. It changes no verdict and no file. How to run it: [docs/dashboard.md](docs/dashboard.md).
 
 ## Configure
 
@@ -469,8 +479,7 @@ claude plugin validate ./plugin # plugin
 
 Working: the CLI and its tests, step ids with `trace` and `next --ready`, the ontology export, the plugin skills and
 agents, `vbench init` templates and CI templates, the optional dashboard (`docker compose up`; `vbench serve` is its
-backend), the write path (`serve --write`, off by default; **experimental**), the optional agents behind it, the MCP
-server (`vbench mcp`) and the Docker image.
+backend) and the Docker image.
 
 Known limits: a diagram without step ids is not checked (numbering is opt-in); `trace` shows test files, not
 functions; the vocabulary check matches words, not meaning; the ontology has no class-diagram relations yet. Not yet: a

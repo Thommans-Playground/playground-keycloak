@@ -25,7 +25,7 @@ Three things, and nothing else yet:
 |---|---|
 | Do the next step | `/vbench:next` in Claude Code |
 | See where you are, in a terminal | `vbench status`, and `vbench next` for just the next step |
-| See it as pictures | The dashboard is an optional extra, not part of the CLI: from a checkout of the vbench repo run `PROJECT=/path/to/your/project docker compose up --build` (needs Docker), then open `http://localhost:3000`. Click a phase of the V in the sidebar to see its items, and any item to see the V it belongs to. `vbench status` shows the same facts as a table. |
+| See it as pictures | The dashboard is an optional extra, not part of the CLI: from a checkout of the vbench repo run `PROJECT=/path/to/your/project docker compose up --build` (needs Docker), then open `http://localhost:3100`. Click a phase of the V in the sidebar to see its items, and any item to see the V it belongs to. `vbench status` shows the same facts as a table. |
 
 Everything else is learned on demand:
 

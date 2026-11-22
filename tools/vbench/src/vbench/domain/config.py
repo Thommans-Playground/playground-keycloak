@@ -28,6 +28,8 @@ DEFAULTS: dict[str, Any] = {
     "tests": ["tests"],
     "prod_ext": [".py"],
     "test_ext": [".py"],
+    "results": "",  # a JUnit XML file of the last test run: with it, a test counts only if it passed there
+    "untagged_ok": [],  # production files allowed to realise no use case (`__init__.py` always is)
     "uc_pattern": r"UC-[A-Z]-\d{3}",
     "ac_pattern": r"AC-[A-Z]-\d{3}",
     "task_pattern": r"TSK-[A-Z]-\d{3}",
@@ -45,6 +47,11 @@ DEFAULTS: dict[str, Any] = {
     "ontology_iri": "urn:vbench:project:",  # the namespace of this project's individuals
     "branch_max_days": 5,  # a branch older than this is a note in `vbench doctor` (trunk-based: keep branches short)
 }
+
+
+def bounded(pattern: str) -> re.Pattern[str]:
+    """An id pattern that must stand alone: `UC-A-0021` is not `UC-A-002`, and `XUC-A-002` is not `UC-A-002`."""
+    return re.compile(rf"(?<![A-Za-z0-9])(?:{pattern})(?![A-Za-z0-9])")
 
 
 def _as_list(v: Any) -> list[str]:
@@ -78,6 +85,8 @@ class Config:
     ontology: str = "docs/ontology"
     ontology_iri: str = "urn:vbench:project:"
     step_pattern: str = r"STP-[A-Z]-\d{3}"  # a step of a use case's sequence diagram
+    results: str = ""
+    untagged_ok: list[str] = field(default_factory=list)  # globs of production files that may realise nothing
     commands: dict[str, str] = field(default_factory=dict)
 
     @classmethod
@@ -105,6 +114,8 @@ class Config:
             tests=_as_list(s["tests"]),
             prod_ext=tuple(_as_list(s["prod_ext"])),
             test_ext=tuple(_as_list(s["test_ext"])),
+            results=str(s["results"]),
+            untagged_ok=_as_list(s["untagged_ok"]),
             uc_pattern=s["uc_pattern"],
             ac_pattern=s["ac_pattern"],
             task_pattern=s["task_pattern"],
@@ -127,15 +138,15 @@ class Config:
     # --- compiled patterns -------------------------------------------------
     @property
     def uc_re(self) -> re.Pattern[str]:
-        return re.compile(self.uc_pattern)
+        return bounded(self.uc_pattern)
 
     @property
     def ac_re(self) -> re.Pattern[str]:
-        return re.compile(self.ac_pattern)
+        return bounded(self.ac_pattern)
 
     @property
     def step_re(self) -> re.Pattern[str]:
-        return re.compile(self.step_pattern)
+        return bounded(self.step_pattern)
 
     @property
     def ac_decl_re(self) -> re.Pattern[str]:

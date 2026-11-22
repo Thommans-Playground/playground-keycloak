@@ -1,9 +1,6 @@
 import { useEffect } from "react"
 import { Outlet, useLocation, useOutletContext } from "react-router-dom"
 
-import { AssistantProvider } from "@/components/assistant/AssistantContext"
-import { AssistantDock } from "@/components/assistant/AssistantPanel"
-import { ChangeProvider } from "@/components/change/ChangeContext"
 import { ErrorState } from "@/components/PageHeader"
 import { Sidebar } from "@/components/Sidebar"
 import { Topbar } from "@/components/Topbar"
@@ -35,7 +32,6 @@ export function AppShell() {
   }, [hash, pathname, ready])
 
   return (
-    <AssistantProvider>
     <div className="flex min-h-screen">
       <Sidebar
         phases={data?.v.phases ?? []}
@@ -54,9 +50,7 @@ export function AppShell() {
           {error && !data ? (
             <ErrorState message={error} onRetry={reload} />
           ) : data ? (
-            <ChangeProvider project={data} reload={reload}>
-              <Outlet context={{ project: data }} />
-            </ChangeProvider>
+            <Outlet context={{ project: data }} />
           ) : (
             <div className="space-y-4" aria-busy="true" aria-label="Loading the project">
               <Skeleton className="h-10 w-72" />
@@ -66,8 +60,6 @@ export function AppShell() {
           )}
         </main>
       </div>
-      <AssistantDock />
     </div>
-    </AssistantProvider>
   )
 }

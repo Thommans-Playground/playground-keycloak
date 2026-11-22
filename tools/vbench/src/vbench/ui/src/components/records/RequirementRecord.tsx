@@ -1,12 +1,10 @@
 import { Link } from "react-router-dom"
 import { BookOpen, ClipboardList, FlaskConical, GitBranch, Layers, ListChecks, Quote, Target } from "lucide-react"
 
-import { ActionsMenu } from "@/components/ActionsMenu"
 import { EmptyState } from "@/components/PageHeader"
 import { Cell, IdLink, RecordFrame, RecordHeader, RecordSection, RelatedTable, Row, StateChip, StatusChip, muted, type Variant } from "@/components/Record"
 import type { SpySection } from "@/components/Scrollspy"
 import { StageChip } from "@/components/StageChip"
-import type { Target as ActionTarget } from "@/lib/actions"
 import { becameOf, findRequirement, originOf, testsOf, type Requirement } from "@/lib/records"
 import type { ProjectState, SheetCriterion, SheetFunctional, SheetProblem, SheetQuality, SheetRequest, SheetTest } from "@/lib/types"
 
@@ -145,14 +143,9 @@ export function RequirementRecord({ project, id, variant }: { project: ProjectSt
   const req: Requirement | null = findRequirement(sheet, id)
   if (!req) return <EmptyState>That requirement is not in the requirements doc any more.</EmptyState>
   const file = project.v.items.find((i) => i.id === id && i.phase === "requirements")?.file
-  const target: ActionTarget =
-    req.kind === "problem" ? { kind: "problem", id }
-    : req.kind === "request" ? { kind: "request", id }
-    : { kind: req.kind, id, ucs: req.kind === "functional" ? req.fr.ucs : req.nfr.ucs }
   const open = () => (
     <div className="flex items-center gap-2">
       {variant === "pane" && <Link to={to(id)} className="t-footnote font-medium">Open as a page</Link>}
-      <ActionsMenu target={target} name={id} />
     </div>
   )
   const docLink = file ? <Link to={`/docs?path=${encodeURIComponent(file)}`} className="font-mono text-xs">{file.split("/").pop()}</Link> : "—"

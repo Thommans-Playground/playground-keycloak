@@ -99,6 +99,9 @@ def init_project(
     cfg = cfg.replace('prod = ["src"]', f"prod = {_quote(prod)}").replace(
         'tests = ["tests"]', f"tests = {_quote(tests)}"
     )
+    if stack != "none":  # the skeleton's own plumbing realises no use case
+        plumbing = [f"*/{package}/config.py", f"*/{package}/main.py", f"*/{package}/infrastructure/*"]
+        cfg = cfg.replace("# untagged_ok = []", f"untagged_ok = {_quote(plumbing)}", 1)
     if f"{base}config.commands.toml" in stack_files:  # the stack's gate commands replace the generic ones
         cfg = cfg[: cfg.index(COMMANDS_MARK)] + templates.read(f"{base}config.commands.toml")
     put(CONFIG_PATH, cfg)

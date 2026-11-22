@@ -6,24 +6,12 @@
     GET /plantuml/svg/~h<hex>   the diagram source (hex) drawn by the renderer named in VBENCH_PLANTUML_URL
     GET /...                    static files from the UI build, falling back to index.html
 
-By default it only ever reads: anything but GET and HEAD is refused. Started with a `Writer` (`vbench serve --write`) it
-also answers three POSTs, each a fixed command and nothing more:
-
-    GET  /api/session           whether writing is on, the token that goes with every write, and whether it is blocked
-    POST /api/changes/preview   plan a change: the diff, the blast radius, the problems found; writes nothing
-    POST /api/changes/apply     write a previewed change, but only if it is still exactly what was previewed
-    POST /api/changes/commit    commit documentation files with a one-line message in the repository's convention
-    POST /api/assist/overlap    does a new entry already exist? Word overlap, and an agent too when one is set up
-    POST /api/chat/stream       ask the assistant (read-only tools); Server-Sent Events: tool, token, done, error
-
-A write needs the token in `X-Vbench-Token`, a same-origin `Origin` (or none), a JSON body of at most 64 KB, and a
-branch that is not the default one. Paths cannot leave the docs and specs folders, and the Host header must be a
-loopback name (or listed in VBENCH_ALLOWED_HOSTS), which blocks DNS-rebinding from a web page.
+It only ever reads: anything but GET and HEAD is refused (405). Paths cannot leave the docs and specs folders, and the
+Host header must be a loopback name (or listed in VBENCH_ALLOWED_HOSTS), which blocks DNS-rebinding from a web page.
 """
 
 from __future__ import annotations
 
-import hmac
 import json
 import mimetypes
 import os
@@ -31,22 +19,18 @@ import posixpath
 import re
 import urllib.error
 import urllib.request
-from collections.abc import Callable, Iterator
-from dataclasses import dataclass
+from collections.abc import Callable
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-from ..domain.changes import ChangeError
 from ..domain.config import Config
-from ..domain.errors import AgentError, StaleError, UsageError
 from ..domain.paths import docs_path
 from ..ports import Workspace
 
 INCLUDE = re.compile(r"^\s*!include\s+(\S+)\s*$")
 LOOPBACK = {"localhost", "127.0.0.1", "[::1]", "::1"}
 MAX_INCLUDE_DEPTH = 3
-MAX_BODY = 64 * 1024
 PLANTUML_ID = re.compile(r"^/plantuml/(svg|png)/(~h[0-9a-f]{2,200000})$")
 
 
@@ -78,24 +62,9 @@ NO_UI = (
 )
 
 
-@dataclass(frozen=True)
-class Writer:
-    """What a write-enabled server can do, handed in by the composition root (`cli.py`)."""
-
-    token: str
-    blocked: Callable[[], str]  # why writing is not allowed right now (empty when it is)
-    preview: Callable[[object], dict]
-    apply: Callable[[object, str], dict]
-    commit: Callable[[object, object], dict]
-    overlap: Callable[[object], dict] | None = None
-    chat: Callable[[object], Iterator[dict]] | None = None  # the assistant: a stream of `tool` and `token` events
-    agent: str = ""  # who answers the overlap question besides the word check, or empty
-
-
 def make_handler(
     load: Callable[[], tuple[Config, Workspace, Callable[[], dict]]],
     static: Path | None,
-    writer: Writer | None = None,
 ):
     allowed = LOOPBACK | {h.strip().lower() for h in os.environ.get("VBENCH_ALLOWED_HOSTS", "").split(",") if h.strip()}
 
@@ -139,102 +108,7 @@ def make_handler(
             self.send_header("Content-Length", "0")
             self.end_headers()
 
-        do_PUT = do_DELETE = do_PATCH = _method_not_allowed
-
-        def do_POST(self) -> None:
-            if writer is None:
-                return self._method_not_allowed()
-            if hostname(self.headers.get("Host") or "") not in allowed:
-                return self._json(403, {"error": "Host not allowed"})
-            route = urlparse(self.path).path
-            if route not in (
-                "/api/changes/preview",
-                "/api/changes/apply",
-                "/api/changes/commit",
-                "/api/assist/overlap",
-                "/api/chat/stream",
-            ):
-                return self._json(404, {"error": "Not found"})
-            origin = self.headers.get("Origin")
-            if origin and urlparse(origin).netloc.lower() != (self.headers.get("Host") or "").lower():
-                return self._json(403, {"error": "Origin not allowed"})
-            if not hmac.compare_digest(self.headers.get("X-Vbench-Token") or "", writer.token):
-                return self._json(403, {"error": "A write needs the session token"})
-            if not (self.headers.get("Content-Type") or "").startswith("application/json"):
-                return self._json(415, {"error": "Send JSON"})
-            try:
-                length = int(self.headers.get("Content-Length") or 0)
-            except ValueError:
-                length = -1
-            if length <= 0 or length > MAX_BODY:
-                return self._json(413, {"error": f"The body must be between 1 byte and {MAX_BODY} bytes"})
-            try:
-                body = json.loads(self.rfile.read(length))
-                if not isinstance(body, dict):
-                    raise ValueError
-            except ValueError:
-                return self._json(400, {"error": "The body is not a JSON object"})
-            if route not in ("/api/changes/preview", "/api/assist/overlap", "/api/chat/stream") and (
-                why := writer.blocked()
-            ):
-                return self._json(403, {"error": why})
-            if route == "/api/chat/stream":
-                return self._chat(body)
-            try:
-                if route == "/api/assist/overlap":
-                    if writer.overlap is None:
-                        return self._json(404, {"error": "Not found"})
-                    result = writer.overlap(body.get("change"))
-                elif route == "/api/changes/preview":
-                    result = writer.preview(body.get("change"))
-                elif route == "/api/changes/apply":
-                    result = writer.apply(body.get("change"), str(body.get("digest") or ""))
-                else:
-                    result = writer.commit(body.get("paths"), body.get("summary"))
-                return self._json(200, result)
-            except StaleError as e:
-                return self._json(409, {"error": str(e)})
-            except (UsageError, ChangeError) as e:
-                return self._json(400, {"error": str(e)})
-            except Exception as e:  # a broken project must not take the server down
-                return self._json(500, {"error": f"{type(e).__name__}: {e}"})
-
-        def _chat(self, body: dict) -> None:
-            if writer is None or writer.chat is None:
-                return self._json(404, {"error": "Not found"})
-            events = writer.chat(body)
-            try:
-                first = next(events, None)  # a bad question or a missing key fails here, before the stream opens
-            except (UsageError, AgentError) as e:
-                return self._json(400 if isinstance(e, UsageError) else 502, {"error": str(e)})
-            except Exception as e:
-                return self._json(500, {"error": f"{type(e).__name__}: {e}"})
-
-            def frame(name: str, data: dict) -> bytes:
-                return f"event: {name}\ndata: {json.dumps(data)}\n\n".encode()
-
-            self.send_response(200)
-            self.send_header("Content-Type", "text/event-stream")
-            self.send_header("Cache-Control", "no-cache")
-            self.send_header("X-Accel-Buffering", "no")
-            self.send_header("X-Content-Type-Options", "nosniff")
-            self.send_header("Connection", "close")
-            self.end_headers()
-            self.close_connection = True
-            try:
-                pending = [first] if first is not None else []
-                for event in [*pending, *events]:
-                    kind = event["type"]
-                    self.wfile.write(frame(kind, {k: v for k, v in event.items() if k != "type"}))
-                    self.wfile.flush()
-                self.wfile.write(frame("done", {}))
-            except (BrokenPipeError, ConnectionResetError):
-                return  # the reader stopped; nothing is left to say
-            except (UsageError, AgentError) as e:
-                self.wfile.write(frame("error", {"message": str(e)}))
-            except Exception:
-                self.wfile.write(frame("error", {"message": "The assistant could not finish its answer."}))
-            self.wfile.flush()
+        do_PUT = do_DELETE = do_PATCH = do_POST = _method_not_allowed
 
         def _plantuml(self, route: str) -> None:
             # Only the hex-encoded form is forwarded, and only to the renderer the operator configured, so
@@ -258,17 +132,6 @@ def make_handler(
 
         def _api(self, route: str, query: dict[str, list[str]]) -> None:
             try:
-                if route == "/api/session":
-                    return self._json(
-                        200,
-                        {
-                            "write": writer is not None,
-                            "token": writer.token if writer else None,
-                            "blocked": writer.blocked() if writer else "",
-                            "agent": writer.agent if writer else "",
-                            "chat": bool(writer and writer.chat),
-                        },
-                    )
                 cfg, ws, state = load()
                 if route == "/api/state":
                     return self._json(200, state())
@@ -311,5 +174,5 @@ def make_handler(
     return Handler
 
 
-def serve(load, host: str, port: int, static: Path | None, writer: Writer | None = None) -> ThreadingHTTPServer:
-    return ThreadingHTTPServer((host, port), make_handler(load, static, writer))
+def serve(load, host: str, port: int, static: Path | None) -> ThreadingHTTPServer:
+    return ThreadingHTTPServer((host, port), make_handler(load, static))

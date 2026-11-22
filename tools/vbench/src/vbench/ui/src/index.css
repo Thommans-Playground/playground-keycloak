@@ -177,11 +177,3 @@
 .prose-doc th { text-align: left; background: var(--surface-2); color: var(--muted); font-size: 12px; font-weight: 600; white-space: nowrap; }
 .prose-doc th, .prose-doc td { border: 1px solid var(--border); padding: 7px 10px; vertical-align: top; }
 .prose-doc td:first-child { font-family: var(--font-mono); font-size: 12.5px; }
-
-/* An answer in the assistant's panel: the document styles, at the size of a chat bubble. */
-.prose-chat { max-width: none; }
-.prose-chat > :first-child { margin-top: 0; }
-.prose-chat > :last-child { margin-bottom: 0; }
-.prose-chat h1, .prose-chat h2, .prose-chat h3 { font-size: 15px; letter-spacing: 0; margin: 14px 0 6px; }
-.prose-chat p, .prose-chat li { font-size: 14px; line-height: 1.55; }
-.prose-chat pre { max-width: 100%; overflow-x: auto; }

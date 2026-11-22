@@ -36,13 +36,13 @@ uv build --wheel                            # verify templates are packaged (see
 
 ## The dashboard (`src/vbench/ui/`): optional, not in the CLI package
 
-The CLI and the skills are version 1. Everything in this section (dashboard, write path, agents, `vbench mcp`, `serve`, `export`) is
-an optional layer: those three commands work but are hidden from `--help`, and no verdict depends on them. User docs: `docs/dashboard.md`.
+The CLI and the skills are version 1. Everything in this section (the dashboard, `serve`, `export`) is
+an optional layer: those commands work but are hidden from `--help`, and no verdict depends on them. User docs: `docs/dashboard.md`.
 
 ```bash
 cd src/vbench/ui && npm install      # first time (only needed to work on the UI itself)
 npm run typecheck && npm run build   # tsc strict, then vite build -> dist/
-npm run dev                          # Vite on 127.0.0.1:5173, proxying /api and /plantuml to `vbench serve` (port 3000)
+npm run dev                          # Vite on 127.0.0.1:5173, proxying /api and /plantuml to `vbench serve` (port 3100)
 PROJECT=$PWD/examples/notes-app docker compose up --build   # the full stack in Docker (app + PlantUML renderer), project mounted read-only
 ```
 
@@ -63,24 +63,11 @@ seems to need belongs in `domain/` and comes out through `export_state`. The loo
 Secure Shield console tokens, mapped onto shadcn variables in `src/vbench/ui/src/index.css`, without the AGIL brand assets).
 `examples/notes-app` is the worked example and is pinned by `tests/test_example.py`.
 
-**The write path** (`vbench serve --write`). Two kinds are written in the specs rather than the doc and can only be added: a *criterion* (`_plan_criterion`: a row in its use case's AC table, filling a scaffold `TBD` row when there is one) and a *use case* (`_plan_use_case`: `domain/scaffold.py:spec_text`, the same file `vbench new uc` writes, with the Realises row filled; `app/changes.py` passes the spec template in). `domain/mdtable.py` edits one row of a markdown table and leaves the rest
-untouched (cells are one line, `|` is escaped, columns are found by header text). `domain/changes.py` plans a change to
-the requirements doc (problem, request, functional or quality requirement; add, update or delete): it validates fields
-and links, builds the new text, a diff and the *blast radius* from `domain/trace.py` (the graph problem <- request <-
-requirement <- use case <- criterion <- test, derived and never stored), and cascades link clean-ups inside the doc
-automatically while only flagging specs, criteria and tests for review. `app/changes.py` is the use cases: `preview` writes
-nothing, `apply` re-plans and writes only if the digest still matches (else `StaleError`, 409), then syncs and re-runs the
-gates, and `commit` takes documentation files only (`Committer` port, `GitRepo.commit`). `adapters/http_server.py` adds
-`GET /api/session` and three POSTs behind a token, an `Origin` check, a 64 KB limit and a default-branch guard; a server
-started without a `Writer` still answers 405 to every POST. Actions are one three-dots menu (`components/ActionsMenu.tsx` on the shadcn Base UI dropdown, `components/ui/dropdown-menu.tsx`), whose items are data in `lib/actions.ts`. The UI side is `components/change/` (the sheet that walks
-form, review, done), `lib/changes.ts` (forms and words, pure) and `lib/write.ts`; `ChangeButton` renders nothing unless
-the server was started with `--write`. `vbench mcp` (`adapters/mcp_server.py`: the protocol only, JSON-RPC lines on stdio, nothing but protocol on stdout; `app/mcp_tools.py`: the catalogue of `ToolSpec`s, which reuses the chat read tools and the change operations) lets an agent use the same operations; apply and commit exist only with `--write` and are marked destructive. The root `Dockerfile` packages the CLI and MCP server (git inside, project mounted at `/project`; the project's own toolchain is not in it). The agent is a port (`ports.Agent`, `structured(system, user, schema)`), with `adapters/claude.py` behind it (the official
-SDK, the optional `vbench[agent]` extra, imported only when asked; `claude-opus-5-5`, effort `medium`, structured output;
-every failure becomes `AgentError`). Its first use is `app/assist.py:check_overlap` (`POST /api/assist/overlap`): the pure
-parts are `domain/overlap.py` (what to compare: the entries the new one links to, then the most alike; a word-overlap
-baseline that always runs; the prompt, which treats entries as JSON data; and `parse_answer`, which lets the agent name only
-entries it was shown). The agent advises and never applies; any failure leaves the word check with the reason. A later
-agent calls the same `app/changes.py` operations as tools and never applies.
+The dashboard is **read-only and a guide for non-technical readers**: it demonstrates how the work was done, so a person can
+click a requirement, a criterion or a use case and navigate to what is built and what proves it, with the diagrams drawn.
+`adapters/http_server.py` answers GET and HEAD only (anything else is 405). There is no write path, no MCP server and no
+chat or agent: those were removed on purpose, because a guide needs none of them and each added risk and surface. Skills
+and the CLI do the writing.
 
 The look is the AGIL palette laid out by Apple's HIG (system font, named text styles, light and dark, segmented controls,
 translucent bars; see `DESIGN.md`). Three rules for new screens: a name is never shown alone (every `VItem` carries a
@@ -117,17 +104,20 @@ planned as the optional `vbench[ui]` extra, behind the same adapter interface; u
   pass fakes through `cli.main(argv, Adapters(...))`.
 - **Config-driven checks.** `adapters/toml_config.py` reads `.vbench/config.toml` into `domain/config.py`'s `Config`; `domain/checks.py` takes a `Config` and never
   hard-codes a path, id shape or marker. Anything project-specific belongs in config, not in the checks.
-- **Machine-readable output is one shape.** `status --json`, `check --json` and `next --json` (and the MCP tools `status`,
-  `check`, `next_step`) come from `app/status.py:status_json` / `results_json`, so skills read fields and never parse the
+- **Machine-readable output is one shape.** `status --json`, `check --json` and `next --json` come from `app/status.py:status_json` / `results_json`, so skills read fields and never parse the
   CLI's tables. Do not add a skill script that re-parses text output; add a field.
 - **Writes are narrow.** `FsWorkspace` refuses any path that resolves outside the project and writes through a temp file
-  and a rename; `apply_change` puts files back if a write fails; `commit_changes` takes only files the same session's
-  `apply_change` wrote (the `written` set the composition root passes in) and only `domain/paths.py:docs_path` files;
-  `branch_block` refuses the default branch and a detached HEAD. One rule each, shared by the HTTP server and MCP.
-- **Tags must stand on a real test (Python).** `domain/pytests.py` reads test files with `ast`: a `Verifies` clause counts only
-  in a docstring with a test behind it, and the AC marker only on a `test*` function that is not skipped/xfail and asserts
-  something that can fail (not `assert True`, not literals only). Other languages and unparseable Python keep the text
-  match. It is a floor, not a judgement of quality; `tests/test_redteam.py` pins the cheap bypasses.
+  and a rename; `branch_block` refuses a commit on the default branch or a detached HEAD.
+- **Tags must stand on a real test (Python).** `domain/pytests.py` reads test files with `ast` the way pytest would run
+  them (see its docstring for the full list): a `Verifies` clause counts only in a docstring with a test behind it, and
+  the AC marker only on a test pytest collects, does not skip, and that asserts something that can fail in code that can
+  run (dead branches, uncalled nested functions, undefined `assert_*` helpers and tautologies do not count). With
+  `results = "<junit.xml>"` set (`domain/junit.py`), a test also has to have passed in that run. Other languages and
+  unparseable Python keep the text match. It is a floor, not a judgement of quality; `tests/test_redteam.py` pins the
+  cheap bypasses, and every new one found goes there first. Id patterns match whole (`config.bounded`), and a project's
+  production files must each `Realises` a use case or be listed in `untagged_ok`. Two more gates close claims with
+  nothing behind them: `fakes` (a `# FAKE:` marker left in production code) and `requirements` (a requirement marked ✅
+  needs a criterion a real test validates).
 - **Styling lives in the driving adapter.** `adapters/term.py` maps roles (`ok`, `fail`, `command`, `planned`, ...) to ANSI
   and decides when it is on (a terminal, `NO_COLOR`, `FORCE_COLOR`, `--color`); `cli.py` creates one `Style` as `args.style`.
   Printers ask for a role and never write an escape code, `domain/` and `app/` return plain text, and `--json` is never
@@ -137,10 +127,8 @@ planned as the optional `vbench[ui]` extra, behind the same adapter interface; u
 - **Tag conventions are the contract** between code, tests, specs and the checks: `Realises UC-…` in
   production code, `Verifies UC-… · <rung> rung.` plus an AC marker in tests, `**AC-…**` rows in spec tables.
   Changing one means changing `domain/checks.py`, the templates, the skills and the tests together.
-- **Short names are pointers.** `plugin/skills/{req,design,code,verify,ship,fix,status}` hold no workflow: each tells Claude to
-  follow its long skill (`v-1-requirements`, ...) and shares its `argument-hint`. Edit the long one only; `tests/test_skills.py`
-  keeps the pair in step and `/vbench:help` listing every user-invocable skill. CLI short forms (`c`, `st`, `n`) are
-  `cli.ALIASES`, normalised before dispatch and left out of `--help`.
+- **Short CLI forms.** `c`, `st` and `n` are `cli.ALIASES`, normalised before dispatch and left out of `--help`. Skills have one
+  name each (`/vbench:v-1-requirements`, ...); `tests/test_skills.py` keeps `/vbench:help` listing every user-invocable skill.
 - **Skill layout.** `plugin/skills/<name>/SKILL.md` is the workflow (kept short, ≤150 lines); heavy material lives
   in `references/` and deterministic steps in `scripts/` (stdlib Python that shells out to `vbench`; paths in
   SKILL.md are relative to the skill's directory). `tests/test_skills.py` fails on a bad frontmatter, a dead or
