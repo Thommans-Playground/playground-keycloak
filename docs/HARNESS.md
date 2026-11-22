@@ -82,6 +82,13 @@ flowchart LR
 | Skill | run a procedure and stop for a yes | stamp or freeze to clear a warning, push, merge |
 | Person | approve, stamp, freeze, decide scope, people, permissions and risk | |
 
+## Adopting it in an existing project
+
+Nothing is rewritten. `vbench-adopt` reads the project and proposes a `vbench.json`; each area is marked `legacy`,
+`adopting` or `adopted`; new work follows the V one change at a time; an area is tightened when it is ready. The first
+two steps work today (`adopt_tool.py discover`, and writing the config). Holding today's gaps as a baseline and reading
+the adoption states in the trace are not built yet.
+
 ## Adding to the harness
 
 1. Give the new skill or agent one job and a row in [skills-and-agents.md](standards/skills-and-agents.md): what it

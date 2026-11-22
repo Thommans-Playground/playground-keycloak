@@ -42,6 +42,8 @@ A command or flag that must stay in the script's `--help`.
 | vbench-vcycle | vcycle.py | --all |
 | vbench-vcycle | vcycle.py | --strict |
 | vbench-vcycle | vcycle.py | --json |
+| vbench-adopt | adopt_tool.py | discover |
+| vbench-adopt | adopt_tool.py | --json |
 | vbench-explain | terms_tool.py | list |
 | vbench-explain | terms_tool.py | show |
 | vbench-explain | terms_tool.py | find |
@@ -72,6 +74,9 @@ A phrase that must stay in its file, case ignored. Each is a refusal, a limit or
 | .claude/skills/vbench-vcycle/SKILL.md | Security | the Security row and its not-probed hint |
 | .claude/skills/vbench-walkthrough/SKILL.md | Obsidian | the learner's notes are never read |
 | .claude/skills/vbench-walkthrough/SKILL.md | .learning/progress.md | the only file it writes |
+| .claude/skills/vbench-adopt/SKILL.md | never moves, renames or rewrites | adoption never changes the project's own files |
+| .claude/skills/vbench-adopt/SKILL.md | not built yet | the ladder does not claim steps that do not exist |
+| .claude/skills/vbench-adopt/scripts/adopt_tool.py | writes no file | discovery only reads |
 | .claude/skills/vbench-explain/SKILL.md | Obsidian | the learner's notes are never read |
 | .claude/skills/vbench-explain/SKILL.md | .learning/terms-seen.txt | the only file it writes |
 | .claude/skills/vbench-explain/SKILL.md | Do not interrupt | a term never breaks a step that must finish |

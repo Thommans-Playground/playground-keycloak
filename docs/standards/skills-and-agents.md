@@ -20,6 +20,7 @@ the one place the mapping is written; the skills do not repeat it.
 | Right: prove | unit verification, integration test, qualification test, cybersecurity verification | `vbench-at`, `vbench-test-stack`, `vbench-vcycle`, `vbench-status`, `vbench-security-test`, `vbench-security-tester` |
 | Beside: review before building | verification of work products by review, quality assurance | `vbench-spec-challenger`, `vbench-design-reviewer`, `vbench-security-reviewer` |
 | Beside: configuration and change | configuration management, change control | `vbench-branch`, `vbench-commit`, `vbench-pr` |
+| Beside: adoption | tailoring the process to a project (the ASPICE idea of tailoring), introduced one area at a time | `vbench-adopt` |
 | Beside: knowledge transfer | training | `vbench-walkthrough`, `vbench-explain` |
 
 ## Roles
@@ -52,6 +53,7 @@ the one place the mapping is written; the skills do not repeat it.
 | `vbench-branch` | branch names and starting a branch | pushing, deleting | `vbench-commit` |
 | `vbench-commit` | splitting changes and commit messages | pushing, amending | `vbench-pr` |
 | `vbench-pr` | the pull request title, description and honest checklist | merging, approving | `vbench-branch`, `vbench-commit` |
+| `vbench-adopt` | reading an existing project, the proposed config, and the ladder for adopting the harness one area at a time | moving, renaming or rewriting the project's own files, marking an area adopted because it was scanned | `vbench-req`, `vbench-uc`, `vbench-tdd`, `vbench-vcycle` |
 | `vbench-walkthrough` | teaching existing code, one learner at a time, over a whole use case | editing code, reading the learner's notes | `vbench-tdd` |
 | `vbench-explain` | the term cards in `docs/learn/terms/` and what the learner has seen; explaining one term where it comes up | reading the learner's notes, teaching a term twice | `vbench-walkthrough` |
 
@@ -80,6 +82,9 @@ the one place the mapping is written; the skills do not repeat it.
     and `at_tool report` stay separate.
 12. **Term cards are owned by `vbench-explain`.** `vbench-walkthrough` and the other skills use the cards and record
     a term as seen; a term with no card is explained briefly and a card is offered. A card's code pointers are checked.
+13. **Adopting the harness in an existing project is owned by `vbench-adopt`.** It reads and proposes; the config it writes is
+    `vbench.json`, after a yes. It never changes the project's own files. The adoption states and the baseline it describes
+    are not built yet, and it says so.
 
 ## Known gaps against the yardstick (not built)
 
