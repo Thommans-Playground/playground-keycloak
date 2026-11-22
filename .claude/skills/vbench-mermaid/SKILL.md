@@ -26,6 +26,8 @@ a `.puml` (see `vbench-puml`), which has its own white background.
 
 ## Step 1: Is Mermaid the right format?
 
+`vbench-diagrams` owns this choice. It is repeated here only so you can stop early:
+
 Ask two questions in order:
 
 1. **Can Mermaid draw it properly?** If it comes out cramped or tangled, or you cannot

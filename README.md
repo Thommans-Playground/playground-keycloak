@@ -10,6 +10,8 @@ Spec: [docs/specs/keycloak-auth-module.md](docs/specs/keycloak-auth-module.md). 
 
 **New here? Read [docs/GETTING-STARTED.md](docs/GETTING-STARTED.md) first.**
 
+How the work is kept on a traceable V, by tools, agents and people, in one page: [docs/HARNESS.md](docs/HARNESS.md).
+
 ## Run it
 
 Everything in Docker (Keycloak, API, web):

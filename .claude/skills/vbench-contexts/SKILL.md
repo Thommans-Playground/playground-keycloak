@@ -12,9 +12,9 @@ before you give your view. Do not hand over the answer first.
 Read these first, in this order. They are the usual places under `docs/domain/`. If one is missing, say so, work from
 what exists, and offer to create it when a decision needs recording (do not invent its content):
 
-1. `docs/domain/README.md`: the order of work and the ground rules.
-2. `docs/domain/ontology.md`: the things, links, actions and rules.
-3. `docs/domain/context-map.md`: the current contexts and ports.
+1. `docs/domain/contexts/`: one page for each bounded context, with its things, ports and rules.
+2. `docs/domain/ontology/`: the objects, links and rules, one file each.
+3. `docs/domain/diagrams/`: the context diagram and the class diagrams.
 4. `docs/domain/decisions.md`: what is already decided. Do not reopen a decision without
    a reason. If the user wants to, add a new entry that replaces the old one.
 
@@ -55,8 +55,8 @@ Two more checks for ports and the hexagon:
 3. Wait for the user to answer. If they are unsure, give a hint, not the answer.
 4. Say whether the answer holds, and what changes in the map if it does not.
 5. Agree a result: keep, merge, split, or turn into a port.
-6. When a choice changes, update `ontology.md` and `context-map.md`, and add an entry to
-   `decisions.md` with the reason. If a diagram shows the choice, change its `.puml` in
+6. When a choice changes, update the context page and the ontology files it touches, and record the decision with
+   `vbench-decide`, which owns `decisions.md`, with the reason. If a diagram shows the choice, change its `.puml` in
    `docs/domain/diagrams/` and any inline Mermaid copy in the same change (see
    `_vbench/standards/diagrams.md`). Offer a `docs(domain)` commit via `vbench-commit`. Do not
    commit unasked.

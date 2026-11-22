@@ -38,7 +38,7 @@ Keycloak user and deletes it.
    the first time (image builds). Run it in the background and wait, do not poll.
 4. **Report as facts**, with the numbers: the unit results, the PostgreSQL run, the integration and acceptance results,
    lint and typecheck, and the tag report (`at_tool.py report`: criteria with no test, deferred to R2, covered only by the
-   stack run, rules with no test). Quote the failing test name and its assertion. Do not say "all green" without the
+   stack run, rules with no test; per use case, `vbench-vcycle --all` owns those facts, so quote it and do not recount). Quote the failing test name and its assertion. Do not say "all green" without the
    counts.
 5. **Restore the dev stack** if you stopped it (`docker compose start`) and say so. Confirm `curl` on the three
    addresses answers.

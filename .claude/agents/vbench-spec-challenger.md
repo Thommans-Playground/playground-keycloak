@@ -26,18 +26,18 @@ A use case id (for example `UC-P1`), or a requirement id. Read:
    Keycloak while a rule lets an administrator promote; a criterion that still says a pending person cannot sign in.)
 4. **Steps with no requirement, and requirements with no step.** A flow step with no `(FR-n)` tag may mean a missing requirement.
 5. **Ids and links.** A criterion with no level, a slice that proves nothing, a rule no slice carries, a stale reference.
-6. **Security and abuse.** Who could use this to do what they should not (an administrator reaching contents, a pending
+6. **Security and abuse (flag only).** Security content is owned by `vbench-security-reviewer`: report each one in a
+   line with its quote and name that reviewer; do not analyse it further here. Who could use this to do what they should not (an administrator reaching contents, a pending
    person, a removed member)? Is the answer for a person who is not allowed the same as for something that does not exist?
 7. **Words.** A term that is not in the ontology or vocabulary, or a retired one.
 8. **Open questions** the use case admits but no one owns.
 9. **Diagrams against the flow.** Read the use case's sequence diagrams in `docs/usecases/diagrams/`: the analysis
    one (`*-analysis-sequence.puml`) and the design one (`*-design-sequence.puml`), or the single `*-sequence.puml`
-   when the use case has one system and no security flow and says so. Read also the class diagram in
-   `docs/domain/diagrams/` (and the web server one where relevant). Check:
+   when the use case has one system and no security flow and says so. Check:
    - The **analysis** diagram has no design words: no route or path, store, port, adapter, token, cookie, algorithm
      or class name; the person, Playground as one box and outside systems only. Quote each offending word.
-   - The **design** diagram names ports and adapters, and each one appears in the class diagram. Quote any that do
-     not, and any class-diagram port or adapter that no step uses.
+   - The design diagram against the class diagram (every port and adapter in one appears in the other) is checked by
+     `vbench-design-reviewer`; do not repeat it here.
    - Do the steps, the order of checks, the failure branches and the actors match the main flow and other flows,
      and do the analysis and design diagrams agree with each other, element by element, through the change log?
    - A use case with two systems or a security rule but only one diagram is a finding.

@@ -65,7 +65,7 @@ class Tests(unittest.TestCase):
         self.assertEqual(cfg["git"]["remote"], "origin")
         self.assertEqual(cfg["base_branch"], "main")
         self.assertEqual(sorted(cfg["stacks"]), ["api", "web"])
-        self.assertEqual(cfg["areas"], {"A": "BC-ACCESS", "P": "BC-PROJECTS"})
+        self.assertEqual(cfg["areas"], {"A": "BC-ACCESS", "P": "BC-PROJECTS", "L": "BC-AUDIT"})
 
 
 if __name__ == "__main__":

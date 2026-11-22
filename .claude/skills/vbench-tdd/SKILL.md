@@ -48,7 +48,8 @@ between agents**. You decide after each one.
      the green run. **Pause** again. "Nothing worth refactoring" is a fine answer: say it and move on.
    - Then the next behaviour. Do not write the next test until the previous one is green.
 
-5. **Close the slice.** Run the app's `tests`, `typecheck`, `lint` and `build` from `vbench.json` (the ones that exist).
+5. **Close the slice.** Run `scripts/check.sh` (format, lint, typecheck and tests, the fast gate of ADR 0014), then the app's
+   `build` from `vbench.json` if it has one.
    Run `python3 .claude/skills/vbench-at/scripts/at_tool.py report` and say which criteria now have a test. Update the slice
    in the use case only if the person agrees: code is the source of truth. If a test showed a missing or wrong criterion,
    stop and hand it to vbench-req.

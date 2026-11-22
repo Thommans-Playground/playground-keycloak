@@ -7,9 +7,9 @@ description: Add to or change the project's ontology the standard way, after Pal
 
 Make every ontology change the same way, so the model stays small, consistent and traceable.
 
-The standard is `docs/domain/ontology-process.md`, and the ids and the file header are in
-`_vbench/standards/naming-conventions.md`. If a rule changes, change those, not this file. Read both before
-the first change in a session.
+The process is this file. The ids and the file header are in `_vbench/standards/naming-conventions.md`, and the
+files in `docs/domain/ontology/` are the working examples. If a rule changes, change it there, not in a copy. Read the
+standard and one example before the first change in a session.
 
 The user is learning the design to explain it and guide a team. Ask them to say each choice
 back, and explain why, in plain words.
@@ -42,7 +42,7 @@ Follow the ten steps of the process, in order, and stop at each "done when":
 9. **Check.** Run the lint when it exists. Until then, check by hand: ids match file names, every
    link points at an item that exists, every object has one context, and no unquoted `yes`.
    Update any diagram or table that is not yet generated.
-10. **Review.** Add a decision to `docs/domain/decisions.md` if a choice was made. Offer a commit
+10. **Review.** If a choice was made, record it with `vbench-decide`, which owns `docs/domain/decisions.md`. Offer a commit
     through `vbench-commit` and a pull request through `vbench-pr`.
 
 ## What every file contains
