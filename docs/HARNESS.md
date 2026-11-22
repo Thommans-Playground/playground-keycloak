@@ -28,6 +28,7 @@ agent reads, reasons and reports, and never gates. A person stamps, freezes, acc
 | Configuration | the one file that adapts the harness to a project: areas, stacks, where tests live | `vbench.json` |
 | Tools | deterministic scripts; no model, same answer every run | `req_tool.py`, `uc_tool.py`, `at_tool.py`, `vcycle.py`, `scripts/check.sh`, `scripts/test-stack.sh` |
 | Components | skills and agents, each with one job and a declared hand-off | `.claude/skills/vbench-*`, `.claude/agents/` |
+| Learning | term cards that explain an idea next to the real code that uses it, checked so they cannot rot, and a record of what the learner has met | `docs/learn/terms/`, `vbench-explain` |
 | Application | the product being built | `apps/api`, `apps/web`, `keycloak-config` |
 
 ## The interfaces

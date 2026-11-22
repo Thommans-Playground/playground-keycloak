@@ -42,6 +42,11 @@ A command or flag that must stay in the script's `--help`.
 | vbench-vcycle | vcycle.py | --all |
 | vbench-vcycle | vcycle.py | --strict |
 | vbench-vcycle | vcycle.py | --json |
+| vbench-explain | terms_tool.py | list |
+| vbench-explain | terms_tool.py | show |
+| vbench-explain | terms_tool.py | find |
+| vbench-explain | terms_tool.py | seen |
+| vbench-explain | terms_tool.py | check |
 
 ## Guards that must stay
 
@@ -67,6 +72,10 @@ A phrase that must stay in its file, case ignored. Each is a refusal, a limit or
 | .claude/skills/vbench-vcycle/SKILL.md | Security | the Security row and its not-probed hint |
 | .claude/skills/vbench-walkthrough/SKILL.md | Obsidian | the learner's notes are never read |
 | .claude/skills/vbench-walkthrough/SKILL.md | .learning/progress.md | the only file it writes |
+| .claude/skills/vbench-explain/SKILL.md | Obsidian | the learner's notes are never read |
+| .claude/skills/vbench-explain/SKILL.md | .learning/terms-seen.txt | the only file it writes |
+| .claude/skills/vbench-explain/SKILL.md | Do not interrupt | a term never breaks a step that must finish |
+| .claude/skills/vbench-explain/scripts/terms_tool.py | does not exist | a card's code pointers are checked, so they cannot rot |
 | .claude/skills/vbench-pr/SKILL.md | never merge | a pull request skill does not merge |
 | .claude/skills/vbench-commit/SKILL.md | git add -A | files are staged by name |
 | .claude/skills/vbench-branch/SKILL.md | switch -C | a branch is never moved by force |

@@ -19,7 +19,8 @@ between agents**. You decide after each one.
 1. **Scope.** Say in one line what is being built: one slice (a `TSK-` line in the use case's Slices section) or one
    criterion. Run `python3 .claude/skills/vbench-uc/scripts/uc_tool.py impact <UC>` and `python3 .claude/skills/vbench-at/scripts/at_tool.py show AC-<n>`
    and say which criteria the slice proves. If the use case or its criteria are missing or vague, stop and send the user to
-   vbench-uc or vbench-req. Do not build from a guess.
+   vbench-uc or vbench-req. Do not build from a guess. Then run `python3 .claude/skills/vbench-explain/scripts/terms_tool.py find <UC> --unseen`
+   and offer at most two cards for terms this slice uses (`vbench-explain`), before the first RED, never in the middle of a step.
 
 2. **Preconditions. Stop and say why if one fails.**
    - You are on a feature branch (`feat/UC-<area><n>-<slug>`), not the base branch. If not, offer vbench-branch.

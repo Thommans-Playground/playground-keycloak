@@ -131,6 +131,9 @@ Say which side you are on ("Frontend, step 3 of 8").
 
 ## Explain the terms
 
+The cards in `docs/learn/terms/` are the source for the terms they cover; `vbench-explain` owns them. Use a card when one exists
+and record the term as seen, so the learner is not taught it twice. The shape below is for a term with no card.
+
 A new coder should never meet a word they do not know. The **first time** a term appears, stop and explain it, short:
 
 > **JWT** (JSON Web Token). *What:* a signed text that says who you are and when it expires. *Why we need it:* the API can trust it without asking Keycloak every time, because the signature proves Keycloak made it. *Where it is here:* [token_verifier.py](apps/api/app/access/adapters/outbound/token_verifier.py) checks it.

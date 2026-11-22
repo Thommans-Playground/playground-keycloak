@@ -17,7 +17,8 @@ answer every run. The agent's judgement never sits in a pass or fail.
    `docker compose up -d` and stop. This tests the local stack only.
 2. **Run the agent** `vbench-security-tester` with the use case id (one agent per use case when there are several).
    Give it only the id; do not tell it what you expect to find.
-3. **Show the findings** as the agent wrote them. Then stop for the person's reading. Do not start fixing.
+3. **Show the findings** as the agent wrote them. Then stop for the person's reading. Do not start fixing. When a
+   finding names a term that has a card (CSP, clickjacking, a nonce, a session cookie), offer it through `vbench-explain`.
 4. **For each broken check**, offer the proposed criterion. Ask which to keep, change or drop. This is the
    requirement, so the person decides.
 5. **Record the approved ones:** add each as an acceptance criterion with `vbench-req` (Level `acceptance` or

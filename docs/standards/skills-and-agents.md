@@ -20,7 +20,7 @@ the one place the mapping is written; the skills do not repeat it.
 | Right: prove | unit verification, integration test, qualification test, cybersecurity verification | `vbench-at`, `vbench-test-stack`, `vbench-vcycle`, `vbench-status`, `vbench-security-test`, `vbench-security-tester` |
 | Beside: review before building | verification of work products by review, quality assurance | `vbench-spec-challenger`, `vbench-design-reviewer`, `vbench-security-reviewer` |
 | Beside: configuration and change | configuration management, change control | `vbench-branch`, `vbench-commit`, `vbench-pr` |
-| Beside: knowledge transfer | training | `vbench-walkthrough` |
+| Beside: knowledge transfer | training | `vbench-walkthrough`, `vbench-explain` |
 
 ## Roles
 
@@ -52,7 +52,8 @@ the one place the mapping is written; the skills do not repeat it.
 | `vbench-branch` | branch names and starting a branch | pushing, deleting | `vbench-commit` |
 | `vbench-commit` | splitting changes and commit messages | pushing, amending | `vbench-pr` |
 | `vbench-pr` | the pull request title, description and honest checklist | merging, approving | `vbench-branch`, `vbench-commit` |
-| `vbench-walkthrough` | teaching existing code, one learner at a time | editing code, reading the learner's notes | `vbench-tdd` |
+| `vbench-walkthrough` | teaching existing code, one learner at a time, over a whole use case | editing code, reading the learner's notes | `vbench-tdd` |
+| `vbench-explain` | the term cards in `docs/learn/terms/` and what the learner has seen; explaining one term where it comes up | reading the learner's notes, teaching a term twice | `vbench-walkthrough` |
 
 ## Who owns what when two could (decided in ADR 0017)
 
@@ -77,6 +78,8 @@ the one place the mapping is written; the skills do not repeat it.
     A broken check becomes a criterion whose Notes start `security SEC-…`, and the `vbench-vcycle` Security row reads that.
 11. **Each tool checks its own files, and only `vbench-vcycle` joins them.** `req_tool validate`, `uc_tool validate`
     and `at_tool report` stay separate.
+12. **Term cards are owned by `vbench-explain`.** `vbench-walkthrough` and the other skills use the cards and record
+    a term as seen; a term with no card is explained briefly and a card is offered. A card's code pointers are checked.
 
 ## Known gaps against the yardstick (not built)
 
