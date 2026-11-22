@@ -171,5 +171,52 @@ class Tests(unittest.TestCase):
         self.assertIn("No use case UC-Z9", out)
 
 
+def mark_security(root, note="security SEC-CONF-1"):
+    """The use case's one criterion becomes a security criterion: its Notes start with `security`."""
+    path = root / rq.PATHS["ac"]
+    rows = rq.read_rows(path)
+    for r in rows:
+        if r["id"] == "AC-1":
+            r["notes"] = note
+    rq.write_rows(path, rq.AC_COLS, rows)
+
+
+class SecurityRow(unittest.TestCase):
+    def test_a_use_case_with_no_security_criterion_warns_that_it_was_not_probed(self):
+        root = make_uc()
+        put(root, "a.test.ts", "it('x (Verifies AC-1)', () => {});\n")
+        _, out = vc(root, "UC-E1")
+        self.assertIn("warn", row(out, "Security"))
+        self.assertIn("/vbench-security-test UC-E1", row(out, "Security"))
+
+    def test_a_security_criterion_with_no_test_fails(self):
+        root = make_uc()
+        mark_security(root)
+        code, out = vc(root, "UC-E1")
+        self.assertEqual(code, 1)
+        self.assertIn("FAIL", row(out, "Security"))
+        self.assertIn("AC-1", row(out, "Security"))
+
+    def test_a_security_criterion_with_a_test_is_ok(self):
+        root = make_uc()
+        mark_security(root)
+        put(root, "a.test.ts", "it('x (Verifies AC-1)', () => {});\n")
+        _, out = vc(root, "UC-E1")
+        self.assertIn("ok", row(out, "Security"))
+
+    def test_a_security_criterion_covered_only_by_the_stack_run_warns(self):
+        root = make_uc()
+        mark_security(root)
+        put(root, "a.it.ts", "it('x (Verifies AC-1)', () => {});\n")
+        _, out = vc(root, "UC-E1")
+        self.assertIn("warn", row(out, "Security"))
+
+    def test_the_security_row_comes_before_the_review_row(self):
+        root = make_uc()
+        _, out = vc(root, "UC-E1")
+        levels = [ln.split()[0] for ln in out.splitlines() if ln.split() and ln.split()[0] in ("Slices", "Security", "Review")]
+        self.assertEqual(levels, ["Slices", "Security", "Review"])
+
+
 if __name__ == "__main__":
     unittest.main()

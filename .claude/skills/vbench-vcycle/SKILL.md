@@ -35,6 +35,7 @@ Exit code 1 when anything FAILS (with `--strict`, when anything warns too).
 | Rules | the ontology rules it lists | a tagged test for each | a rule has no test | stack run only, or no ontology file |
 | Design | the Design section | the linked diagrams exist | | a diagram is missing or no Design section |
 | Slices | the slices | each names its criteria and rules | a slice is malformed | a note from the use case tool |
+| Security | criteria whose Notes start with `security` | a tagged test for each | a security criterion has no test | stack run only, or none marked yet ("not probed": run `/vbench-security-test`) |
 | Review | the stamps on every link | fresh review hashes | a stamp is stale (the row changed since review) | not stamped |
 
 ## Steps
@@ -45,6 +46,7 @@ Exit code 1 when anything FAILS (with `--strict`, when anything warns too).
 3. **Turn each FAIL and warn into one next step**, and say who does it:
    - criterion with no test: `/vbench-at`, then `/vbench-tdd` (an agent can do it);
    - rule with no test: tag the unit test that proves it, or write one;
+   - security not probed, or a security criterion with no test: `/vbench-security-test <UC>` proposes the abuse-case criteria for a person to approve, then `/vbench-tdd` writes the failing test;
    - stack-run-only: it needs `/vbench-test-stack` to be run, say so;
    - analysis not frozen, not stamped, stale: **the owner reads it and runs `uc_tool.py freeze` and `stamp`**. Never
      do that from here, and never in bulk to clear a warning.

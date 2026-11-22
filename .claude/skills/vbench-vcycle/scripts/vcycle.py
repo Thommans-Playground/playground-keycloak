@@ -9,7 +9,7 @@ not, and what a person still has to do.
   vcycle.py UC-A1 --json         the same, as data, with the commit it was run on (keep it as a record of the run)
   --tests-dir DIR                where the tests live (default: tests_dirs in vbench.json)
 
-Each row is ok, warn or FAIL. FAIL: a criterion or listed rule with no test, an analysis element with no log entry,
+Each row is ok, warn or FAIL. FAIL: a criterion or listed rule or security criterion with no test, an analysis element with no log entry,
 a stale review hash, a bad slice. warn: only the stack run covers it, not stamped, not frozen, a missing diagram.
 The exit code is 1 when anything FAILS (with --strict, when anything warns too). It reads files and runs nothing: it
 says that a tagged test EXISTS, not that it passes or that it is any good. Use it with the test runs, never instead.
@@ -140,7 +140,29 @@ def check(root, uid, dirs):
     rows.append(_row("Slices", f"{len(uc.slices_of(text))} slice(s)", "tests", FAIL if sp else WARN if sn else OK,
                      "; ".join((sp + sn)[:3]) or "each slice names its criteria"))
 
-    # 7. review: stamped and fresh
+    # 7. security -> tests: the criteria whose Notes start with `security` (the abuse cases a security test proposed)
+    def proves_served(a):
+        return any(x.strip() in served for x in a.get("requirements", "").split(";"))
+
+    secure = sorted(
+        {a["id"] for a in acs
+         if a.get("status") != "retired" and a.get("notes", "").strip().lower().startswith("security")
+         and (a["id"] in listed or proves_served(a))})
+    if not secure:
+        rows.append(_row("Security", "none marked", "-", WARN,
+                         f"not probed yet: no criterion here starts its Notes with `security`; run /vbench-security-test {uid}"))
+    else:
+        no_test = [c for c in secure if not any(t.id == c for t in ac_tags)]
+        stack_only = [c for c in secure if c not in no_test and all(t.stack for t in ac_tags if t.id == c)]
+        parts = []
+        if no_test:
+            parts.append(f"no test: {', '.join(no_test)}")
+        if stack_only:
+            parts.append(f"stack run only: {', '.join(stack_only)}")
+        rows.append(_row("Security", f"{len(secure)} criteria", "tagged tests", FAIL if no_test else WARN if stack_only else OK,
+                         "; ".join(parts) or "each has a test (run /vbench-test-stack to see them pass)"))
+
+    # 8. review: stamped and fresh
     stale, unstamped = [], []
     for s in uc.suspects(h, reqs_by_id, acs_by_id):
         ident = s.split(" ")[0]

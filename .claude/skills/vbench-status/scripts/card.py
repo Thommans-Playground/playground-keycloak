@@ -45,7 +45,7 @@ def cell(rows: dict, level: str, use_proof: bool, detail: bool = False) -> str:
 
 def overview(use_cases: list[dict]) -> list[str]:
     out = [
-        "| Use case | 1 Requirements ↔ Criteria | 2 Design ↔ Integration | 3 Slices | Beside the V: Analysis · Rules · Review |",
+        "| Use case | 1 Requirements ↔ Criteria | 2 Design ↔ Integration | 3 Slices | Beside the V: Analysis · Rules · Security · Review |",
         "| --- | --- | --- | --- | --- |",
     ]
     for u in use_cases:
@@ -53,7 +53,7 @@ def overview(use_cases: list[dict]) -> list[str]:
         out.append(
             f"| {u['uc']} {u['name']} | {cell(r, 'Requirements', False)} ↔ {cell(r, 'Criteria', True)} "
             f"| {cell(r, 'Design', False)} ↔ {UNTRACKED[0]} {UNTRACKED[1]} | {cell(r, 'Slices', False)} "
-            f"| {shape(r.get('Analysis'))} · {shape(r.get('Rules'))} · {shape(r.get('Review'))} |"
+            f"| {shape(r.get('Analysis'))} · {shape(r.get('Rules'))} · {shape(r.get('Security'))} · {shape(r.get('Review'))} |"
         )
     out += ["", "● finished  ◐ in progress  ○ not started  ✕ failing"]
     return out
@@ -73,7 +73,7 @@ def detail(u: dict) -> list[str]:
         "| Beside the V | State |",
         "| --- | --- |",
     ]
-    out += [f"| {lvl} | {cell(r, lvl, False, True)} |" for lvl in ("Analysis", "Rules", "Review")]
+    out += [f"| {lvl} | {cell(r, lvl, False, True)} |" for lvl in ("Analysis", "Rules", "Security", "Review")]
     out += ["", "● finished  ◐ in progress  ○ not started  ✕ failing"]
     return out
 
