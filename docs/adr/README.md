@@ -29,3 +29,4 @@ what, accepted risk) stay in [docs/domain/decisions.md](../domain/decisions.md).
 | [0017](0017-one-owner-for-each-skill-and-agent-job.md) | One owner for each skill and agent job, written down and checked |
 | [0018](0018-term-cards-tied-to-real-code.md) | Term cards that explain an idea next to real code, checked so they cannot rot |
 | [0019](0019-adopt-by-strangling-not-rewriting.md) | Adopt the harness one area at a time, never by rewriting |
+| [0020](0020-evaluate-the-process-and-make-green-honest.md) | Evaluate the process; make green honest and the surface light |
