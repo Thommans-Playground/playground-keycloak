@@ -64,8 +64,9 @@ the object type Order. `ORD-<uuid>` is one particular order.
 
 1. **Prefix is the type, letter is the area, the number is a stable sequence.**
 2. **Append only.** Never renumber on insertion. A retired id is retired, not reused. Retired use
-   case ids are listed in `retired-ids.csv` (see [csv-files.md](csv-files.md)). The tool skips
-   them when it hands out the next id and refuses a file that uses one.
+   case ids are listed in `retired-ids.csv` (see [csv-files.md](csv-files.md)). Enforced by
+   `test_next_id_skips_retired_ids` and `test_validate_refuses_a_file_that_uses_a_retired_id` in
+   `vbench-uc/scripts/test_uc_tool.py`.
 3. The number runs **within the area** for area-coded ids, and runs globally for the rest.
 4. **A new area gets a new letter.** Add it to `areas` in `vbench.json`.
 5. **Ask the tool for the next number.** `req_tool.py next-ids` gives the next `FR-`, `NFR-` and
@@ -204,11 +205,12 @@ In **pytest** the tag is a real marker, one for each criterion or rule:
 `conftest.py` also adds a mark named `AC_12`, so `pytest -m AC_12` runs the tests that prove that criterion.
 In other test frameworks the comment or test name form stays: `Verifies AC-12`, or a list, `Verifies AC-5, AC-63`.
 
-A tag counts only when it really sits on a test. `at_tool.py` ignores a tag in production code, in a string, in a
-comment with no test after it, on a skipped test, or on a pytest marker that is itself commented out. In other
-frameworks the tag goes in the **title** of the test, or in a comment directly above it, and names ONE criterion:
-write `(Verifies AC-5) (Verifies AC-47)`, not `Verifies AC-5, AC-47` (a list cannot carry a review hash and
-cannot be stamped). A criterion whose notes start with `R2` is listed as deferred, not as missing. Tests that run only with
+A tag counts only when it really sits on a test (enforced by `test_a_comment_with_no_test_after_it_is_not_a_test`,
+`test_a_tag_in_a_string_that_is_not_a_test_title_is_not_counted`, `test_a_skipped_test_does_not_cover_its_criterion` and
+`test_a_marker_that_is_a_comment_is_not_counted` in `vbench-at/scripts/test_at_tool.py`). In other frameworks the tag
+goes in the **title** of the test, or in a comment directly above it, and names ONE criterion: write
+`(Verifies AC-5) (Verifies AC-47)`, not `Verifies AC-5, AC-47` (a list cannot carry a review hash and cannot be
+stamped). A criterion whose notes start with `R2` is listed as deferred, not as missing. Tests that run only with
 `INTEGRATION=1` (a `.it.` file, or an `integration` or `acceptance` folder) are reported apart as **covered only by
 the stack run**, because the default test run does not execute them.
 

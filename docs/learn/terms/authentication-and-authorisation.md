@@ -3,7 +3,10 @@ term: Authentication and authorisation
 say: Keycloak says who you are. Our API says what you may do. They are two answers from two systems.
 aliases: [authentication, authorisation, authorization, authn, authz, deny by default]
 code:
-  - apps/api/app/access/adapters/inbound/http.py :: Principal
+  - apps/api/app/access/adapters/inbound/http.py :: active_account
+  - apps/api/app/access/adapters/inbound/http.py :: administrator
+  - apps/api/app/access/application/ports.py :: Principal
+prereq: [jwt]
 guide: 1.1 Authentication and authorization
 check: Why does deactivating a person work at once, even though their token is still valid?
 ---
@@ -18,7 +21,7 @@ On every request the API verifies the token, then reads the person's account fro
 
 ## In our code
 
-`Principal` in the inbound `http.py` is the verified caller the routes receive. The account lookup follows in the service.
+`Principal` (defined in `application/ports.py`) is the verified caller: who the token says. The guards in the inbound `http.py` then read our own account: `any_account` loads it, `not_deactivated` and `active_account` refuse by status, and `administrator` refuses by role.
 
 ## Look for yourself
 

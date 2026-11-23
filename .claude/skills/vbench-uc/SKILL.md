@@ -95,7 +95,7 @@ criterion yet. Lines starting "Open:" are exempt.
    before and after. Show the id it will get. List anything unsettled; do not fill a gap with a guess.
    Put open points in the flow as a line starting "Open:".
 
-6. **Ask, then write.** Offer **Accept**, **Change it**, **Reject**. On Accept, run `create` (or make the
+6. **Ask, then write.** Offer the four answers of `_vbench/standards/conventions.md` ("How the skills ask"). On Accept, run `create` (or make the
    edit), then `validate`, then `impact` again on the requirements and report what changed. Do not
    commit. If the user wants a commit, use vbench-commit.
 
@@ -104,7 +104,8 @@ criterion yet. Lines starting "Open:" are exempt.
 The three skills hand work on in a line: vbench-req, then **vbench-uc**, then **vbench-at**. When a use case is
 written or changed and `validate` is clean, **run the reviews first**, then say what comes next and offer it:
 
-- **Reviews (run them, do not wait to be asked).** Start `vbench-spec-challenger`, `vbench-security-reviewer` and
+- **Reviews (run them, do not wait to be asked). This is the one place they are started**; `vbench-req`, `vbench-tdd` and
+  CLAUDE.md point here. Start `vbench-spec-challenger`, `vbench-security-reviewer` and
   `vbench-design-reviewer` together on the use case id (they are read-only and independent). Show their findings
   as they come back, in plain words: what is wrong, why it matters, the options. Do not fix anything from them
   unasked. A person decides. Skip the reviews only for a change that touches no flow, criterion, diagram or
@@ -114,6 +115,14 @@ written or changed and `validate` is clean, **run the reviews first**, then say 
   report`): offer **vbench-at**. The test is the outer loop, so it comes before the code of the first slice.
 - A requirement it serves has no criteria, or a criterion is vague or wrong: offer **vbench-req**. This skill
   never edits the requirements files.
+
+## Tier: small or full
+
+A change that adds no object, port, role or outside system, and no new flow (a rename, a field, a small rule) is a **small
+change**: put `tier: small` in the header, and say why in one line. It needs one combined sequence file (decision 9), no
+separate analysis and no freeze, and ONE review pass: the security reviewer if it touches sign in, tokens, sessions,
+accounts, roles or audit, otherwise the spec challenger. The trace shows the tier and does not ask for the freeze. Anything
+else, and any doubt, is **full**. The person chooses the tier, not the tool; never lower it to clear a warning.
 
 ## Slices
 

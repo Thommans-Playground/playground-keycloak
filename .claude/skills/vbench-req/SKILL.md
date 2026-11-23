@@ -65,13 +65,14 @@ say which one you are on.
    will get (`next-ids`). Say anything left unsettled: it goes in `notes` or the status `open`. Do not
    fill a gap with a guess.
 
-8. **Ask, then write.** Offer: **Accept**, **Change it**, **Reject**. On Accept, run `append` or
+8. **Ask, then write.** Offer the four answers of `_vbench/standards/conventions.md` ("How the skills ask"): **Accept**, **Change it**, **Reject**, **I'll do it myself**. On Accept, run `append` or
    `update` (use `--dry-run` first if the change is large), then `validate`. Then run
    `python3 .claude/skills/vbench-uc/scripts/uc_tool.py sync --all`, so the copied text in every use case
    file matches the rows you just wrote. This refreshes the generated copy only: it never edits a flow and never
    changes a review hash, so each use case stays suspect until a person stamps it. Report the ids written, the
    use cases refreshed and any problem. If a criterion about sign in, tokens, sessions, accounts, roles or audit
-   changed, also start `vbench-security-reviewer` on the use cases that list it and show what it finds. Do not commit. If the user wants a commit, use vbench-commit.
+   changed, say that it touches security, so the security reviewer must be in the review pass (`vbench-uc` starts the
+   reviewers once, when the use case is written or changed; do not start them here). Do not commit. If the user wants a commit, use vbench-commit.
 
 ## Next step: the chain
 

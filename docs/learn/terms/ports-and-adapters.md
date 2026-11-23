@@ -1,7 +1,7 @@
 ---
 term: Ports and adapters
 say: A port is an interface our code owns for something outside it. An adapter is the piece that plugs a real thing into it.
-aliases: [hexagonal, hexagon, ports and adapters, port and adapter, adapter]
+aliases: [hexagonal, hexagon, ports and adapters, port and adapter]
 code:
   - apps/web/src/application/ports.ts :: IdentityProvider
   - apps/api/app/access/application/ports.py :: TokenVerifier

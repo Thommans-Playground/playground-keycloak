@@ -146,11 +146,8 @@ package "aggregate\nEvaluation" <<aggregate>> {
 python3 .claude/skills/vbench-puml/scripts/check_diagrams.py <diagrams folder or file>
 ```
 
-The script renders each diagram to a temporary folder and checks that it parses and fits
-portrait A4. It prints each size in millimetres and fails on a landscape, too wide or too
-tall diagram. It needs Java and the PlantUML jar (the VS Code PlantUML extension ships one;
-set `PLANTUML_JAR` for another). Passing means the shape is right, not that it looks right,
-so also render a PNG into the session scratchpad (never the repo) and read it:
+The script renders each diagram and fails on a parse error, or a landscape, too wide (over 180 mm) or too tall
+(over 267 mm) one. It needs Java and the PlantUML jar (`PLANTUML_JAR` to override). Passing means the shape is right, not that it looks right, so also render a PNG into the session scratchpad (never the repo) and read it:
 
 ```bash
 J=$(ls ~/.vscode/extensions/jebbs.plantuml-*/plantuml.jar | head -1)
@@ -170,12 +167,6 @@ Java or the jar is missing, say the diagram was not rendered.
   context map, an object map). The `.puml` is the source, the Mermaid copy may be simpler,
   each links to the other, and both change in the same commit. Otherwise remove the copy.
 - Do not commit unasked. Offer a `docs` commit through `vbench-commit`.
-
-## What not to copy from older diagrams
-
-Long orthogonal lines that cross titles and boxes, grey label boxes that hide the line,
-serif fonts, saturated fills that make everything equally loud, and no legend. If a map
-needs `linetype ortho` to be tidy, it probably has too many lines.
 
 ## Use case diagrams
 

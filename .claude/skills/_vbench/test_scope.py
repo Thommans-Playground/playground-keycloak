@@ -13,6 +13,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[3]
 SKILLS = REPO / ".claude" / "skills"
+sys.path.insert(0, str(SKILLS / "_vbench"))
 AGENTS = REPO / ".claude" / "agents"
 MAP = (REPO / "docs/standards/skills-and-agents.md").read_text(encoding="utf-8")
 LEDGER = (REPO / "docs/standards/skills-and-agents-ledger.md").read_text(encoding="utf-8")
@@ -44,6 +45,19 @@ class Tests(unittest.TestCase):
         listed = {c[0].strip("`") for c in rows(MAP, "| Role |")}
         self.assertEqual(sorted((skills | agents) - listed), [], "in the repo, but not in the map")
         self.assertEqual(sorted(listed - (skills | agents)), [], "in the map, but not in the repo")
+
+    def test_every_role_belongs_to_one_known_pack_and_the_config_knows_the_same_packs(self):
+        import config
+
+        packs = {c[0].strip("`"): c[-1] for c in rows(MAP, "| Role |")}
+        self.assertTrue(packs, "the Roles table has no Pack column")
+        self.assertEqual(sorted(set(packs.values()) - set(config.PACKS)), [], "a role names a pack the config does not know")
+        self.assertEqual(sorted(set(config.PACKS) - set(packs.values())), [], "a pack in the config has no role")
+        # the trace rows each belong to a pack too: a pack that is off must have rows to switch off
+        sys.path.insert(0, str(SKILLS / "vbench-vcycle" / "scripts"))
+        import vcycle
+
+        self.assertTrue(set(vcycle.PACK_OF.values()) <= set(config.PACKS))
 
     def test_every_hand_off_and_mention_names_something_that_exists(self):
         skills, agents = names()

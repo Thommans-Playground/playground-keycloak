@@ -14,7 +14,7 @@ A response header, `Content-Security-Policy`, lists what the browser may allow. 
 
 ## Why we need it
 
-Clickjacking hides our real page in an invisible frame on a fake page and tricks a signed-in person into clicking a button they cannot see, for example "approve". Forbidding frames stops it. We also forbid other base addresses and plugins. We do not yet restrict scripts: that needs a fresh random value (a nonce) on every request and care with Next's own scripts, so it is the next step (NFR-6, AC-96).
+Clickjacking hides our real page in an invisible frame on a fake page and tricks a signed-in person into clicking a button they cannot see, for example "approve". Forbidding frames stops it. We also forbid other base addresses and plugins, and set `X-Frame-Options: DENY`, the older header for the same job. `frame-ancestors` only controls framing: it does not stop XSS (injected script). We do not yet restrict scripts: that needs a fresh random value (a CSP nonce, not the OIDC nonce of sign in) on every request and care with Next's own scripts, so it is the next step (NFR-6, AC-96).
 
 ## In our code
 

@@ -79,7 +79,9 @@ criterion's `notes` does not count. Stamping is the act of review, so never stam
    the API and database questions (sections 1 and 2). Skip a question the repo already answers.
 5. **Draft.** Run `skeleton AC-ID --stack ...` without `--write` and show it. Ask before writing. On Accept,
    run it with `--write`, then run the new test and say that it fails, which is the point. The skeleton stops here:
-   the real failing test, with its assertions, is written by `vbench-tdd-red` (through `vbench-tdd`).
+   the real failing test, with its assertions, is written by `vbench-tdd-red` (through `vbench-tdd`). When `vbench-tdd` is
+   about to build the slice, skip the skeleton: the RED agent writes the tagged test directly, and two test files for one
+   criterion would be waste.
 6. **The person writes the checks.** Offer to help only when asked. The checks must use things a person can
    observe through the API: a status, a body, a visible side effect. If the API does not exist yet, say that
    the test waits for the use case's first slice.

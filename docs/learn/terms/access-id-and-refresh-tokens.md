@@ -5,8 +5,9 @@ aliases: [access token, id token, refresh token, id_token_hint]
 code:
   - apps/web/src/domain/session.ts :: REFRESH_SKEW_MS
   - apps/web/src/adapters/keycloak-identity-provider.ts :: endSessionUrl
+prereq: [openid-connect]
 guide: 1.9 Tokens
-check: Which of the three would you least like to lose, and why?
+check: A refresh token leaks from the server session store. What can the thief do with it that a leaked ID token would not allow?
 ---
 
 ## In one line

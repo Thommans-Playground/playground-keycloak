@@ -42,6 +42,13 @@ A command or flag that must stay in the script's `--help`.
 | vbench-vcycle | vcycle.py | --all |
 | vbench-vcycle | vcycle.py | --strict |
 | vbench-vcycle | vcycle.py | --json |
+| vbench-next | next_tool.py | next |
+| vbench-next | next_tool.py | all |
+| vbench-vcycle | vcycle.py | --results |
+| vbench-vcycle | vcycle.py | --baseline |
+| vbench-vcycle | vcycle.py | --no-baseline |
+| vbench-explain | terms_tool.py | due |
+| vbench-explain | terms_tool.py | reviewed |
 | vbench-adopt | adopt_tool.py | discover |
 | vbench-adopt | adopt_tool.py | --json |
 | vbench-explain | terms_tool.py | list |
@@ -74,6 +81,18 @@ A phrase that must stay in its file, case ignored. Each is a refusal, a limit or
 | .claude/skills/vbench-vcycle/SKILL.md | Security | the Security row and its not-probed hint |
 | .claude/skills/vbench-walkthrough/SKILL.md | Obsidian | the learner's notes are never read |
 | .claude/skills/vbench-walkthrough/SKILL.md | .learning/progress.md | the only file it writes |
+| .claude/skills/vbench-next/SKILL.md | Reads only | the front door changes nothing by itself |
+| .claude/skills/vbench-next/SKILL.md | Never runs a stamp or a freeze | stamps and freezes stay the owner's act |
+| .claude/skills/vbench-next/SKILL.md | Nothing is open | the front door says when there is nothing to do |
+| .claude/skills/vbench-next/SKILL.md | No failure is not done | no failure is not the same as finished |
+| .claude/skills/vbench-vcycle/scripts/vcycle.py | known gap (baseline) | a baselined gap is shown, never hidden |
+| .claude/skills/vbench-vcycle/scripts/vcycle.py | no assertion in the test | a test that asserts nothing is not a proof |
+| .claude/skills/vbench-vcycle/scripts/vcycle.py | existence only | the trace says when it has no test results |
+| .claude/skills/vbench-vcycle/scripts/vcycle.py | listed but retired or missing | a retired or missing criterion is a failure, not a green |
+| .claude/skills/vbench-at/scripts/at_tool.py | PY_SKIP | a skipped or expected-failure test does not count |
+| .claude/skills/vbench-at/scripts/at_tool.py | EMPTY_JS | an empty JS test body is detected |
+| .claude/skills/vbench-uc/SKILL.md | never lower it to clear a warning | the tier is a person's choice |
+| .claude/skills/vbench-explain/SKILL.md | Spaced recall | a term comes back for review |
 | .claude/skills/vbench-adopt/SKILL.md | never moves, renames or rewrites | adoption never changes the project's own files |
 | .claude/skills/vbench-adopt/SKILL.md | not built yet | the ladder does not claim steps that do not exist |
 | .claude/skills/vbench-adopt/scripts/adopt_tool.py | writes no file | discovery only reads |

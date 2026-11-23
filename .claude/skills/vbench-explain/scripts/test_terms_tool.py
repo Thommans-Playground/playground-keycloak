@@ -1,5 +1,6 @@
 """Tests for terms_tool.py. Run from this folder: python3 -m unittest test_terms_tool"""
 
+import datetime
 import io
 import sys
 import tempfile
@@ -51,6 +52,18 @@ def make_repo(card=CARD, source="def make_nonce():\n    pass\n"):
     (root / "docs").mkdir(exist_ok=True)
     (root / t.GUIDE).write_text("### 1.8 State and nonce\n")
     return root
+
+
+def add_card(root, slug, term, aliases, prereq=None):
+    extra = f"prereq: [{', '.join(prereq)}]\n" if prereq else ""
+    text = CARD.replace("term: Nonce", f"term: {term}").replace("[nonce, replay]", f"[{aliases}]")
+    text = text.replace("guide: 1.8 State\n", extra + "guide: 1.8 State\n")
+    (root / t.CARDS / f"{slug}.md").write_text(text)
+
+
+def at(day):
+    """Make the tool believe today is `day` (a date string)."""
+    t.today = lambda: datetime.date.fromisoformat(day)
 
 
 def run(root, *args):
@@ -108,6 +121,85 @@ class Tests(unittest.TestCase):
         code, out = run(REPO, "check")
         self.assertEqual(code, 0, out)
         self.assertGreaterEqual(len(t.cards(REPO)), 13)
+
+
+class RankAndPrereq(unittest.TestCase):
+    def setUp(self):
+        self.root = make_repo()
+        add_card(self.root, "alpha", "Alpha", "alpha")
+        add_card(self.root, "beta", "Beta", "beta, beta thing")
+        add_card(self.root, "gamma", "Gamma", "gamma")
+        self.addCleanup(lambda: setattr(t, "today", datetime.date.today))
+
+    def test_find_ranks_by_mentions_and_prints_two_by_default(self):
+        _, out = run(self.root, "find", "beta beta beta, alpha, gamma gamma, nonce")
+        lines = [ln for ln in out.splitlines() if ln.strip()]
+        self.assertEqual(len(lines), 2, out)
+        self.assertIn("Beta", lines[0])
+
+    def test_limit_and_all(self):
+        text = "beta beta alpha gamma nonce"
+        _, out = run(self.root, "find", text, "--limit", "1")
+        self.assertEqual(len(out.strip().splitlines()), 1)
+        _, out = run(self.root, "find", text, "--all")
+        self.assertEqual(len(out.strip().splitlines()), 4)
+
+    def test_a_more_specific_alias_counts_more(self):
+        _, out = run(self.root, "find", "alpha and a beta thing", "--limit", "1")
+        self.assertIn("Beta", out)
+
+    def test_a_term_is_not_offered_before_its_prerequisite(self):
+        add_card(self.root, "delta", "Delta", "delta", prereq=["alpha"])
+        _, out = run(self.root, "find", "delta delta", "--unseen")
+        self.assertIn("Alpha", out)
+        self.assertNotIn("Delta", out)
+        run(self.root, "seen", "alpha")
+        _, out = run(self.root, "find", "delta delta", "--unseen")
+        self.assertIn("Delta", out)
+
+    def test_check_fails_on_a_prereq_that_is_not_a_card_and_on_a_cycle(self):
+        add_card(self.root, "delta", "Delta", "delta", prereq=["nothing"])
+        code, out = run(self.root, "check")
+        self.assertEqual(code, 1)
+        self.assertIn("nothing", out)
+        add_card(self.root, "delta", "Delta", "delta", prereq=["epsilon"])
+        add_card(self.root, "epsilon", "Epsilon", "epsilon", prereq=["delta"])
+        code, out = run(self.root, "check")
+        self.assertEqual(code, 1)
+        self.assertIn("cycle", out)
+
+    def test_due_after_three_days_then_after_fourteen_days_since_review(self):
+        at("2026-11-01")
+        run(self.root, "seen", "alpha")
+        at("2026-11-03")
+        _, out = run(self.root, "due")
+        self.assertIn("nothing is due", out)
+        at("2026-11-04")
+        _, out = run(self.root, "due")
+        self.assertIn("Alpha", out)
+        run(self.root, "reviewed", "alpha")
+        at("2026-11-17")
+        _, out = run(self.root, "due")
+        self.assertIn("nothing is due", out)
+        at("2026-11-18")
+        _, out = run(self.root, "due")
+        self.assertIn("Alpha", out)
+
+    def test_the_seen_file_stays_readable_and_old_lines_still_count(self):
+        (self.root / t.SEEN).parent.mkdir(parents=True)
+        (self.root / t.SEEN).write_text("beta 2026-10-01\n")
+        at("2026-11-04")
+        run(self.root, "reviewed", "alpha")  # not seen yet: refused
+        _, out = run(self.root, "due")
+        self.assertIn("Beta", out)
+        run(self.root, "reviewed", "beta")
+        text = (self.root / t.SEEN).read_text()
+        self.assertIn("beta reviewed 2026-11-04", text)
+        self.assertEqual(t.seen(self.root), {"beta"})
+
+    def test_reviewed_refuses_a_term_not_yet_seen(self):
+        code, _ = run(self.root, "reviewed", "alpha")
+        self.assertEqual(code, 1)
 
 
 if __name__ == "__main__":

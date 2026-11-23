@@ -44,9 +44,11 @@ between agents**. You decide after each one.
      Ask: **Accept** (go to GREEN), **Change it** (say what, then run `vbench-tdd-red` again), **Reject**, **I'll do it myself**.
      Also offer **Run to the end of the slice** (drops the pauses, and still shows every red and green run in the summary).
    - **GREEN.** Start `vbench-tdd-green` with the test, the app and the use case id. Show the diff and the passing run.
-     **Pause:** is this the right behaviour, and is it the minimum? Same four answers.
-   - **REFACTOR.** Offer it only if the code earns it. Start `vbench-tdd-refactor` with the files that changed. Show the diff and
-     the green run. **Pause** again. "Nothing worth refactoring" is a fine answer: say it and move on.
+   - **REFACTOR.** Only if the code earns it (duplication, an unclear name). Start `vbench-tdd-refactor` with the files that
+     changed and show its diff and the green run. "Nothing worth refactoring" is a fine answer: say it and move on.
+   - **One pause for GREEN and REFACTOR together:** is this the right behaviour, is it the minimum, and is the tidy-up
+     right? Same four answers. That makes two decisions for each behaviour (the failing test, then the finished diff),
+     and the red and green runs are always shown, so nothing is accepted unseen.
    - Then the next behaviour. Do not write the next test until the previous one is green.
 
 5. **Close the slice.** Run `scripts/check.sh` (format, lint, typecheck and tests, the fast gate of ADR 0014), then the app's

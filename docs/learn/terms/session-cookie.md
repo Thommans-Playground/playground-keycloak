@@ -6,8 +6,9 @@ code:
   - apps/web/src/lib/auth/session.ts :: httpOnly
   - apps/web/src/lib/auth/session.ts :: sameSite
   - apps/web/src/lib/auth/session.ts :: secure
+prereq: [bff]
 guide: 1.10 Sessions and cookies
-check: Why is a session id safer in an HttpOnly cookie than in the page?
+check: A script injected into our page cannot read an HttpOnly session cookie. Can it still act as the signed-in person, and why?
 ---
 
 ## In one line
@@ -16,7 +17,7 @@ check: Why is a session id safer in an HttpOnly cookie than in the page?
 
 ## Why we need it
 
-Three flags protect it. HttpOnly means scripts in the page cannot read it. SameSite=Lax means the browser sends it when the person comes back from Keycloak, but not on a cross-site form post. Secure means it is only sent over HTTPS. We set Secure when the app address starts with https, so it is off on plain http://localhost.
+Three flags protect it. HttpOnly means scripts in the page cannot read it, so it cannot be stolen. It does not stop riding: injected script can still send requests, and the browser attaches the cookie. SameSite=Lax means the browser sends it when the person comes back from Keycloak, but not on a cross-site form post. Secure means it is only sent over HTTPS. We set Secure when the app address starts with https, so it is off on plain http://localhost.
 
 ## In our code
 

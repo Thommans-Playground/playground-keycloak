@@ -28,7 +28,9 @@ gap in a legacy area is a gap, and the person should know that.
 ## Steps
 
 1. **Observe.** Run `adopt_tool.py discover <root of the project>` (use `--json` if you need the data). Show the report
-   as it is. If a `vbench.json` already exists, read it first and stop short of proposing a new one.
+   as it is. If a `vbench.json` already exists, read it first and stop short of proposing a new one. It reports each id
+   family with a likely role and how tests name them, branch habits, installed skills that may collide, layers with no
+   test, and stacks the harness cannot scaffold (those are not gaps). The proposal holds only keys the loader accepts.
 2. **Agree the seams.** Ask the person to name the areas of the code (a folder, a bounded context, a service), one at a
    time, and which one is changing now. That one becomes `adopting`; everything else stays `legacy`. Do not choose for
    them.
@@ -46,6 +48,7 @@ gap in a legacy area is a gap, and the person should know that.
   anywhere.
 - It does not claim an area is adopted because it has been scanned. An area is adopted when its new work has gone
   through the V and its gaps are real checks.
+- `security` is never proposed, `ddd` only with an architecture check, `test_stack` only when one framework is in use.
 - Project-specific skills (the security tester, the Keycloak sign-in helper, this repo's design rules) belong to the
   project that has them; do not assume another project does.
 

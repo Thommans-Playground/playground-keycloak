@@ -10,8 +10,8 @@ forgotten; a term explained next to the line of your own code that uses it stick
 
 The cards are in `docs/learn/terms/`, one for each idea. Each has a plain one-liner, why we need it, where it is in
 our code (real files, checked so they cannot rot), something to look at yourself, and a question to check understanding.
-The tool is `python3 .claude/skills/vbench-explain/scripts/terms_tool.py` (`list`, `show TERM`, `find UC-A1 --unseen`,
-`seen TERM`, `check`).
+The tool is `python3 .claude/skills/vbench-explain/scripts/terms_tool.py` (`list`, `show TERM`, `find UC-A1 --unseen [--limit N | --all]`,
+`seen TERM`, `due`, `reviewed TERM`, `check`). `find` ranks, prints two by default and offers a prerequisite (card field `prereq`) before the term that needs it.
 
 ## Steps
 
@@ -27,6 +27,10 @@ The tool is `python3 .claude/skills/vbench-explain/scripts/terms_tool.py` (`list
 6. **No card?** Explain it briefly from the code. Then offer to write a card in the same shape. Every code pointer
    must be a real file and a symbol that is in it; run `terms_tool.py check` and keep it at zero problems. Do not
    invent a pointer.
+
+## Spaced recall
+At the start of a session run `terms_tool.py due`. Ask each question it lists once, before new material, then run
+`terms_tool.py reviewed TERM`. A term is due 3 days after it is seen, then 14 days after each review.
 
 ## Boundaries
 - The only file this writes is `.learning/terms-seen.txt` (git-ignored, personal). It never reads or writes the

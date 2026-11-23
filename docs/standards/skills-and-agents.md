@@ -20,42 +20,43 @@ the one place the mapping is written; the skills do not repeat it.
 | Right: prove | unit verification, integration test, qualification test, cybersecurity verification | `vbench-at`, `vbench-test-stack`, `vbench-vcycle`, `vbench-status`, `vbench-security-test`, `vbench-security-tester` |
 | Beside: review before building | verification of work products by review, quality assurance | `vbench-spec-challenger`, `vbench-design-reviewer`, `vbench-security-reviewer` |
 | Beside: configuration and change | configuration management, change control | `vbench-branch`, `vbench-commit`, `vbench-pr` |
-| Beside: adoption | tailoring the process to a project (the ASPICE idea of tailoring), introduced one area at a time | `vbench-adopt` |
+| Beside: adoption | tailoring the process to a project (the ASPICE idea of tailoring), introduced one area at a time | `vbench-adopt`, `vbench-next` |
 | Beside: knowledge transfer | training | `vbench-walkthrough`, `vbench-explain` |
 
 ## Roles
 
 "Owns" is what only this role may decide or write. "Hands off to" is where it sends what is not its job.
 
-| Role | Owns | Does not | Hands off to |
-|---|---|---|---|
-| `vbench-req` | requirement and criterion rows, their ids, wording and duplicates | use case flows, objects, tests | `vbench-uc`, `vbench-at`, `vbench-ontology`, `vbench-contexts` |
-| `vbench-uc` | the use case file, impact, slices, the analysis-to-design log, review stamps, freeze | requirement rows, ontology files | `vbench-req`, `vbench-at`, `vbench-ontology`, `vbench-contexts` |
-| `vbench-ontology` | objects, links, rules, value sets, ports as files | use case flow, where a boundary goes, decisions | `vbench-contexts`, `vbench-decide` |
-| `vbench-contexts` | the challenge of a context, aggregate, port or hexagon choice | writing objects, technical decisions | `vbench-ontology`, `vbench-decide` |
-| `vbench-decide` | `docs/domain/decisions.md` and `docs/adr/`, and making a decision checked and exampled | the owner's choices (scope, people, permissions, risk) | the three reviewers, `vbench-tdd` |
-| `vbench-diagrams` | which format a diagram takes | drawing | `vbench-mermaid`, `vbench-puml` |
-| `vbench-mermaid` | small inline diagrams in a document | reference and per-use-case diagrams | `vbench-diagrams`, `vbench-puml` |
-| `vbench-puml` | `.puml` reference and per-use-case diagrams, the A4 fit check | inline diagrams | `vbench-diagrams`, `vbench-mermaid` |
-| `vbench-tdd` | one slice, test first: order, preconditions, a pause after each step, closing the slice | writing the test or the code itself | the three TDD agents, `vbench-commit` |
-| `vbench-tdd-red` | the one failing test, proved to fail for the right reason | production code beyond a stub | `vbench-tdd-green` |
-| `vbench-tdd-green` | the minimum code that passes, placed by ADR 0010 | editing the test | `vbench-tdd-refactor` |
-| `vbench-tdd-refactor` | behaviour-preserving tidying on green | new behaviour | `vbench-tdd` |
-| `vbench-at` | the criterion-to-test link report, the skeleton and the test stamp | writing the real test | `vbench-tdd-red`, `vbench-req` |
-| `vbench-test-stack` | running the whole gate on a fresh stack and reporting counts | judging test quality, fixing | `vbench-vcycle`, `vbench-at` |
-| `vbench-vcycle` | the per-use-case trace, as facts, from files | running tests, editing, stamping | `vbench-at`, `vbench-security-test`, `vbench-test-stack` |
-| `vbench-status` | a table view of the trace | any check of its own | `vbench-vcycle` |
-| `vbench-security-test` | the workflow and the check catalogue for live security tests | gating, fixing | `vbench-security-tester`, `vbench-req`, `vbench-tdd` |
-| `vbench-security-tester` | probing one use case on the local stack | editing, deciding, flooding, any non-local target | `vbench-security-test` |
-| `vbench-spec-challenger` | the flow, the criteria, the ids, the words and the open questions of a spec | architecture fit, security content | `vbench-design-reviewer`, `vbench-security-reviewer` |
-| `vbench-design-reviewer` | the design against the architecture rules, the design diagram against the class diagram, the change log | spec wording, security content | `vbench-spec-challenger`, `vbench-security-reviewer` |
-| `vbench-security-reviewer` | all security content on paper, from the checklists and the overlay | live testing | `vbench-security-tester` |
-| `vbench-branch` | branch names and starting a branch | pushing, deleting | `vbench-commit` |
-| `vbench-commit` | splitting changes and commit messages | pushing, amending | `vbench-pr` |
-| `vbench-pr` | the pull request title, description and honest checklist | merging, approving | `vbench-branch`, `vbench-commit` |
-| `vbench-adopt` | reading an existing project, the proposed config, and the ladder for adopting the harness one area at a time | moving, renaming or rewriting the project's own files, marking an area adopted because it was scanned | `vbench-req`, `vbench-uc`, `vbench-tdd`, `vbench-vcycle` |
-| `vbench-walkthrough` | teaching existing code, one learner at a time, over a whole use case | editing code, reading the learner's notes | `vbench-tdd` |
-| `vbench-explain` | the term cards in `docs/learn/terms/` and what the learner has seen; explaining one term where it comes up | reading the learner's notes, teaching a term twice | `vbench-walkthrough` |
+| Role | Owns | Does not | Hands off to | Pack |
+|---|---|---|---|---|
+| `vbench-req` | requirement and criterion rows, their ids, wording and duplicates | use case flows, objects, tests | `vbench-uc`, `vbench-at`, `vbench-ontology`, `vbench-contexts` | core |
+| `vbench-uc` | the use case file, impact, slices, the analysis-to-design log, review stamps, freeze | requirement rows, ontology files | `vbench-req`, `vbench-at`, `vbench-ontology`, `vbench-contexts` | core |
+| `vbench-ontology` | objects, links, rules, value sets, ports as files | use case flow, where a boundary goes, decisions | `vbench-contexts`, `vbench-decide` | ddd |
+| `vbench-contexts` | the challenge of a context, aggregate, port or hexagon choice | writing objects, technical decisions | `vbench-ontology`, `vbench-decide` | ddd |
+| `vbench-decide` | `docs/domain/decisions.md` and `docs/adr/`, and making a decision checked and exampled | the owner's choices (scope, people, permissions, risk) | the three reviewers, `vbench-tdd` | core |
+| `vbench-diagrams` | which format a diagram takes | drawing | `vbench-mermaid`, `vbench-puml` | ddd |
+| `vbench-mermaid` | small inline diagrams in a document | reference and per-use-case diagrams | `vbench-diagrams`, `vbench-puml` | ddd |
+| `vbench-puml` | `.puml` reference and per-use-case diagrams, the A4 fit check | inline diagrams | `vbench-diagrams`, `vbench-mermaid` | ddd |
+| `vbench-tdd` | one slice, test first: order, preconditions, a pause after each step, closing the slice | writing the test or the code itself | the three TDD agents, `vbench-commit` | core |
+| `vbench-tdd-red` | the one failing test, proved to fail for the right reason | production code beyond a stub | `vbench-tdd-green` | core |
+| `vbench-tdd-green` | the minimum code that passes, placed by ADR 0010 | editing the test | `vbench-tdd-refactor` | core |
+| `vbench-tdd-refactor` | behaviour-preserving tidying on green | new behaviour | `vbench-tdd` | core |
+| `vbench-at` | the criterion-to-test link report, the skeleton and the test stamp | writing the real test | `vbench-tdd-red`, `vbench-req` | core |
+| `vbench-test-stack` | running the whole gate on a fresh stack and reporting counts | judging test quality, fixing | `vbench-vcycle`, `vbench-at` | keycloak |
+| `vbench-vcycle` | the per-use-case trace, as facts, from files | running tests, editing, stamping | `vbench-at`, `vbench-security-test`, `vbench-test-stack` | core |
+| `vbench-status` | a table view of the trace | any check of its own | `vbench-vcycle` | core |
+| `vbench-security-test` | the workflow and the check catalogue for live security tests | gating, fixing | `vbench-security-tester`, `vbench-req`, `vbench-tdd` | security |
+| `vbench-security-tester` | probing one use case on the local stack | editing, deciding, flooding, any non-local target | `vbench-security-test` | security |
+| `vbench-spec-challenger` | the flow, the criteria, the ids, the words and the open questions of a spec | architecture fit, security content | `vbench-design-reviewer`, `vbench-security-reviewer` | core |
+| `vbench-design-reviewer` | the design against the architecture rules, the design diagram against the class diagram, the change log | spec wording, security content | `vbench-spec-challenger`, `vbench-security-reviewer` | ddd |
+| `vbench-security-reviewer` | all security content on paper, from the checklists and the overlay | live testing | `vbench-security-tester` | security |
+| `vbench-branch` | branch names and starting a branch | pushing, deleting | `vbench-commit` | core |
+| `vbench-commit` | splitting changes and commit messages | pushing, amending | `vbench-pr` | core |
+| `vbench-pr` | the pull request title, description and honest checklist | merging, approving | `vbench-branch`, `vbench-commit` | core |
+| `vbench-next` | the front door: where each use case is and the one next step, in three moments | running a stamp or a freeze, doing the step for the person without a yes | `vbench-req`, `vbench-uc`, `vbench-at`, `vbench-tdd`, `vbench-security-test` | core |
+| `vbench-adopt` | reading an existing project, the proposed config, and the ladder for adopting the harness one area at a time | moving, renaming or rewriting the project's own files, marking an area adopted because it was scanned | `vbench-req`, `vbench-uc`, `vbench-tdd`, `vbench-vcycle` | core |
+| `vbench-walkthrough` | teaching existing code, one learner at a time, over a whole use case | editing code, reading the learner's notes | `vbench-tdd` | core |
+| `vbench-explain` | the term cards in `docs/learn/terms/` and what the learner has seen; explaining one term where it comes up | reading the learner's notes, teaching a term twice | `vbench-walkthrough` | core |
 
 ## Who owns what when two could (decided in ADR 0017)
 
@@ -85,12 +86,19 @@ the one place the mapping is written; the skills do not repeat it.
 13. **Adopting the harness in an existing project is owned by `vbench-adopt`.** It reads and proposes; the config it writes is
     `vbench.json`, after a yes. It never changes the project's own files. The adoption states and the baseline it describes
     are not built yet, and it says so.
+14. **The reviewers are started in one place:** `vbench-uc`, when a use case is written or changed. `vbench-req`, `vbench-tdd` and
+    CLAUDE.md point there. `vbench-req` flags that a change touches security so the security reviewer is in the pass.
+15. **The front door is `vbench-next`.** It reads the trace and names the one next step; it never runs a stamp or a freeze.
+16. **A change has a tier, chosen by a person.** `tier: small` (no new object, port, role or outside system, no new flow) needs
+    one combined sequence, no freeze and one review pass; anything else, and any doubt, is full.
+17. **Packs.** Each role belongs to one pack: `core` (portable), `ddd`, `security`, or the `keycloak` overlay (this repo only).
+    `vbench.json` `packs` says which are on; a trace row of a pack that is off is left out. `vbench-adopt` proposes `core` only.
 
 ## Known gaps against the yardstick (not built)
 
 | Gap | Today |
 |---|---|
-| Test results | the trace says a test exists, not that it passed; nothing stores pass or fail per criterion |
+| Test results | partly closed: with `results` in `vbench.json` (JUnit XML, `scripts/test-results.sh`) a criterion counts only when its test passed. The stack run (integration and acceptance) does not write results yet, so those criteria show "no result" |
 | Problem resolution | a failing gate or a broken security check has no log and no closure |
 | Review findings | nothing records that the three reviewers ran or that their findings were settled |
 | Change requests | a change is traced only through the use case id |
@@ -98,26 +106,27 @@ the one place the mapping is written; the skills do not repeat it.
 | Interfaces | external interfaces (Keycloak, API contracts) and quality requirements have no owner |
 | Ontology checks | no lint that ids match files and links resolve; a changed object or context does not make a use case suspect |
 | Regression and integration | no regression strategy, and integration is "not tracked" on the status card |
+| Portability | only the tag scanner reads `id_patterns`; other id shapes (use case, requirement) and the document formats are still this repo's own. Skills are not yet packaged as an installable plugin, and `paths: null` ("this project has no such file") is not supported |
+| Independence | the author and the reviewers are the same kind of model; there is no independent quality assurance owner |
 | Code review | nothing reviews a code diff |
 
-## Known defects
+## Defects found and fixed (22 Nov 2026)
 
-- `vbench-ontology` cites `docs/domain/ontology-process.md`, and `vbench-contexts` cites `docs/domain/README.md`,
-  `ontology.md` and `context-map.md`. None of these exist in `docs/domain/`.
+- `vbench-ontology` and `vbench-contexts` cited files that do not exist (`ontology-process.md`, `docs/domain/README.md`,
+  `ontology.md`, `context-map.md`). They now point at `docs/domain/contexts/`, `ontology/` and `diagrams/`.
 
-## Changes the owners above still need in the skill files (not made yet)
+## Text changes made to match the rules above
 
-These are text edits only, so no capability moves. Each is one or two lines in the named file.
+Text only, so no capability moved. The ledger and its test pin what must stay.
 
-| File | Edit |
+| File | Change |
 |---|---|
-| `vbench-spec-challenger.md` | drop the class-diagram and port check (it moves to the design reviewer); hand abuse cases to the security reviewer |
-| `vbench-security-reviewer.md` | name the tester as the live half |
-| `vbench-security-tester.md` | already points back; keep |
-| `vbench-contexts`, `vbench-ontology` | call `vbench-decide` for `decisions.md`; fix the broken references |
-| `vbench-at` | stop at the skeleton and the stamp, and hand the failing test to `vbench-tdd-red` |
-| `vbench-test-stack` | call `vbench-vcycle` and `at_tool report` for counts |
-| `vbench-tdd` | call `scripts/check.sh` to close a slice |
-| `vbench-mermaid` | point to `vbench-diagrams` for the format choice |
-| `vbench-branch`, `vbench-commit`, `vbench-pr` | done already: each follows "How the skills ask" in `conventions.md` |
-| `CLAUDE.md` ("Reviews") | add the tester as the step after building |
+| `vbench-spec-challenger.md` | security points are flagged and handed to the security reviewer; the design diagram against the class diagram moved to the design reviewer |
+| `vbench-security-reviewer.md` | names the tester as the live half |
+| `vbench-contexts`, `vbench-ontology` | call `vbench-decide` for `decisions.md`; broken references fixed |
+| `vbench-at` | stops at the skeleton and the stamp; the real failing test is written by `vbench-tdd-red` |
+| `vbench-test-stack` | quotes `vbench-vcycle` for per use case counts |
+| `vbench-tdd` | closes a slice with `scripts/check.sh` |
+| `vbench-mermaid` | defers the format choice to `vbench-diagrams` |
+| `vbench-branch`, `vbench-commit`, `vbench-pr` | already follow "How the skills ask" in `conventions.md` |
+| `CLAUDE.md` ("Reviews") | adds the tester as the step after building |

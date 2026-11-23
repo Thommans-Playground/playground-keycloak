@@ -4,8 +4,9 @@ say: An open redirect lets an attacker use your own sign in to send a person to 
 aliases: [open redirect, returnTo, return address]
 code:
   - apps/web/src/domain/return-to.ts :: safeReturnTo
+prereq: [openid-connect]
 guide: 1.13 Open redirect
-check: Which three kinds of address does safeReturnTo refuse, and why each?
+check: Why must safeReturnTo refuse `//evil.example` even though it starts with a slash?
 ---
 
 ## In one line
@@ -14,7 +15,7 @@ After sign in we send the person back to where they were headed, named in `retur
 
 ## Why we need it
 
-We accept only a path on our own site. A value that does not start with `/`, or starts with `//` or `/\`, is replaced by the default page (AC-40). `//evil.example` looks like a path but a browser reads it as another site, which is why it is refused too.
+We accept only a path on our own site. Four forms are replaced by the default page (AC-40): no leading `/`, a leading `//`, a leading `/\`, and any control character. `//evil.example` looks like a path but a browser reads it as another site, `/\` is read the same way by some browsers, and control characters can hide a different address from the check.
 
 ## In our code
 
