@@ -12,6 +12,13 @@ Each level proves more and runs slower. Most tests sit at the bottom.
 
 `npm test` runs only `*.test.ts`. The slow tests are `*.it.ts`, so a normal run never needs the stack.
 
+## Test results for the trace
+
+`scripts/test-results.sh` runs the fast unit suites and writes JUnit XML to `.claude/test-results/` (git-ignored). `vbench.json`
+`results` names those files, so `vcycle.py` counts a criterion as tested only when its test passed. Without the files it
+checks only that a test exists, and says so. The fresh-stack run does not write results yet, so integration and acceptance
+criteria show "no result" until it does.
+
 ## The test database and migrations
 
 The API creates no tables, so every API test database is built by `alembic upgrade head` (ADR 0012): SQLite in memory

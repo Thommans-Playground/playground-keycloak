@@ -28,12 +28,19 @@ Keys:
                      repo         "<owner>/<name>" on the host, for links when `gh` is not available
                      base_branch  the branch pull requests target. Used when the top level base_branch is not set
                      pr           defaults for a new pull request: draft (true or false), labels, reviewers (lists)
+  adoption         how far each area is brought in: {"default": "legacy", "A": "adopted"}. States: legacy (only observed),
+                   adopting (must be traced, gaps warn), adopted (gaps fail). Default "adopted".
+  packs            which parts the project uses: core, ddd, security, keycloak. A trace row of a pack that is off is skipped.
+  results          a JUnit XML file (or a list) from the last test run; with it a criterion counts only when its test passed.
+  id_patterns      regular expressions for criterion, rule, usecase and requirement ids. Defaults are this repo's own.
+  gate             the commands that make up the whole gate, in order. null means scripts/test-stack.sh all.
   stacks           the code stacks of the repo, one entry for each app, by name:
                      path (required), language (required), framework, tests, typecheck, lint, build, database
                    `tests`, `typecheck`, `lint` and `build` are the commands to run, from the repo root.
 """
 import copy
 import json
+import re
 import subprocess
 from pathlib import Path
 
@@ -56,6 +63,18 @@ DEFAULTS = {
     "git": {"remote": "origin", "repo": None, "base_branch": None,
             "pr": {"draft": False, "labels": [], "reviewers": []}},
     "stacks": {},
+    # How far each area of the code has been brought into the harness (a strangler): "legacy" is only observed, "adopting"
+    # must be traced but its gaps warn, "adopted" has its gaps fail. `default` covers any area not named.
+    "adoption": {"default": "adopted"},
+    # Which parts of the harness this project uses. A trace row that belongs to a pack that is off is skipped, not warned.
+    "packs": ["core", "ddd", "security", "keycloak"],
+    # A JUnit XML file (or a list of them) from the last test run. With it, a criterion counts as tested only when its test passed.
+    "results": None,
+    # The shape of each kind of id, as regular expressions. The defaults are this repo's own.
+    "id_patterns": {"criterion": r"AC-\d+", "rule": r"RULE-[A-Z]\d+", "usecase": r"UC-[A-Z]\d+",
+                    "requirement": r"(?:FR|NFR)-\d+"},
+    # The commands that make up the whole gate, in order. None means this repo's own: scripts/test-stack.sh all.
+    "gate": None,
     "paths": {
         "req": "docs/requirements/requirements.md",
         "ac": "docs/requirements/acceptance-criteria.md",
@@ -91,7 +110,10 @@ def find_root(start=None):
 
 GIT_KEYS = {"remote", "repo", "base_branch", "pr"}
 PR_KEYS = {"draft", "labels", "reviewers"}
-STACK_KEYS = {"path", "language", "framework", "tests", "typecheck", "lint", "build", "database"}
+STACK_KEYS = {"path", "language", "framework", "tests", "typecheck", "lint", "build", "database", "test_framework"}
+ADOPTION_STATES = ("legacy", "adopting", "adopted")
+PACKS = ("core", "ddd", "security", "keycloak")
+ID_KINDS = ("criterion", "rule", "usecase", "requirement")
 
 
 def _unknown(where, given, allowed, f):
@@ -133,6 +155,43 @@ def check_stacks(v, f):
                 raise SystemExit(f"{f}: stacks.{name}.{k} must be text")
 
 
+def check_adoption(v, f):
+    if not isinstance(v, dict):
+        raise SystemExit(f"{f}: 'adoption' must be an object: {{\"default\": \"legacy\", \"A\": \"adopted\"}}")
+    for area, state in v.items():
+        if state not in ADOPTION_STATES:
+            raise SystemExit(f"{f}: adoption.{area} must be one of {', '.join(ADOPTION_STATES)}, not '{state}'")
+
+
+def check_packs(v, f):
+    if not (isinstance(v, list) and all(isinstance(x, str) for x in v)):
+        raise SystemExit(f"{f}: 'packs' must be a list of text")
+    bad = [x for x in v if x not in PACKS]
+    if bad:
+        raise SystemExit(f"{f}: unknown pack '{bad[0]}'. Known packs: {', '.join(PACKS)}")
+
+
+def check_results(v, f):
+    if v is not None and not (isinstance(v, str) or (isinstance(v, list) and all(isinstance(x, str) for x in v))):
+        raise SystemExit(f"{f}: 'results' must be a path or a list of paths to JUnit XML files")
+
+
+def check_id_patterns(v, f):
+    if not isinstance(v, dict):
+        raise SystemExit(f"{f}: 'id_patterns' must be an object")
+    _unknown("id_patterns", v, set(ID_KINDS), f)
+    for kind, rx in v.items():
+        try:
+            re.compile(rx)
+        except (re.error, TypeError) as e:
+            raise SystemExit(f"{f}: id_patterns.{kind} is not a valid regular expression: {e}")
+
+
+def check_gate(v, f):
+    if v is not None and not (isinstance(v, list) and v and all(isinstance(x, str) for x in v)):
+        raise SystemExit(f"{f}: 'gate' must be a list of commands, in order")
+
+
 def load(root=None):
     """The settings for this root: DEFAULTS with the repo's vbench.json laid over them."""
     root = Path(root) if root else find_root()
@@ -154,6 +213,21 @@ def load(root=None):
                 elif k == "stacks":
                     check_stacks(v, f)
                     cfg["stacks"] = v
+                elif k == "adoption":
+                    check_adoption(v, f)
+                    cfg["adoption"] = {**cfg["adoption"], **v}
+                elif k == "packs":
+                    check_packs(v, f)
+                    cfg["packs"] = v
+                elif k == "results":
+                    check_results(v, f)
+                    cfg["results"] = v
+                elif k == "id_patterns":
+                    check_id_patterns(v, f)
+                    cfg["id_patterns"] = {**cfg["id_patterns"], **v}
+                elif k == "gate":
+                    check_gate(v, f)
+                    cfg["gate"] = v
                 elif k in cfg:
                     cfg[k] = v
                 else:

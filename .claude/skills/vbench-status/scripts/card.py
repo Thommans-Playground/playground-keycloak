@@ -19,7 +19,7 @@ import sys
 from pathlib import Path
 
 VCYCLE = Path(__file__).resolve().parents[2] / "vbench-vcycle" / "scripts" / "vcycle.py"
-SHAPE = {"ok": "●", "na": "●", "warn": "◐", "FAIL": "✕"}
+SHAPE = {"ok": "●", "na": "●", "warn": "◐", "FAIL": "✕", "legacy": "○"}
 NOT_STARTED = re.compile(r"^(0\b|no\b|none\b)")  # "0 criteria", "no criterion listed", "no rules listed"
 UNTRACKED = ("○", "not tracked", "")
 

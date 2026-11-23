@@ -81,53 +81,53 @@ class Tests(unittest.TestCase):
 
     def test_a_pytest_marker_covers_its_criterion(self):
         root = make_root()
-        put(root, "test_a.py", '@pytest.mark.ac("AC-1")\ndef test_x():\n    pass\n')
+        put(root, "test_a.py", '@pytest.mark.ac("AC-1")\ndef test_x():\n    assert 1 + 1 == 2\n')
         _, out = run(root, "report")
         self.assertIn("ACCEPTANCE CRITERIA WITH NO TEST (2)", out)
         self.assertNotIn("AC-1 (proves", out)
 
     def test_one_test_can_carry_several_markers(self):
         root = make_root()
-        put(root, "test_a.py", '@pytest.mark.ac("AC-1")\n@pytest.mark.ac("AC-2")\ndef test_x():\n    pass\n')
+        put(root, "test_a.py", '@pytest.mark.ac("AC-1")\n@pytest.mark.ac("AC-2")\ndef test_x():\n    assert 1 + 1 == 2\n')
         _, out = run(root, "report")
         self.assertIn("2 Verifies tag(s) found for 2 criterion(s)", out)
 
     def test_a_comment_can_list_several_criteria(self):
         root = make_root()
-        put(root, "a.test.ts", "// Verifies AC-1, AC-2\nit('x', () => {});\n")
+        put(root, "a.test.ts", "// Verifies AC-1, AC-2\nit('x', () => { expect(1).toBe(1); });\n")
         _, out = run(root, "report")
         self.assertIn("2 Verifies tag(s) found for 2 criterion(s)", out)
 
     def test_a_marker_with_a_wrong_hash_is_stale(self):
         root = make_root()
-        put(root, "test_a.py", '@pytest.mark.ac("AC-1", reviewed="abcdef0")\ndef test_x():\n    pass\n')
+        put(root, "test_a.py", '@pytest.mark.ac("AC-1", reviewed="abcdef0")\ndef test_x():\n    assert 1 + 1 == 2\n')
         code, out = run(root, "report")
         self.assertEqual(code, 1)
         self.assertIn("STALE TESTS", out)
 
     def test_a_marker_for_an_unknown_criterion_is_a_problem(self):
         root = make_root()
-        put(root, "test_a.py", '@pytest.mark.ac("AC-99")\ndef test_x():\n    pass\n')
+        put(root, "test_a.py", '@pytest.mark.ac("AC-99")\ndef test_x():\n    assert 1 + 1 == 2\n')
         code, _ = run(root, "report")
         self.assertEqual(code, 1)
 
     def test_stamp_sets_the_hash_on_a_marker(self):
         root = make_root()
-        p = put(root, "test_a.py", '@pytest.mark.ac("AC-1")\ndef test_x():\n    pass\n')
+        p = put(root, "test_a.py", '@pytest.mark.ac("AC-1")\ndef test_x():\n    assert 1 + 1 == 2\n')
         run(root, "stamp", "AC-1")
         self.assertIn(f'@pytest.mark.ac("AC-1", reviewed="{hash_of(root, "AC-1")}")', p.read_text())
         self.assertEqual(run(root, "report")[0], 0)
 
     def test_a_tag_for_an_unknown_criterion_is_a_problem(self):
         root = make_root()
-        put(root, "a.test.ts", "// Verifies AC-99\nit('x', () => {});\n")
+        put(root, "a.test.ts", "// Verifies AC-99\nit('x', () => { expect(1).toBe(1); });\n")
         code, out = run(root, "report")
         self.assertEqual(code, 1)
         self.assertIn("a.test.ts:1 says Verifies AC-99", out)
 
     def test_stale_when_the_hash_does_not_match(self):
         root = make_root()
-        put(root, "a.test.ts", "// Verifies AC-1 [reviewed abcdef0]\nit('x', () => {});\n")
+        put(root, "a.test.ts", "// Verifies AC-1 [reviewed abcdef0]\nit('x', () => { expect(1).toBe(1); });\n")
         code, out = run(root, "report")
         self.assertEqual(code, 1)
         self.assertIn("STALE TESTS", out)
@@ -160,14 +160,14 @@ class Tests(unittest.TestCase):
 
     def test_a_test_with_no_hash_is_listed_but_not_a_failure(self):
         root = make_root()
-        put(root, "a.test.ts", "// Verifies AC-1\nit('x', () => {});\n")
+        put(root, "a.test.ts", "// Verifies AC-1\nit('x', () => { expect(1).toBe(1); });\n")
         code, out = run(root, "report")
         self.assertEqual(code, 0)
         self.assertIn("TESTS WITH NO REVIEW HASH (1)", out)
 
     def test_a_test_for_a_non_acceptance_criterion_is_noted(self):
         root = make_root()
-        put(root, "a.test.ts", "// Verifies AC-3\nit('x', () => {});\n")
+        put(root, "a.test.ts", "// Verifies AC-3\nit('x', () => { expect(1).toBe(1); });\n")
         _, out = run(root, "report")
         self.assertIn("AC-3 is a unit criterion", out)
 
@@ -179,7 +179,7 @@ class Tests(unittest.TestCase):
 
     def test_node_modules_is_skipped(self):
         root = make_root()
-        put(root, "node_modules/x/a.test.ts", "// Verifies AC-1\nit('x', () => {});\n")
+        put(root, "node_modules/x/a.test.ts", "// Verifies AC-1\nit('x', () => { expect(1).toBe(1); });\n")
         _, out = run(root, "report")
         self.assertIn("0 Verifies tag(s)", out)
 
@@ -257,7 +257,7 @@ class Tests(unittest.TestCase):
         root = make_root()
         p = root / "tests/acceptance/a.test.ts"
         p.parent.mkdir(parents=True)
-        p.write_bytes(b"// Verifies AC-1 [reviewed abcdef0]\r\nit('x', () => {});\r\n")
+        p.write_bytes(b"// Verifies AC-1 [reviewed abcdef0]\r\nit('x', () => { expect(1).toBe(1); });\r\n")
         code, out = run(root, "stamp", "AC-1")
         self.assertEqual(code, 0)
         data = p.read_bytes()
@@ -268,7 +268,7 @@ class Tests(unittest.TestCase):
 
     def test_stamp_adds_a_hash_to_a_tag_without_one(self):
         root = make_root()
-        p = put(root, "a.test.ts", "// Verifies AC-1\nit('x', () => {});\n")
+        p = put(root, "a.test.ts", "// Verifies AC-1\nit('x', () => { expect(1).toBe(1); });\n")
         run(root, "stamp", "AC-1")
         self.assertIn("[reviewed ", p.read_text())
 
@@ -282,7 +282,7 @@ class Tests(unittest.TestCase):
     def test_stamping_a_criterion_never_touches_one_that_starts_with_its_id(self):
         root = make_root()
         self._extra_criteria(root, "AC-11")
-        p = put(root, "a.test.ts", "it('a (Verifies AC-11)', () => {});\nit('b (Verifies AC-1)', () => {});\n")
+        p = put(root, "a.test.ts", "it('a (Verifies AC-11)', () => { expect(1).toBe(1); });\nit('b (Verifies AC-1)', () => { expect(1).toBe(1); });\n")
         run(root, "stamp", "AC-1")
         text = p.read_text()
         self.assertIn("Verifies AC-11)", text)
@@ -290,7 +290,7 @@ class Tests(unittest.TestCase):
 
     def test_a_tag_in_a_list_cannot_be_stamped_and_the_report_says_so(self):
         root = make_root()
-        p = put(root, "a.test.ts", "it('both (Verifies AC-1, AC-2)', () => {});\n")
+        p = put(root, "a.test.ts", "it('both (Verifies AC-1, AC-2)', () => { expect(1).toBe(1); });\n")
         before = p.read_text()
         code, out = run(root, "stamp", "AC-1")
         self.assertEqual(code, 1)
@@ -313,34 +313,34 @@ class Tests(unittest.TestCase):
 
     def test_a_tag_in_a_string_that_is_not_a_test_title_is_not_counted(self):
         root = make_root()
-        put(root, "a.test.ts", 'const doc = "Verifies AC-1";\nit("x", () => {});\n')
+        put(root, "a.test.ts", 'const doc = "Verifies AC-1";\nit("x", () => { expect(1).toBe(1); });\n')
         _, out = run(root, "report")
         self.assertIn("AC-1 (proves", out)
 
     def test_a_comment_directly_above_a_test_counts(self):
         root = make_root()
-        put(root, "a.test.ts", "// Verifies AC-1\nit('x', () => {});\n")
+        put(root, "a.test.ts", "// Verifies AC-1\nit('x', () => { expect(1).toBe(1); });\n")
         _, out = run(root, "report")
         self.assertNotIn("AC-1 (proves", out)
 
     def test_a_skipped_test_does_not_cover_its_criterion(self):
         root = make_root()
-        put(root, "a.test.ts", "it.skip('x (Verifies AC-1)', () => {});\n")
-        put(root, "test_b.py", '@pytest.mark.ac("AC-2")\n@pytest.mark.skip(reason="later")\ndef test_x():\n    pass\n')
+        put(root, "a.test.ts", "it.skip('x (Verifies AC-1)', () => { expect(1).toBe(1); });\n")
+        put(root, "test_b.py", '@pytest.mark.ac("AC-2")\n@pytest.mark.skip(reason="later")\ndef test_x():\n    assert 1 + 1 == 2\n')
         _, out = run(root, "report")
         self.assertIn("AC-1 (proves", out)
         self.assertIn("AC-2 (proves", out)
 
     def test_a_marker_that_is_a_comment_is_not_counted(self):
         root = make_root()
-        put(root, "test_a.py", '# @pytest.mark.ac("AC-1")\ndef test_x():\n    pass\n')
+        put(root, "test_a.py", '# @pytest.mark.ac("AC-1")\ndef test_x():\n    assert 1 + 1 == 2\n')
         _, out = run(root, "report")
         self.assertIn("AC-1 (proves", out)
 
     def test_the_report_says_which_criteria_only_the_stack_run_covers(self):
         root = make_root()
-        put(root, "a.it.ts", "it('x (Verifies AC-1)', () => {});\n")
-        put(root, "test_b.py", '@pytest.mark.ac("AC-2")\ndef test_x():\n    pass\n', folder="tests")
+        put(root, "a.it.ts", "it('x (Verifies AC-1)', () => { expect(1).toBe(1); });\n")
+        put(root, "test_b.py", '@pytest.mark.ac("AC-2")\ndef test_x():\n    assert 1 + 1 == 2\n', folder="tests")
         _, out = run(root, "report")
         self.assertIn("COVERED ONLY BY THE STACK RUN (1)", out)
         self.assertIn("AC-1", out.split("COVERED ONLY BY THE STACK RUN")[1].split("\n\n")[0])
@@ -363,7 +363,7 @@ class Tests(unittest.TestCase):
         (onto / "RULE-A1-x.md").write_text("```yaml\nid: RULE-A1\ntype: rule\nname: x\n```\n")
         (onto / "RULE-A2-y.md").write_text("```yaml\nid: RULE-A2\ntype: rule\nname: y\n```\n")
         (onto / "RULE-A3-z.md").write_text("```yaml\nid: RULE-A3\ntype: rule\nname: z\n```\nParked by decision 13: not in the alpha.\n")
-        put(root, "test_a.py", '@pytest.mark.rule("RULE-A1")\n@pytest.mark.rule("RULE-A9")\ndef test_x():\n    pass\n')
+        put(root, "test_a.py", '@pytest.mark.rule("RULE-A1")\n@pytest.mark.rule("RULE-A9")\ndef test_x():\n    assert 1 + 1 == 2\n')
         code, out = run(root, "report")
         self.assertEqual(code, 1)
         self.assertIn("RULE-A9", out.split("RULE TAGS THAT NAME A RULE THAT DOES NOT EXIST")[1])
@@ -375,7 +375,7 @@ class Tests(unittest.TestCase):
     def test_a_title_can_name_one_criterion_and_a_rule_together(self):
         root = make_root()
         (root / "docs/domain/ontology/RULE-A1-x.md").write_text("```yaml\nid: RULE-A1\ntype: rule\nname: x\n```\n")
-        put(root, "a.test.ts", "it('x (Verifies AC-1, RULE-A1)', () => {});\n")
+        put(root, "a.test.ts", "it('x (Verifies AC-1, RULE-A1)', () => { expect(1).toBe(1); });\n")
         code, out = run(root, "report")
         self.assertEqual(code, 0)
         self.assertNotIn("AC-1 (proves", out)
@@ -385,14 +385,14 @@ class Tests(unittest.TestCase):
     def test_a_title_on_the_line_after_the_call_still_counts(self):
         # prettier moves a long title under `itest(`; the tag in it is still in the title of the test
         root = make_root()
-        put(root, "a.it.ts", 'itest(\n  "a long title (Verifies AC-1)",\n  async () => {},\n);\n')
+        put(root, "a.it.ts", 'itest(\n  "a long title (Verifies AC-1)",\n  async () => { expect(1).toBe(1); },\n);\n')
         code, out = run(root, "report")
         self.assertEqual(code, 0)
         self.assertIn("1 Verifies tag(s) found for 1 criterion", out)
 
     def test_a_title_after_the_call_does_not_count_when_the_test_is_skipped(self):
         root = make_root()
-        put(root, "a.it.ts", 'it.skip(\n  "x (Verifies AC-1)",\n  () => {},\n);\n')
+        put(root, "a.it.ts", 'it.skip(\n  "x (Verifies AC-1)",\n  () => { expect(1).toBe(1); },\n);\n')
         code, out = run(root, "report")
         self.assertIn("0 Verifies tag(s) found", out)
 
@@ -404,7 +404,7 @@ class Tests(unittest.TestCase):
 
     def test_show(self):
         root = make_root()
-        put(root, "a.test.ts", "// Verifies AC-1 [reviewed abcdef0]\nit('x', () => {});\n")
+        put(root, "a.test.ts", "// Verifies AC-1 [reviewed abcdef0]\nit('x', () => { expect(1).toBe(1); });\n")
         _, out = run(root, "show", "AC-1")
         self.assertIn("proves FR-1: The system shall approve an account.", out)
         self.assertIn("STALE (recorded abcdef0)", out)
@@ -413,7 +413,7 @@ class Tests(unittest.TestCase):
     def test_the_tool_never_edits_the_csv_files(self):
         root = make_root()
         before = [(root / rq.PATHS[k]).read_bytes() for k in ("req", "ac")]
-        put(root, "a.test.ts", "// Verifies AC-1\nit('x', () => {});\n")
+        put(root, "a.test.ts", "// Verifies AC-1\nit('x', () => { expect(1).toBe(1); });\n")
         for args in (("report",), ("show", "AC-1"), ("stamp", "AC-1"), ("skeleton", "AC-2", "--stack", "vitest", "--write")):
             run(root, *args)
         self.assertEqual(before, [(root / rq.PATHS[k]).read_bytes() for k in ("req", "ac")])

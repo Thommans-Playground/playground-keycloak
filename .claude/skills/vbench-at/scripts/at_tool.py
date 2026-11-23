@@ -30,6 +30,7 @@ Uses only the standard library. This tool never edits the two requirements files
 """
 
 import argparse
+import ast
 import collections
 import re
 import sys
@@ -42,6 +43,8 @@ import uc_tool as uc  # noqa: E402
 
 TESTS_DIR = "tests/acceptance"   # default; vbench.json tests_dirs overrides it
 DEFAULT_STACK = "pytest"
+CRITERION = r"AC-\d+"   # the shape of a criterion id and of a rule id; vbench.json id_patterns overrides them (see _patterns)
+RULE = r"RULE-[A-Z]\d+"
 TAG = re.compile(r"Verifies\s+((?:AC-\d+|RULE-[A-Z]\d+)(?:\s*,\s*(?:AC-\d+|RULE-[A-Z]\d+))*)(?:\s*\[reviewed\s+([0-9a-f]{7})\])?")
 # The pytest form: @pytest.mark.ac("AC-12") or @pytest.mark.ac("AC-12", reviewed="7a2439b"). One marker for each criterion.
 MARK = re.compile(r"""mark\.ac\(\s*["'](AC-\d+)["']\s*(?:,\s*reviewed\s*=\s*["']([0-9a-f]{7})["']\s*)?\)""")
@@ -52,11 +55,16 @@ TEST_FILE = re.compile(r"(^test_.*\.py$|_test\.py$|\.(test|spec|it)\.[cm]?[jt]sx
 STACK_PATH = re.compile(r"(^|/)(integration|acceptance|e2e)(/|$)|\.it\.[cm]?[jt]sx?$")
 # A line that starts a test (test(, it(, itest(, it.skip(, describe(): a tag counts in its title, or in a comment right above.
 TITLE = re.compile(r"^\s*(?:await\s+)?[\w.]*(?:test|it|describe)\w*(?:\.\w+)?\s*\(")
-SKIPPED = re.compile(r"\.skip\s*\(|\{\s*skip\s*:\s*true")
+# A JS test that does not run: .skip, xit/xtest/xdescribe, .todo, .fixme, a skipIf/runIf, or {skip: true}.
+SKIPPED = re.compile(r"\.skip\s*\(|\{\s*skip\s*:\s*true|\bx(?:it|test|describe)\s*\(|\.(?:todo|fixme)\b|\.(?:skipIf|runIf)\s*\(")
+# A JS test whose body is empty on the same line: () => {} or function () {}.
+EMPTY_JS = re.compile(r"=>\s*\{\s*\}|function\s*\w*\s*\([^)]*\)\s*\{\s*\}")
+# A Python decorator or module mark that stops a test running (unconditional skip, expected failure).
+PY_SKIP = re.compile(r"\bmark\.skip\b(?!if)|\bmark\.xfail\b|\bunittest\.skip\b|\bskip\(")
 RULE_TAG = re.compile(r"Verifies\s+((?:AC-\d+|RULE-[A-Z]\d+)(?:\s*,\s*(?:AC-\d+|RULE-[A-Z]\d+))*)")
 RULE_MARK = re.compile(r"""^\s*@pytest\.mark\.rule\(\s*["'](RULE-[A-Z]\d+)["']\s*\)""")
 AC_MARK_LINE = re.compile(r"""^\s*@pytest\.mark\.ac\(\s*["'](AC-\d+)["']\s*(?:,\s*reviewed\s*=\s*["']([0-9a-f]{7})["']\s*)?\)""")
-Tag = collections.namedtuple("Tag", "path line kind id hash listed stack")
+Tag = collections.namedtuple("Tag", "path line kind id hash listed stack empty name", defaults=(False, ""))
 SKIP = {"node_modules", ".git", "__pycache__", ".next", "dist", "build"}
 STACKS = {
     "vitest": (".test.ts", "ac-{n}-{slug}"),
@@ -93,6 +101,86 @@ def _with_title_below(lines, i):
     return line
 
 
+def _marker_of(dec, kind):
+    """(id, reviewed hash) when this decorator is @pytest.mark.<kind>("ID"[, reviewed="hash"]), else None."""
+    if not (isinstance(dec, ast.Call) and ast.unparse(dec.func).endswith(f"mark.{kind}")):
+        return None
+    if not (dec.args and isinstance(dec.args[0], ast.Constant) and isinstance(dec.args[0].value, str)):
+        return None
+    reviewed = next((k.value.value for k in dec.keywords if k.arg == "reviewed" and isinstance(k.value, ast.Constant)), None)
+    return dec.args[0].value, reviewed
+
+
+def _trivial(fn):
+    """True when a test body can fail on nothing: only pass, ..., a string, or an assert of a constant true."""
+    body = [n for n in fn.body]
+    if body and isinstance(body[0], ast.Expr) and isinstance(body[0].value, ast.Constant) and isinstance(body[0].value.value, str):
+        body = body[1:]
+    for n in body:
+        if isinstance(n, ast.Pass):
+            continue
+        if isinstance(n, ast.Expr) and isinstance(n.value, ast.Constant):
+            continue
+        if isinstance(n, ast.Assert) and isinstance(n.test, ast.Constant) and n.test.value:
+            continue
+        return False
+    return True
+
+
+def _py_tags(path, text, stack):
+    """The criterion and rule markers that sit on a Python test that really runs, found with ast, so a marker in a string,
+    on a helper, under a skip (in any order), in a skipped module or class, or on a test that skips itself does not count."""
+    try:
+        tree = ast.parse(text)
+    except SyntaxError:
+        return []  # a file that cannot be parsed cannot run
+    module_skip = any(isinstance(n, ast.Assign) and any(isinstance(t, ast.Name) and t.id == "pytestmark" for t in n.targets)
+                      and PY_SKIP.search(ast.unparse(n.value)) for n in tree.body)
+    found = []
+
+    def handle(fn, class_skip):
+        if not fn.name.startswith("test"):
+            return
+        decs = [ast.unparse(d) for d in fn.decorator_list]
+        self_skip = any(isinstance(n, ast.Expr) and isinstance(n.value, ast.Call)
+                        and re.match(r"pytest\.(skip|xfail)$", ast.unparse(n.value.func)) for n in fn.body)
+        if module_skip or class_skip or self_skip or any(PY_SKIP.search(d) for d in decs):
+            return
+        empty = _trivial(fn)
+        for d in fn.decorator_list:
+            m = _marker_of(d, "ac")
+            if m and re.fullmatch(CRITERION, m[0]):
+                found.append(Tag(path, d.lineno, "ac", m[0], m[1], False, stack, empty, fn.name))
+            m = _marker_of(d, "rule")
+            if m and re.fullmatch(RULE, m[0]):
+                found.append(Tag(path, d.lineno, "rule", m[0], None, False, stack, empty, fn.name))
+
+    def visit(node, class_skip):
+        for child in ast.iter_child_nodes(node):
+            if isinstance(child, ast.ClassDef):
+                visit(child, class_skip or any(PY_SKIP.search(ast.unparse(d)) for d in child.decorator_list))
+            elif isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                handle(child, class_skip)
+            else:
+                visit(child, class_skip)
+
+    visit(tree, False)
+    return found
+
+
+def _js_empty(lines, i):
+    """True when the test call on lines[i] has an empty body: on the same line, or the next line closes it at once."""
+    line = lines[i]
+    if EMPTY_JS.search(line):
+        return True
+    if re.search(r"(=>|function\b[^{]*)\{\s*$", line.rstrip()):
+        k = i + 1
+        while k < len(lines) and not lines[k].strip():
+            k += 1
+        return k < len(lines) and re.match(r"^\s*\}\s*\)\s*;?\s*$", lines[k]) is not None
+    return False
+
+
 def scan_all(root, dirs):
     """Every tag that really sits on a test, as Tag(path, line, kind, id, hash, listed, stack).
     Python: a decorator line `@pytest.mark.ac("AC-n")` or `@pytest.mark.rule("RULE-X")`, and not under a skip.
@@ -112,15 +200,10 @@ def scan_all(root, dirs):
             except UnicodeDecodeError:
                 continue
             stack = bool(STACK_PATH.search(rel(root, p)))
+            if p.suffix == ".py":
+                found += _py_tags(p, "\n".join(lines), stack)
+                continue
             for n, line in enumerate(lines, 1):
-                if p.suffix == ".py":
-                    m = AC_MARK_LINE.match(line)
-                    if m and not _decorators_skip(lines, n - 1):
-                        found.append(Tag(p, n, "ac", m.group(1), m.group(2), False, stack))
-                    m = RULE_MARK.match(line)
-                    if m and not _decorators_skip(lines, n - 1):
-                        found.append(Tag(p, n, "rule", m.group(1), None, False, stack))
-                    continue
                 target = line
                 if re.match(r"^\s*(//|#|\*|/\*)", line):  # a comment counts only right above a test
                     k = n
@@ -135,13 +218,14 @@ def scan_all(root, dirs):
                     continue
                 else:
                     target = _with_title_below(lines, n - 1)
+                empty = _js_empty(lines, k if re.match(r"^\s*(//|#|\*|/\*)", line) else n - 1)
                 for m in TAG.finditer(target):
                     ids = re.findall(r"AC-\d+", m.group(1))
                     for ac_id in ids:
-                        found.append(Tag(p, n, "ac", ac_id, m.group(2) if len(ids) == 1 else None, len(ids) > 1, stack))
+                        found.append(Tag(p, n, "ac", ac_id, m.group(2) if len(ids) == 1 else None, len(ids) > 1, stack, empty, target.strip()[:200]))
                 for m in RULE_TAG.finditer(target):
                     for rid in re.findall(r"RULE-[A-Z]\d+", m.group(1)):
-                        found.append(Tag(p, n, "rule", rid, None, False, stack))
+                        found.append(Tag(p, n, "rule", rid, None, False, stack, empty, target.strip()[:200]))
     return found
 
 

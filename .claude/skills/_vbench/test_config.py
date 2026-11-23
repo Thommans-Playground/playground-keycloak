@@ -68,5 +68,33 @@ class Tests(unittest.TestCase):
         self.assertEqual(cfg["areas"], {"A": "BC-ACCESS", "P": "BC-PROJECTS", "L": "BC-AUDIT"})
 
 
+class NewKeys(unittest.TestCase):
+    def test_the_adoption_packs_results_patterns_and_gate_keys_load(self):
+        cfg = load({"adoption": {"default": "legacy", "A": "adopted"}, "packs": ["core"], "results": "junit.xml",
+                    "id_patterns": {"criterion": r"AC-[A-Z]-\d{3}"}, "gate": ["make test"],
+                    "stacks": {"api": {"path": "api", "language": "python", "test_framework": "pytest"}}})
+        self.assertEqual(cfg["adoption"], {"default": "legacy", "A": "adopted"})
+        self.assertEqual(cfg["packs"], ["core"])
+        self.assertEqual(cfg["results"], "junit.xml")
+        self.assertEqual(cfg["id_patterns"]["criterion"], r"AC-[A-Z]-\d{3}")
+        self.assertEqual(cfg["id_patterns"]["rule"], r"RULE-[A-Z]\d+")  # kinds left out keep their default
+        self.assertEqual(cfg["gate"], ["make test"])
+
+    def test_the_defaults_keep_this_repo_strict_and_complete(self):
+        cfg = config.load(tempfile.mkdtemp())
+        self.assertEqual(cfg["adoption"], {"default": "adopted"})
+        self.assertEqual(cfg["packs"], ["core", "ddd", "security", "keycloak"])
+        self.assertIsNone(cfg["results"])
+        self.assertIsNone(cfg["gate"])
+
+    def test_a_bad_value_is_refused_with_a_reason(self):
+        for bad, words in (({"adoption": {"A": "half"}}, "adoption.A"), ({"packs": ["magic"]}, "unknown pack"),
+                           ({"results": 3}, "results"), ({"id_patterns": {"criterion": "("}}, "regular expression"),
+                           ({"id_patterns": {"nope": "x"}}, "unknown key"), ({"gate": []}, "gate")):
+            with self.assertRaises(SystemExit) as cm:
+                load(bad)
+            self.assertIn(words, str(cm.exception))
+
+
 if __name__ == "__main__":
     unittest.main()

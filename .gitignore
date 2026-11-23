@@ -8,3 +8,6 @@ node_modules/
 
 # Local learning progress (vbench-walkthrough): personal, never committed
 .learning/
+
+# Test results (scripts/test-results.sh): regenerated, never committed
+.claude/test-results/
