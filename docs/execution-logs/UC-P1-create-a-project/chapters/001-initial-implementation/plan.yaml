@@ -1,0 +1,14 @@
+chapter: 001
+title: Initial implementation
+use_case: UC-P1
+kind: initial            # initial | fix | hardening | enhancement
+state: in-progress
+slices:                  # from the use case file, "Slices"
+  - {id: TSK-P1.1, written: true, file: TSK-P1.1-access-answers-which-accounts-are-active.md, review: draft}
+  - {id: TSK-P1.2, written: true, file: TSK-P1.2-projects-and-memberships-tables-with-grants.md, review: draft}
+  - {id: TSK-P1.3, written: true, file: TSK-P1.3-an-administrator-creates-a-project.md, review: draft}
+  - {id: TSK-P1.4, written: true, file: TSK-P1.4-only-an-administrator-creates-a-project.md, review: draft}
+  - {id: TSK-P1.5, written: true, file: TSK-P1.5-name-members-and-fields.md, review: draft}
+  - {id: TSK-P1.6, written: true, file: TSK-P1.6-first-members-active-and-once.md, review: draft}
+  - {id: TSK-P1.7, written: true, file: TSK-P1.7-audit-and-log-refusals.md, review: draft}
+  - {id: TSK-P1.8, written: true, file: TSK-P1.8-create-project-page.md, review: draft}

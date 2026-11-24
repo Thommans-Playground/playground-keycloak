@@ -1,0 +1,99 @@
+{
+  "use_case": "UC-P1",
+  "steps": {
+    "TSK-P1.1": {
+      "chapter": "001-initial-implementation",
+      "file": "TSK-P1.1-access-answers-which-accounts-are-active.md",
+      "criteria": [],
+      "matches_code_at": "7481263",
+      "accuracy_reviewed_by": "a read-only agent on 2026-11-24, findings applied",
+      "reviewed_at": null
+    },
+    "TSK-P1.2": {
+      "chapter": "001-initial-implementation",
+      "file": "TSK-P1.2-projects-and-memberships-tables-with-grants.md",
+      "criteria": [
+        "AC-95"
+      ],
+      "matches_code_at": "7481263",
+      "accuracy_reviewed_by": "a read-only agent on 2026-11-24, findings applied",
+      "reviewed_at": null
+    },
+    "TSK-P1.3": {
+      "chapter": "001-initial-implementation",
+      "file": "TSK-P1.3-an-administrator-creates-a-project.md",
+      "criteria": [
+        "AC-9",
+        "AC-10"
+      ],
+      "matches_code_at": "7481263",
+      "accuracy_reviewed_by": "a read-only agent on 2026-11-24, findings applied",
+      "reviewed_at": null
+    },
+    "TSK-P1.4": {
+      "chapter": "001-initial-implementation",
+      "file": "TSK-P1.4-only-an-administrator-creates-a-project.md",
+      "criteria": [
+        "AC-11",
+        "AC-32",
+        "AC-94"
+      ],
+      "matches_code_at": "7481263",
+      "accuracy_reviewed_by": "a read-only agent on 2026-11-24, findings applied",
+      "reviewed_at": null
+    },
+    "TSK-P1.5": {
+      "chapter": "001-initial-implementation",
+      "file": "TSK-P1.5-name-members-and-fields.md",
+      "criteria": [
+        "AC-12",
+        "AC-91",
+        "AC-92",
+        "AC-93"
+      ],
+      "matches_code_at": "7481263",
+      "accuracy_reviewed_by": "a read-only agent on 2026-11-24, findings applied",
+      "reviewed_at": null
+    },
+    "TSK-P1.6": {
+      "chapter": "001-initial-implementation",
+      "file": "TSK-P1.6-first-members-active-and-once.md",
+      "criteria": [
+        "AC-13",
+        "AC-89"
+      ],
+      "matches_code_at": "7481263",
+      "accuracy_reviewed_by": "a read-only agent on 2026-11-24, findings applied",
+      "reviewed_at": null
+    },
+    "TSK-P1.7": {
+      "chapter": "001-initial-implementation",
+      "file": "TSK-P1.7-audit-and-log-refusals.md",
+      "criteria": [
+        "AC-29",
+        "AC-48",
+        "AC-85",
+        "AC-89"
+      ],
+      "matches_code_at": "7481263",
+      "accuracy_reviewed_by": "a read-only agent on 2026-11-24, findings applied",
+      "reviewed_at": null
+    },
+    "TSK-P1.8": {
+      "chapter": "001-initial-implementation",
+      "file": "TSK-P1.8-create-project-page.md",
+      "criteria": [
+        "AC-9",
+        "AC-10",
+        "AC-11",
+        "AC-12",
+        "AC-13",
+        "AC-32",
+        "AC-91"
+      ],
+      "matches_code_at": "7481263",
+      "accuracy_reviewed_by": "a read-only agent on 2026-11-24, findings applied",
+      "reviewed_at": null
+    }
+  }
+}
