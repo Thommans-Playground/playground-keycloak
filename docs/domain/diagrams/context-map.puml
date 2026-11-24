@@ -1,0 +1,68 @@
+@startuml context-map
+!include _style.puml
+title Playground context map (draft: the relationship words are for the owner to confirm)
+' One idea: which bounded context asks which, and how. An arrow points from the side that ASKS to the side that ANSWERS.
+' Sources: docs/domain/contexts/BC-ACCESS.md, BC-PROJECTS.md, BC-AUDIT.md (their refers_to and ports_needed), ADR 0002
+' (Caller), ADR 0003 and 0011 (Audit as its own context), decision 14.
+' NOT drawn: what is inside each context (access-design.puml, projects-design.puml, audit-design.puml), the actors
+' (usecases-access.puml), the web server (bff-design.puml), the ports by name beyond the label on a line.
+' Status: Access and Projects are built. Audit is built inside Access today and is being split out (decision 14, "planned"
+' in BC-AUDIT). Files, Endpoints and Evaluations are named by BC-PROJECTS and have no page yet.
+' Every line is dashed: no context imports another. Each goes through a port, and a bridge in composition/ (the one place
+' that knows all three) answers it. The architecture tests enforce this.
+' References between contexts are by identity only (an account id, a project id), never by a shared model.
+
+skinparam rectangle {
+  RoundCorner 8
+}
+skinparam rectangle<<generic>> {
+  BackgroundColor #E8F0FE
+  BorderColor #555555
+}
+skinparam rectangle<<supporting>> {
+  BackgroundColor #FFFDE7
+  BorderColor #555555
+}
+skinparam rectangle<<planned>> {
+  BackgroundColor #FFFFFF
+  BorderColor #888888
+  BorderStyle dashed
+}
+skinparam cloud<<external>> {
+  BackgroundColor #ECEFF1
+  BorderColor #555555
+}
+top to bottom direction
+
+package "Playground API: one folder for each bounded context" {
+  rectangle "Projects\nbuilt" as PRJ <<supporting>>
+  rectangle "Access\nbuilt" as ACC <<generic>>
+  rectangle "Audit\nbeing split out of Access" as AUD <<generic>>
+}
+
+rectangle "Files, Endpoints, Evaluations\nno page yet" as PLN <<planned>>
+cloud "Keycloak" as KC <<external>>
+
+PRJ ..> ACC : Customer / Supplier\n(AccountStatus, People)
+PRJ ..> AUD : Customer / Supplier\n(AuditLog)
+ACC ..> AUD : Customer / Supplier\n(AuditLog)
+ACC ..> KC : ACL\n(IdentityProvider)
+PLN ..> PRJ : by project id only
+
+note bottom of AUD
+  Projects never imports Access. It receives a Caller
+  (account id, is administrator), set once by the route
+  guard (ADR 0002).
+  Audit never changes an account, a role, a project or a
+  member. It holds entries about them. Append only.
+  The token's sub becomes our account id. Keycloak's
+  words stay on its side of the ACL.
+end note
+
+legend bottom
+|= Word |= Meaning |
+| Customer / Supplier | The side that asks, and the side that answers and plans for it |
+| ACL | We translate an outside system so its words stay out of ours |
+| dashed arrow | goes through a port, answered by a bridge in composition/ |
+endlegend
+@enduml

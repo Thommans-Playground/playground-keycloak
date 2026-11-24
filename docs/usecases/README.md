@@ -3,6 +3,7 @@
 - [Access use case diagram](diagrams/usecases-access.puml): who starts what, and where Keycloak takes part.
 - [Order of execution](diagrams/order-of-execution.puml): how the use cases depend on each other, what is built, and the order to build the rest. Update its colours when a use case is built.
 - [Design diagram](../domain/diagrams/access-design.puml): the ports and adapters the use cases share.
+- [Context map](../domain/diagrams/context-map.puml): the bounded contexts (Access, Projects, Audit) and Keycloak, and how each relates to the others. It sits above the per-context design diagrams.
 - Each use case file has a short **Mermaid overview**, and links to a **PlantUML sequence** (in `diagrams/`) with the
   detail: every step numbered as in the main flow, and the failure paths.
 
