@@ -56,6 +56,8 @@ A command or flag that must stay in the script's `--help`.
 | vbench-explain | terms_tool.py | find |
 | vbench-explain | terms_tool.py | seen |
 | vbench-explain | terms_tool.py | check |
+| vbench-execlog | execlog_tool.py | check |
+| vbench-execlog | execlog_tool.py | shape |
 
 ## Guards that must stay
 
@@ -100,6 +102,9 @@ A phrase that must stay in its file, case ignored. Each is a refusal, a limit or
 | .claude/skills/vbench-explain/SKILL.md | .learning/terms-seen.txt | the only file it writes |
 | .claude/skills/vbench-explain/SKILL.md | Do not interrupt | a term never breaks a step that must finish |
 | .claude/skills/vbench-explain/scripts/terms_tool.py | does not exist | a card's code pointers are checked, so they cannot rot |
+| .claude/skills/vbench-execlog/SKILL.md | No test, no step | a step with no failing test of its own is folded into another |
+| .claude/skills/vbench-execlog/SKILL.md | Never type code by hand | code blocks are copied from the real files |
+| .claude/skills/vbench-execlog/scripts/execlog_tool.py | Logic. | every step has its logic written |
 | .claude/skills/vbench-pr/SKILL.md | never merge | a pull request skill does not merge |
 | .claude/skills/vbench-commit/SKILL.md | git add -A | files are staged by name |
 | .claude/skills/vbench-branch/SKILL.md | switch -C | a branch is never moved by force |

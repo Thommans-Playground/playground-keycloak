@@ -31,3 +31,4 @@ what, accepted risk) stay in [docs/domain/decisions.md](../domain/decisions.md).
 | [0019](0019-adopt-by-strangling-not-rewriting.md) | Adopt the harness one area at a time, never by rewriting |
 | [0020](0020-evaluate-the-process-and-make-green-honest.md) | Evaluate the process; make green honest and the surface light |
 | [0021](0021-execution-log-a-notebook-for-each-use-case.md) | Execution log: an engineering notebook for each use case |
+| [0022](0022-execution-log-tasks-are-code-alongs.md) | Execution log: a task is a slice, a step is one tested behaviour, and a skill writes it |

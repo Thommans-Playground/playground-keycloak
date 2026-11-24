@@ -57,6 +57,7 @@ the one place the mapping is written; the skills do not repeat it.
 | `vbench-adopt` | reading an existing project, the proposed config, and the ladder for adopting the harness one area at a time | moving, renaming or rewriting the project's own files, marking an area adopted because it was scanned | `vbench-req`, `vbench-uc`, `vbench-tdd`, `vbench-vcycle` | core |
 | `vbench-walkthrough` | teaching existing code, one learner at a time, over a whole use case | editing code, reading the learner's notes | `vbench-tdd` | core |
 | `vbench-explain` | the term cards in `docs/learn/terms/` and what the learner has seen; explaining one term where it comes up | reading the learner's notes, teaching a term twice | `vbench-walkthrough` | core |
+| `vbench-execlog` | the shape of an execution log task file (steps, test levels, the summary entry) and its check | writing the code or the test, approving its own work | `vbench-tdd`, `vbench-walkthrough` | core |
 
 ## Who owns what when two could (decided in ADR 0017)
 

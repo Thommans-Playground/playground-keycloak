@@ -33,22 +33,21 @@ docs/execution-logs/UC-P1-create-a-project/
 
 A **chapter** is one change. It has a `summary.md` (the overview, in nine sections: objective, engineering context, implementation strategy with the ground
 rules every task assumes, execution plan, risks, decisions and deviations, verification summary, approvals, outcome and
-learnings) and one file for each task. A **task** is a `TSK-` line from the use case's Slices; its stages are inside
-its file.
+learnings) and one file for each task. A **task** is a `TSK-` line from the use case's Slices; its steps are inside
+its file, each one behaviour with one failing test.
 
-## A task file has these parts, in this order
+## A task file: a code-along
 
-A task file is a code-along: someone who has the design can follow it and build the same thing. It gives the logic, the
-reasoning and the plan, and does not explain red, green or refactor.
+A **task** is one slice that can be built and tested on its own. A **step** is one behaviour inside it, with one failing test
+and the code that makes it pass ([ADR 0022](../adr/0022-execution-log-tasks-are-code-alongs.md)). The what and why of every
+task is in the chapter's `summary.md`, under "What and why, task by task". The task file is what you follow at the keyboard:
 
-1. **Header**: the task, criteria, plan status, the commit its code matches, and a link to the summary.
-2. **What we are building, and why**: a table of each AC (given, then, why it exists).
-3. **The logic**: the decisions, each tied to a criterion, and where the code lives and why there.
-4. **The plan**: stages in the order to work, each with the test to write, the command to run, what to **expect**, then
-   the code. The last stage ends on the final code, copied from its file.
-5. **Check it yourself**: the commands that prove it, with the counts.
-6. **Where this leaves things**: files, tests, ADR.
-7. **Review**: who read the plan against the code, at which commit.
+1. **Header**: task id, use case, criteria, the commit its code matches.
+2. **A link** to the task's entry in `summary.md`, and **the command** that runs its tests.
+3. **Steps**, each with **Test** (and its level: Unit, API, Integration or Architecture), **Code** and **Logic.**
+
+Write one with the `vbench-execlog` skill and check it with
+`python3 .claude/skills/vbench-execlog/scripts/execlog_tool.py check`. `execlog_tool.py shape` prints the shape to copy.
 
 ## Rules
 

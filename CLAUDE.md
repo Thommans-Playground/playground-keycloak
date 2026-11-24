@@ -39,6 +39,10 @@ After a use case is built, `vbench-security-tester` (run through `/vbench-securi
 
 The person building this is meant to understand what they own. When you are about to use a term that has a card in `docs/learn/terms/` and they have not met it (`python3 .claude/skills/vbench-explain/scripts/terms_tool.py find "<text>" --unseen`), explain it in about three lines from the card and the real code it points to, ask the card's one question and let them answer first, then record it with `terms_tool.py seen`. At most two terms at a time, never in the middle of a step, once only. Run `/vbench-explain` for the full shape. The cards are checked, so a card whose code has moved fails `terms_tool.py check`.
 
+## Execution logs
+
+A use case's notebook is `docs/execution-logs/<UC>/`. A task is one slice, a step is one behaviour with one failing test, and the task file is a code-along (ADR 0022). Write one with `/vbench-execlog`; check it with `python3 .claude/skills/vbench-execlog/scripts/execlog_tool.py check`.
+
 ## Decisions
 
 The owner's decisions (scope, people, who may do what, accepted risk) go in `docs/domain/decisions.md`. Technical decisions (how it is built) go in `docs/adr/`, one short file each, numbered and never edited to change their meaning (see `docs/adr/README.md`). The agent decides the technical ones and records them there, and asks the owner only about scope, people, permissions and risk.
